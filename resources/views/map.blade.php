@@ -120,25 +120,20 @@
         }
 
         .nav-button {
-            padding: 10px 16px;
-            font-size: 14.5px;
-            background: transparent; /* Кнопки прозрачные, пока не активны */
-            color: var(--text-soft);
-            font-weight: 650;
-            
-            /* Убираем все индивидуальные рамки и тени */
-            border: none; 
-            box-shadow: none; 
-            border-radius: var(--radius-md); /* Скругление самого ползунка */
-            transition: all var(--transition);
+            flex: 1 !important;
+            border-radius: 100px !important;
+            border: none !important;
+            background: transparent !important;
+            padding: 8px 20px !important;
+            font-weight: 600 !important;
+            cursor: pointer !important;
+            transition: all 0.3s ease !important;
         }
 
         .nav-button.active {
-            background: #ffffff; /* Белая плашка активной кнопки */
-            color: var(--text);
-            /* Мягкая тень, чтобы активная кнопка казалась объемной над серой подложкой */
-            box-shadow: 0 4px 12px rgba(13, 40, 61, 0.12); 
-            border: none;
+            background: #ffffff !important;
+            color: #0b669c !important;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1) !important;
         }
         .nav-button:hover:not(.active) {
             color: var(--accent);
@@ -891,15 +886,14 @@
             }
 
             .topbar-nav {
-                display: grid;
-                grid-template-columns: repeat(2, minmax(130px, 190px));
-                gap: 4px; 
-                padding: 4px; 
-                background: #eef3f8; 
-                
-                border: 2px solid #c9d8e4;
-                
-                border-radius: var(--radius-lg); 
+                display: flex !important;
+                background: #eef2f6 !important;
+                border: 2px solid #cbd5e1 !important; /* Та самая рамка */
+                border-radius: 100px !important;
+                padding: 4px !important;
+                gap: 4px !important;
+                width: fit-content !important;
+                margin: 0 auto !important;
             }
             .topbar-subtitle {
                 font-size: 12px;
