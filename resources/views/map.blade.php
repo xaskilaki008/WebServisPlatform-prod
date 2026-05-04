@@ -1350,7 +1350,7 @@
     map.createPane('beachPolygonsPane');
     map.getPane('beachPolygonsPane').style.zIndex = '350';
     map.getPane('beachPolygonsPane').style.pointerEvents = 'auto';
-
+    map.attributionControl.setPrefix(false);
     // const infoName = document.getElementById('info-name');
     // const infoNumber = document.getElementById('info-number');
     // const infoWaveLevel = document.getElementById('info-wave-level');
