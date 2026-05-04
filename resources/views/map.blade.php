@@ -121,19 +121,19 @@
 
         .nav-button {
             flex: 1 !important;
-            border-radius: 100px !important;
+            border-radius: 40px !important;
             border: none !important;
             background: transparent !important;
-            padding: 8px 20px !important;
+            padding: 8px 24px !important;
             font-weight: 600 !important;
             cursor: pointer !important;
-            transition: all 0.3s ease !important;
+            transition: all 0.2s ease !important;
         }
 
         .nav-button.active {
-            background: #ffffff !important;
+            background-color: #ffffff !important;
             color: #0b669c !important;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1) !important;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.15) !important;
         }
         .nav-button:hover:not(.active) {
             color: var(--accent);
@@ -355,8 +355,12 @@
 
         #map {
             width: 100%;
-            height: clamp(360px, 62vh, 860px);
-            transition: height var(--transition);
+            /* Вычитаем высоту topbar (примерно 80-100px), чтобы не было вертикальной прокрутки */
+            height: calc(100vh - 100px) !important; 
+            min-height: 600px;
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-md);
+            z-index: 1;
         }
 
         .screen-header {
@@ -850,12 +854,22 @@
                 grid-template-columns: repeat(2, minmax(0, 1fr));
                 gap: 11px;
             }
+            #map {
+                height: 500px !important; 
+                
+
+                
+                min-height: 400px !important;
+                border-radius: var(--radius-lg);
+            }
+
+           #map-screen.is-map-expanded #map {
+                height: 650px !important;
+            }
         }
 
         @media (min-width: 1120px) {
             .map-layout {
-                    /* Если удалил aside целиком, ставь 1fr. 
-                    Если оставил легенду, можно оставить 320px или уменьшить */
                     grid-template-columns: 1fr; 
                     gap: 16px;
             }
@@ -878,7 +892,27 @@
                 grid-template-columns: repeat(3, minmax(0, 1fr));
             }
         }
+        @media (min-width: 1200px) {
+            .main-container {
+                max-width: 1800px;
+                margin: 0 auto;
+                padding: 0 20px;
+            }
 
+            #map {
+                /* Вместо 100vh ставим фиксированную приятную высоту */
+                height: 550px !important; 
+                min-height: 500px !important;
+                /* Ограничиваем, чтобы карта не «улетала» вниз на огромных экранах */
+                max-height: 65vh !important; 
+            }
+
+            /* Когда карта развернута кнопкой «Развернуть» */
+            #map-screen.is-map-expanded #map {
+                height: 750px !important;
+                max-height: 85vh !important;
+            }
+        }
         @media (max-width: 819px) {
             .topbar-inner {
                 flex-direction: column;
@@ -887,13 +921,14 @@
 
             .topbar-nav {
                 display: flex !important;
-                background: #eef2f6 !important;
-                border: 2px solid #cbd5e1 !important; /* Та самая рамка */
-                border-radius: 100px !important;
+                background-color: #eef2f6 !important;
+                border: 2px solid #cbd5e1 !important; /* ТА САМАЯ РАМКА */
+                border-radius: 50px !important;
                 padding: 4px !important;
                 gap: 4px !important;
                 width: fit-content !important;
                 margin: 0 auto !important;
+                visibility: visible !important; /* На всякий случай */
             }
             .topbar-subtitle {
                 font-size: 12px;
