@@ -893,13 +893,13 @@
             .topbar-nav {
                 display: grid;
                 grid-template-columns: repeat(2, minmax(130px, 190px));
-                gap: 4px; /* Небольшое расстояние между кнопками */
-                padding: 4px; /* Внутренний отступ от рамки до кнопок */
-                
-                /* Делаем красивую подложку и рамку */
+                gap: 4px; 
+                padding: 4px; 
                 background: #eef3f8; 
-                border: 2px solid var(--border); 
-                border-radius: var(--radius-lg); /* Скругленные углы всей панели */
+                
+                border: 2px solid #c9d8e4;
+                
+                border-radius: var(--radius-lg); 
             }
             .topbar-subtitle {
                 font-size: 12px;
