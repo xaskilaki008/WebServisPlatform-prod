@@ -1,0 +1,678 @@
+{
+  "type": "FeatureCollection",
+  "name": "sevastopol_beaches",
+  "crs": {
+    "type": "name",
+    "properties": {
+      "name": "EPSG:4326"
+    }
+  },
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "section": "Договор о благоустройстве пляжа",
+        "num": 1,
+        "name": "Андреевка",
+        "area_ha": 1.61,
+        "shoreline_m": 950,
+        "swimzone_m": 300
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          33.551789,
+          44.817736
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "section": "Договор о благоустройстве пляжа",
+        "num": 2,
+        "name": "Орловка-1",
+        "area_ha": 5.18,
+        "shoreline_m": 544,
+        "swimzone_m": 200
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          33.548666,
+          44.725632
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "section": "Договор о благоустройстве пляжа",
+        "num": 3,
+        "name": "Нахимовец",
+        "area_ha": 1.84,
+        "shoreline_m": 473,
+        "swimzone_m": 473
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          33.549097,
+          44.721997
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "section": "Договор о благоустройстве пляжа",
+        "num": 4,
+        "name": "Любимовка-2",
+        "area_ha": 8.42,
+        "shoreline_m": 1290,
+        "swimzone_m": 1290
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          33.544677,
+          44.662061
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "section": "Договор о благоустройстве пляжа",
+        "num": 5,
+        "name": "Любимовка-1",
+        "area_ha": 0.82,
+        "shoreline_m": 170,
+        "swimzone_m": 170
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          33.543399,
+          44.658445
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "section": "Договор о благоустройстве пляжа",
+        "num": 6,
+        "name": "Учкуевка",
+        "area_ha": 9.52,
+        "shoreline_m": 1520,
+        "swimzone_m": 700
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          33.536444,
+          44.645732
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "section": "Договор о благоустройстве пляжа",
+        "num": 7,
+        "name": "Ушакова балка",
+        "area_ha": 0.06,
+        "shoreline_m": 75,
+        "swimzone_m": 70
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          33.546533,
+          44.6157
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "section": "Договор о благоустройстве пляжа",
+        "num": 8,
+        "name": "Мыс Хрустальный",
+        "area_ha": 0.76,
+        "shoreline_m": 404,
+        "swimzone_m": 350
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          33.518181,
+          44.616705
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "section": "Договор о благоустройстве пляжа",
+        "num": 9,
+        "name": "Солнечный",
+        "area_ha": 0.22,
+        "shoreline_m": 108,
+        "swimzone_m": 108
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          33.484992,
+          44.608877
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "section": "Договор о благоустройстве пляжа",
+        "num": 10,
+        "name": "Песочный",
+        "area_ha": 0.21,
+        "shoreline_m": 48,
+        "swimzone_m": 44.5
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          33.481344,
+          44.60775
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "section": "Договор о благоустройстве пляжа",
+        "num": 11,
+        "name": "Парк Победы",
+        "area_ha": 3.6,
+        "shoreline_m": 457,
+        "swimzone_m": 330
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          33.456461,
+          44.608897
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "section": "Договор о благоустройстве пляжа",
+        "num": 12,
+        "name": "Омега",
+        "area_ha": 3.71,
+        "shoreline_m": 720,
+        "swimzone_m": 620
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          33.44467,
+          44.597326
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "section": "Договор о благоустройстве пляжа",
+        "num": 13,
+        "name": "Солдатский-1",
+        "area_ha": 0.31,
+        "shoreline_m": 50,
+        "swimzone_m": 50
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          33.431361,
+          44.596614
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "section": "Договор о благоустройстве пляжа",
+        "num": 14,
+        "name": "Солдатский-2",
+        "area_ha": 0.65,
+        "shoreline_m": 99.7,
+        "swimzone_m": 99.7
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          33.43083,
+          44.596533
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "section": "Договор о благоустройстве пляжа",
+        "num": 15,
+        "name": "Яшмовый",
+        "area_ha": 1.14,
+        "shoreline_m": 420,
+        "swimzone_m": 217
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          33.507245,
+          44.503437
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "section": "Договор о благоустройстве пляжа",
+        "num": 16,
+        "name": "Васили",
+        "area_ha": 1.23,
+        "shoreline_m": 214,
+        "swimzone_m": 120
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          33.578063,
+          44.492101
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "section": "Договор о благоустройстве пляжа",
+        "num": 17,
+        "name": "Городской",
+        "area_ha": 0.08,
+        "shoreline_m": 60,
+        "swimzone_m": 60
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          33.598707,
+          44.496629
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "section": "Договор о благоустройстве пляжа",
+        "num": 18,
+        "name": "Серебряный",
+        "area_ha": 0.64,
+        "shoreline_m": 200,
+        "swimzone_m": 100
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          33.617038,
+          44.487941
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "section": "Договор о благоустройстве пляжа",
+        "num": 19,
+        "name": "Золотой",
+        "area_ha": 1.16,
+        "shoreline_m": 363,
+        "swimzone_m": 120
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          33.629762,
+          44.479938
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "section": "Договор о благоустройстве пляжа",
+        "num": 20,
+        "name": "Дельфин",
+        "area_ha": 0.12,
+        "shoreline_m": 57,
+        "swimzone_m": 46
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          33.715832,
+          44.412593
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "section": "Договор о благоустройстве пляжа",
+        "num": 21,
+        "name": "Альбатрос",
+        "area_ha": 1.89,
+        "shoreline_m": 297,
+        "swimzone_m": 297
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          33.541692,
+          44.655154
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "section": "Договор о благоустройстве пляжа",
+        "num": 22,
+        "name": "Мраморный",
+        "area_ha": 0.36,
+        "shoreline_m": 187,
+        "swimzone_m": 77
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          33.592313,
+          44.495622
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "section": "Договор о благоустройстве пляжа",
+        "num": 23,
+        "name": "Наш Парус",
+        "area_ha": 0.13,
+        "shoreline_m": 421,
+        "swimzone_m": 421
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          33.537349,
+          44.780741
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "section": "Договор о благоустройстве пляжа",
+        "num": 24,
+        "name": "Звездный берег",
+        "area_ha": 0.21,
+        "shoreline_m": 69,
+        "swimzone_m": 69
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          33.547113,
+          44.731334
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "section": "Договор о благоустройстве пляжа",
+        "num": 25,
+        "name": "Вязовая роща",
+        "area_ha": 0.18,
+        "shoreline_m": 137,
+        "swimzone_m": 137
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          33.548622,
+          44.718546
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "section": "Иные правоустанавливающие документы",
+        "num": 1,
+        "name": "БО Батилиман",
+        "area_ha": 0.1,
+        "shoreline_m": 50,
+        "swimzone_m": 50
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          33.68898,
+          44.419022
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "section": "Иные правоустанавливающие документы",
+        "num": 2,
+        "name": "БО Изумруд",
+        "area_ha": 0.97,
+        "shoreline_m": 50,
+        "swimzone_m": 50
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          33.719553,
+          44.407572
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "section": "Иные правоустанавливающие документы",
+        "num": 3,
+        "name": "ДОЛ Алкадар",
+        "area_ha": 0.22,
+        "shoreline_m": 50,
+        "swimzone_m": 50
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          33.542547,
+          44.656964
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "section": "Иные правоустанавливающие документы",
+        "num": 4,
+        "name": "ДОЛ Радость",
+        "area_ha": 0.98,
+        "shoreline_m": 100,
+        "swimzone_m": 100
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          33.545712,
+          44.664721
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "section": "Иные правоустанавливающие документы",
+        "num": 5,
+        "name": "ФГБУ База отдыха Севастополь",
+        "area_ha": 0.45,
+        "shoreline_m": 240,
+        "swimzone_m": 240
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          33.522387,
+          44.638075
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "section": "Иные правоустанавливающие документы",
+        "num": 6,
+        "name": "ГБОУ ДО ДЮЦ Ласпи",
+        "area_ha": 0.45,
+        "shoreline_m": 117,
+        "swimzone_m": 117
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          33.709588,
+          44.418178
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "section": "Иные правоустанавливающие документы",
+        "num": 7,
+        "name": "Аквамарин",
+        "area_ha": 0.18,
+        "shoreline_m": 206,
+        "swimzone_m": 206
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          33.459595,
+          44.609017
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "section": "Иные правоустанавливающие документы",
+        "num": 8,
+        "name": "СОЦ Горизонт",
+        "area_ha": 1.4,
+        "shoreline_m": 290,
+        "swimzone_m": 200
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          33.539341,
+          44.652304
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "section": "Иные правоустанавливающие документы",
+        "num": 9,
+        "name": "Таврида",
+        "area_ha": 0.33,
+        "shoreline_m": 140,
+        "swimzone_m": 140
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          33.689999,
+          44.419142
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "section": "Иные правоустанавливающие документы",
+        "num": 10,
+        "name": "ДОЛ Чайка",
+        "area_ha": 0.43,
+        "shoreline_m": 200,
+        "swimzone_m": 200
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          33.682566,
+          44.417399
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "section": "Иные правоустанавливающие документы",
+        "num": 11,
+        "name": "Песочная бухта",
+        "area_ha": 0.08,
+        "shoreline_m": 120,
+        "swimzone_m": 120
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          33.482661,
+          44.608289
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "properties": {
+        "section": "Иные правоустанавливающие документы",
+        "num": 12,
+        "name": "База отдыха подводников КЧФ РФ",
+        "area_ha": 0.09,
+        "shoreline_m": 44,
+        "swimzone_m": 44
+      },
+      "geometry": {
+        "type": "Point",
+        "coordinates": [
+          33.686384,
+          44.418604
+        ]
+      }
+    }
+  ]
+}
