@@ -225,18 +225,35 @@
         }
 
         .legend-panel {
+            display: flex;
+            align-items: center; /* Центрируем элементы по вертикали */
+            justify-content: space-between;
+            gap: 16px; /* Аккуратный отступ между текстом и картинкой */
             overflow: hidden;
         }
-
+        .legend-text {
+            flex: 0.7; /* Вот та самая магия! Текст берет коэффициент 0.7 */
+            display: flex;
+            flex-direction: column;
+            gap: 8px; /* Отступ между заголовком и описанием */
+        }
+        .legend-panel h3 {
+            margin: 0;
+            font-size: 48px; /* Делаем заголовок крупнее */
+            font-weight: 700;
+            line-height: 1.2;
+        }
         .legend-meta {
-            margin: 0 0 10px;
-            font-size: 13px;
-            color: #0b669c;
+            margin: 0;
+            font-size: 54.5px; /* Увеличиваем текст (был 13px) */
+            color: #0b669c; /* Оставляем твой фирменный цвет */
+            line-height: 1.45; /* Даем тексту "подышать" */
         }
 
         .legend-image {
+            flex: 1; /* Картинка берет коэффициент 1 */
             width: 100%;
-            max-height: 300px;
+            max-width: 68%; /* Защита, чтобы картинка не выросла слишком сильно */
             object-fit: contain;
             display: block;
             border-radius: var(--radius-md);
@@ -941,8 +958,10 @@
                     </div> -->
 
                     <div class="panel legend-panel">
-                        <h3>Легенда статусов</h3>
-                        <p class="legend-meta">Флажок и полигон связаны единым цветом категории безопасности.</p>
+                        <div class="legend-text">
+                            <h3>Легенда статусов</h3>
+                            <p class="legend-meta">Флажок и полигон связаны единым цветом категории безопасности.</p>
+                        </div>
                         <img class="legend-image" src="{{ asset('./flag-colors.png') }}" alt="Цвета флажков">
                     </div>
                 </aside>
