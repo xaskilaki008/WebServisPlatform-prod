@@ -226,16 +226,44 @@
 
         .legend-panel {
             display: flex;
-            align-items: center; /* Центрируем элементы по вертикали */
+            align-items: center;
             justify-content: space-between;
-            gap: 16px; /* Аккуратный отступ между текстом и картинкой */
+            gap: 16px;
             overflow: hidden;
         }
+
         .legend-text {
-            flex: 0.7; /* Вот та самая магия! Текст берет коэффициент 0.7 */
+            flex: 0.7; 
             display: flex;
             flex-direction: column;
-            gap: 8px; /* Отступ между заголовком и описанием */
+            gap: 8px;
+        }
+
+        /* По умолчанию (на ПК) прячем мобильную картинку */
+        .mobile-legend-image {
+            display: none;
+        }
+
+        /* Настройки для трех картинок на ПК */
+        .desktop-legend-images {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            gap: 10px;
+        }
+
+        .desktop-legend-images img {
+            height: 74px;
+            width: auto;
+            object-fit: contain;
+            border-radius: 8px;
+            transition: transform 0.2s ease;
+        }
+
+        .desktop-legend-images img:hover {
+            transform: translateY(-3px) scale(1.3);
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
         }
         .legend-panel h3 {
             margin: 0;
@@ -903,11 +931,33 @@
                 grid-template-columns: 1fr;
                 gap: 2px;
             }
+            
             .filter-panel {
                 position: static; 
             }
-        }
 
+            /* --- Стили для легенды теперь лежат прямо здесь, без лишнего @media --- */
+            .legend-panel {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+
+            /* На телефоне ПРЯЧЕМ три отдельные картинки */
+            .desktop-legend-images {
+                display: none;
+            }
+
+            /* На телефоне ПОКАЗЫВАЕМ старую длинную картинку */
+            .mobile-legend-image {
+                display: block; 
+                width: 100%;
+                max-width: 100%;
+                margin-top: 8px;
+                object-fit: contain;
+                border-radius: var(--radius-md);
+                background: var(--surface-soft);
+            }
+        }
         @media (prefers-reduced-motion: reduce) {
             * {
                 transition: none !important;
@@ -962,7 +1012,14 @@
                             <h3>Легенда статусов</h3>
                             <p class="legend-meta">Флажок и полигон связаны единым цветом категории безопасности.</p>
                         </div>
-                        <img class="legend-image" src="{{ asset('./flag-colors.png') }}" alt="Цвета флажков">
+                        
+                        <img class="mobile-legend-image" src="{{ asset('./flag-colors.png') }}" alt="Цвета флажков">
+
+                        <div class="desktop-legend-images">
+                            <img src="{{ asset('./separate-flag-colors(green).png') }}" alt="Безопасно">
+                            <img src="{{ asset('./separate-flag-colors(yellow).png') }}" alt="Внимание">
+                            <img src="{{ asset('./separate-flag-colors(red).png') }}" alt="Опасно">
+                        </div>
                     </div>
                 </aside>
             </div>
