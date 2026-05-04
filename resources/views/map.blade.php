@@ -85,11 +85,7 @@
             font-size: 13px;
         }
 
-        .topbar-nav {
-            display: grid;
-            grid-template-columns: repeat(2, minmax(110px, 168px));
-            gap: 8px;
-        }
+        
 
         .page-body {
             max-width: 1440px;
@@ -822,18 +818,88 @@
             height: calc(100vh - 140px);
             min-height: 480px;
         }
+        /* ОБЩИЕ СТИЛИ ДЛЯ ПЕРЕКЛЮЧАТЕЛЯ (Мобильный вид по умолчанию) */
+        .topbar-nav {
+            display: flex !important;
+            background-color: #eef2f6 !important;
+            border: 2px solid #cbd5e1 !important; 
+            border-radius: 50px !important;
+            padding: 4px !important;
+            gap: 4px !important;
+            
+            /* Делаем резиновую ширину для мобильных */
+            width: 100% !important; 
+            max-width: 100% !important;
+            margin: 0 auto !important;
+            box-sizing: border-box !important;
+        }
 
+        .nav-button {
+            /* flex: 1 заставляет обе кнопки делиться пространством ровно 50/50 */
+            flex: 1 !important; 
+            width: 100% !important; /* Растягиваем саму кнопку, чтобы кликалась вся область */
+            
+            border-radius: 40px !important;
+            border: none !important;
+            background: transparent !important;
+            padding: 12px 10px !important; /* Увеличили padding для удобного тапа пальцем */
+            font-weight: 600 !important;
+            cursor: pointer !important;
+            transition: all 0.2s ease !important;
+            text-align: center !important;
+            white-space: nowrap !important; /* Запрещаем тексту переноситься на вторую строку */
+        }
+
+        .nav-button.active {
+            background-color: #ffffff !important;
+            color: #0b669c !important;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.15) !important;
+        }
+        /* --- Кнопка скролла вниз (мобильная) --- */
+        .scroll-down-mobile {
+            position: fixed;
+            bottom: 80px; /* Отступ снизу (чтобы не перекрывала твою кнопку "Вверх" или другие элементы) */
+            left: 50%; /* Ставим по центру экрана */
+            transform: translateX(-50%); /* Точное центрирование */
+            
+            /* Стили как у кнопки "Вверх" */
+            background: #ffffff;
+            color: #0b669c;
+            border: 2px solid #cbd5e1;
+            border-radius: 50%;
+            width: 46px;
+            height: 46px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 4px 12px rgba(11, 102, 156, 0.15);
+            z-index: 1000;
+            cursor: pointer;
+            
+            /* Плавное появление/исчезновение */
+            opacity: 1;
+            visibility: visible;
+            transition: opacity 0.3s ease, visibility 0.3s ease;
+        }
+
+        /* Класс для скрытия кнопки */
+        .scroll-down-mobile.hidden {
+            opacity: 0;
+            visibility: hidden;
+        }
         @media (min-width: 820px) {
             body {
                 padding: 14px;
             }
-
+            
             .app-shell {
                 border-radius: 28px;
                 overflow: hidden;
                 box-shadow: 0 30px 50px rgba(12, 35, 55, 0.14);
             }
-
+            .topbar-nav {
+                max-width: 400px !important; 
+            }
             .topbar-inner {
                 padding: 16px 20px;
             }
@@ -853,6 +919,9 @@
             .detail-fields {
                 grid-template-columns: repeat(2, minmax(0, 1fr));
                 gap: 11px;
+            }
+            .scroll-down-mobile {
+                display: none !important;
             }
             #map {
                 height: 500px !important; 
@@ -877,7 +946,7 @@
                 position: sticky;
                 top: 86px;
             }
-
+            
             #map {
                 height: calc(100vh - 170px);
                 min-height: 650px;
@@ -898,7 +967,7 @@
                 margin: 0 auto;
                 padding: 0 20px;
             }
-
+            
             #map {
                 /* Вместо 100vh ставим фиксированную приятную высоту */
                 height: 550px !important; 
@@ -919,17 +988,6 @@
                 align-items: stretch;
             }
 
-            .topbar-nav {
-                display: flex !important;
-                background-color: #eef2f6 !important;
-                border: 2px solid #cbd5e1 !important; /* ТА САМАЯ РАМКА */
-                border-radius: 50px !important;
-                padding: 4px !important;
-                gap: 4px !important;
-                width: fit-content !important;
-                margin: 0 auto !important;
-                visibility: visible !important; /* На всякий случай */
-            }
             .topbar-subtitle {
                 font-size: 12px;
             }
@@ -1011,6 +1069,137 @@
                 transition: none !important;
                 animation: none !important;
             }
+        }
+        /* --- Скрытая кнопка --- */
+        .ghost-btn {
+            position: fixed;
+            bottom: 20px;
+            right: 20px; /* Размещаем в правом нижнем углу */
+            background: transparent;
+            border: none;
+            color: #94a3b8; /* Бледный цвет, сливающийся с картой/фоном */
+            opacity: 0.3; /* Почти невидимая */
+            cursor: pointer;
+            padding: 10px;
+            border-radius: 50%;
+            transition: all 0.3s ease;
+            z-index: 1000;
+        }
+
+        .ghost-btn:hover {
+            opacity: 1;
+            color: #0b669c; /* При наведении становится фирменной синей */
+            background: #ffffff;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+
+        /* --- Модальное окно --- */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: rgba(15, 23, 42, 0.6); /* Темная подложка */
+            backdrop-filter: blur(4px); /* Размытие фона */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+            opacity: 1;
+            transition: opacity 0.3s ease;
+        }
+
+        .modal-overlay.hidden {
+            opacity: 0;
+            pointer-events: none; /* Чтобы нельзя было кликнуть, когда скрыто */
+        }
+
+        .modal-content {
+            background: #ffffff;
+            padding: 32px;
+            border-radius: 16px;
+            width: 100%;
+            max-width: 360px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.2);
+            position: relative;
+            transform: translateY(0);
+            transition: transform 0.3s ease;
+        }
+
+        .modal-overlay.hidden .modal-content {
+            transform: translateY(20px); /* Легкая анимация выезда снизу */
+        }
+
+        /* Элементы внутри окна */
+        .close-btn {
+            position: absolute;
+            top: 16px;
+            right: 16px;
+            background: none;
+            border: none;
+            font-size: 24px;
+            color: #64748b;
+            cursor: pointer;
+        }
+
+        .modal-content h2 {
+            margin: 0 0 8px 0;
+            color: #0f172a;
+            font-size: 20px;
+        }
+
+        .modal-subtitle {
+            font-size: 13px;
+            color: #64748b;
+            margin-bottom: 24px;
+        }
+
+        .input-group {
+            margin-bottom: 16px;
+            text-align: left;
+        }
+
+        .input-group label {
+            display: block;
+            font-size: 13px;
+            font-weight: 600;
+            color: #475569;
+            margin-bottom: 6px;
+        }
+
+        .input-group input {
+            width: 100%;
+            padding: 10px 14px;
+            border: 1px solid #cbd5e1;
+            border-radius: 8px;
+            font-size: 14px;
+            outline: none;
+            transition: border-color 0.2s;
+            box-sizing: border-box;
+        }
+
+        .input-group input:focus {
+            border-color: #0b669c;
+            box-shadow: 0 0 0 3px rgba(11, 102, 156, 0.1);
+        }
+
+        .primary-btn {
+            width: 100%;
+            padding: 12px;
+            background: #0b669c;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 15px;
+            cursor: pointer;
+            margin-top: 8px;
+            transition: background 0.2s;
+        }
+
+        .primary-btn:hover {
+            background: #084e79;
         }
     </style>
 </head>
@@ -1118,7 +1307,36 @@
         </section>
     </main>
 </div>
+<!-- Скрытая кнопка для вызова окна авторизации -->
+<button id="secret-login-btn" class="ghost-btn" aria-label="Вход для сотрудников">
+    <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+        <path d="M8 1a2 2 0 0 1 2 2v4H6V3a2 2 0 0 1 2-2zm3 6V3a3 3 0 0 0-6 0v4a2 2 0 0 0-2 2v5a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2z"/>
+    </svg>
+</button>
 
+<!-- Модальное окно авторизации (изначально скрыто) -->
+<div id="login-modal" class="modal-overlay hidden">
+    <div class="modal-content">
+        <button id="close-modal-btn" class="close-btn">&times;</button>
+        <h2>Вход в панель</h2>
+        <p class="modal-subtitle">Только для администраторов и операторов</p>
+        
+        <!-- Пока форма никуда не отправляет данные, мы добавим это позже -->
+        <form id="login-form">
+            <div class="input-group">
+                <label for="login">Логин</label>
+                <!-- Поменяли type на text, id и name на login -->
+                <input type="text" id="login" name="login" placeholder="your login (ваш логин)" required autocomplete="username">
+            </div>
+            <div class="input-group">
+                <label for="password">Пароль</label>
+                <input type="password" id="password" name="password" placeholder="••••••••" required autocomplete="current-password">
+            </div>
+            <button type="submit" class="primary-btn">Войти</button>
+        </form>
+    </div>
+</div>
+<button id="scroll-down-btn" class="scroll-down-mobile hidden" aria-label="Прокрутить вниз">↓</button>
 <button id="scroll-top-button" class="scroll-top-button" type="button">↑</button>
 
 <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
@@ -1887,7 +2105,100 @@
         renderBeachesList();
         searchInput.focus();
     });
+    document.addEventListener('DOMContentLoaded', () => {
+        // 1. Объявляем все переменные строго ОДИН раз в самом начале
+        const loginBtn = document.getElementById('secret-login-btn');
+        const modal = document.getElementById('login-modal');
+        const closeBtn = document.getElementById('close-modal-btn');
+        
+        const scrollDownBtn = document.getElementById('scroll-down-btn');
+        const legendPanel = document.querySelector('.legend-panel');
 
+        // 2. Логика модального окна входа (с проверкой, что элементы существуют)
+        if (loginBtn && modal && closeBtn) {
+            // Открыть модалку
+            loginBtn.addEventListener('click', () => {
+                modal.classList.remove('hidden');
+            });
+
+            // Закрыть по крестику
+            closeBtn.addEventListener('click', () => {
+                modal.classList.add('hidden');
+            });
+
+            // Закрыть по клику вне белого окна (на темный фон)
+            modal.addEventListener('click', (e) => {
+                if (e.target === modal) {
+                    modal.classList.add('hidden');
+                }
+            });
+        }
+
+        // 3. Логика кнопки скролла вниз
+        if (scrollDownBtn) {
+            // Логика появления/исчезновения кнопки
+            window.addEventListener('scroll', () => {
+                // Если мы прокрутили вниз больше чем на 50 пикселей - прячем кнопку
+                if (window.scrollY > 50) {
+                    scrollDownBtn.classList.add('hidden');
+                } else {
+                    // Если мы в самом верху - показываем кнопку
+                    scrollDownBtn.classList.remove('hidden');
+                }
+            });
+
+            // Проверяем состояние сразу при загрузке страницы
+            if (window.scrollY > 50) {
+                scrollDownBtn.classList.add('hidden');
+            } else {
+                scrollDownBtn.classList.remove('hidden');
+            }
+
+            // Логика прокрутки при клике
+            scrollDownBtn.addEventListener('click', () => {
+                if (legendPanel) {
+                    // Плавная прокрутка к блоку с флажками
+                    legendPanel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                } else {
+                    // Запасной вариант
+                    window.scrollBy({ top: window.innerHeight * 0.7, behavior: 'smooth' });
+                }
+            });
+        }
+        // --- ЛОГИКА "УМНОГО ТУМБЛЕРА" ДЛЯ КНОПОК НАВИГАЦИИ ---
+        const navButtons = document.querySelectorAll('.nav-button');
+        const topbarNav = document.querySelector('.topbar-nav');
+
+        if (navButtons.length === 2 && topbarNav) {
+            // 1. Если кликнули прямо по УЖЕ АКТИВНОЙ кнопке
+            navButtons.forEach(button => {
+                button.addEventListener('click', function(e) {
+                    // Проверяем, активна ли кнопка, по которой кликнули
+                    if (this.classList.contains('active')) {
+                        // Находим вторую (соседнюю) кнопку
+                        const otherButton = Array.from(navButtons).find(btn => btn !== this);
+                        
+                        if (otherButton) {
+                            // Имитируем клик по второй кнопке
+                            otherButton.click();
+                        }
+                    }
+                });
+            });
+
+            // 2. Если пользователь промазал и кликнул в серый фон между кнопками
+            topbarNav.addEventListener('click', function(e) {
+                // Убеждаемся, что клик был именно по фону .topbar-nav, а не по самой кнопке внутри
+                if (e.target === this) { 
+                    // Находим текущую неактивную кнопку и кликаем по ней
+                    const inactiveButton = Array.from(navButtons).find(btn => !btn.classList.contains('active'));
+                    if (inactiveButton) {
+                        inactiveButton.click();
+                    }
+                }
+            });
+        }
+    });
     updateStickyFilterOffset();
     updateScrollTopButtonVisibility();
 </script>
