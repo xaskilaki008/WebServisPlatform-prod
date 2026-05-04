@@ -120,19 +120,29 @@
         }
 
         .nav-button {
-            padding: 10px 12px;
-            background: #fff;
-            color: var(--text);
-            box-shadow: inset 0 0 0 1px var(--border);
+            padding: 10px 16px;
+            font-size: 14.5px;
+            background: transparent; /* Кнопки прозрачные, пока не активны */
+            color: var(--text-soft);
             font-weight: 650;
+            
+            /* Убираем все индивидуальные рамки и тени */
+            border: none; 
+            box-shadow: none; 
+            border-radius: var(--radius-md); /* Скругление самого ползунка */
+            transition: all var(--transition);
         }
 
         .nav-button.active {
-            background: var(--surface-strong);
-            color: #fff;
-            box-shadow: none;
+            background: #ffffff; /* Белая плашка активной кнопки */
+            color: var(--text);
+            /* Мягкая тень, чтобы активная кнопка казалась объемной над серой подложкой */
+            box-shadow: 0 4px 12px rgba(13, 40, 61, 0.12); 
+            border: none;
         }
-
+        .nav-button:hover:not(.active) {
+            color: var(--accent);
+        }
         .nav-button:focus-visible,
         .action-button:focus-visible,
         .back-button:focus-visible,
@@ -229,7 +239,7 @@
             align-items: center;
             justify-content: space-between;
             gap: 16px;
-            overflow: hidden;
+            overflow: visible;
         }
 
         .legend-text {
@@ -262,8 +272,11 @@
         }
 
         .desktop-legend-images img:hover {
-            transform: translateY(-3px) scale(1.3);
-            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+            transform: translateY(-3px) scale(1.15); 
+            box-shadow: 0 8px 16px rgba(11, 102, 156, 0.15);
+
+            position: relative; 
+            z-index: 10;
         }
         .legend-panel h3 {
             margin: 0;
@@ -878,10 +891,16 @@
             }
 
             .topbar-nav {
-                width: 100%;
-                grid-template-columns: 1fr 1fr;
+                display: grid;
+                grid-template-columns: repeat(2, minmax(130px, 190px));
+                gap: 4px; /* Небольшое расстояние между кнопками */
+                padding: 4px; /* Внутренний отступ от рамки до кнопок */
+                
+                /* Делаем красивую подложку и рамку */
+                background: #eef3f8; 
+                border: 2px solid var(--border); 
+                border-radius: var(--radius-lg); /* Скругленные углы всей панели */
             }
-
             .topbar-subtitle {
                 font-size: 12px;
             }
@@ -1452,7 +1471,7 @@
 
     function selectBeach(beach) {
         selectedBeach = beach;
-        updateInfoPanel(beach);
+        // updateInfoPanel(beach);
         updateDetailScreen(beach);
         renderBeachesList();
         refreshMarkerStyles();
@@ -1521,7 +1540,7 @@
                     if (related.length > 0) {
                         showSameBeachInfoAsMarker(related[0]);
                     } else {
-                        updateInfoPanel(properties);
+                        // updateInfoPanel(properties);
                         if (document.getElementById('detail-screen').classList.contains('active')) {
                             updateDetailScreen(properties);
                         }
@@ -1775,13 +1794,13 @@
             if (beaches.length > 0) {
                 selectBeach(beaches[0]);
             } else {
-                updateInfoPanel({});
+                // updateInfoPanel({});
             }
         })
         .catch(error => {
             console.error('Ошибка загрузки пляжей:', error);
             beachesList.innerHTML = '<div class="empty-state">Не удалось загрузить данные пляжей.</div>';
-            infoName.textContent = 'Нет данных';
+            // infoName.textContent = 'Нет данных';
         });
 
     fetch('/api/beach-polygons')
