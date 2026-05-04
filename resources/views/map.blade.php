@@ -2170,27 +2170,32 @@
         const topbarNav = document.querySelector('.topbar-nav');
 
         if (navButtons.length === 2 && topbarNav) {
-            // 1. Если кликнули прямо по УЖЕ АКТИВНОЙ кнопке
+            // 1. Обработка клика по самим кнопкам
             navButtons.forEach(button => {
+                // Добавляем true в конце, чтобы перехватить клик ДО старых скриптов
                 button.addEventListener('click', function(e) {
-                    // Проверяем, активна ли кнопка, по которой кликнули
+                    
+                    // Защита от бесконечного цикла: реагируем только на клики мышки/пальца
+                    if (!e.isTrusted) return; 
+
+                    // Если кнопка УЖЕ активна
                     if (this.classList.contains('active')) {
-                        // Находим вторую (соседнюю) кнопку
-                        const otherButton = Array.from(navButtons).find(btn => btn !== this);
+                        e.preventDefault();
+                        e.stopPropagation(); // Блокируем старый скрипт
                         
+                        const otherButton = Array.from(navButtons).find(btn => btn !== this);
                         if (otherButton) {
-                            // Имитируем клик по второй кнопке
-                            otherButton.click();
+                            otherButton.click(); // Робот нажимает на вторую кнопку
                         }
                     }
-                });
+                }, true); // <-- Вот эта магия (Фаза перехвата)
             });
 
-            // 2. Если пользователь промазал и кликнул в серый фон между кнопками
+            // 2. Если пользователь промазал и кликнул в серый фон
             topbarNav.addEventListener('click', function(e) {
-                // Убеждаемся, что клик был именно по фону .topbar-nav, а не по самой кнопке внутри
+                if (!e.isTrusted) return; // Тоже защищаем от цикла
+                
                 if (e.target === this) { 
-                    // Находим текущую неактивную кнопку и кликаем по ней
                     const inactiveButton = Array.from(navButtons).find(btn => !btn.classList.contains('active'));
                     if (inactiveButton) {
                         inactiveButton.click();
