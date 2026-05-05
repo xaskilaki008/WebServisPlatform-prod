@@ -1201,6 +1201,95 @@
         .primary-btn:hover {
             background: #084e79;
         }
+        /* --- Миниатюра в панели --- */
+        .beach-thumbnail {
+            width: 100%;
+            max-width: 300px; /* Ограничиваем, чтобы не была огромной */
+            height: auto;
+            border-radius: 12px; /* Закругленные углы */
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15); /* Тень */
+            cursor: pointer;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+            margin-bottom: 16px;
+        }
+
+        /* Эффект при наведении на миниатюру */
+        .beach-thumbnail:hover {
+            transform: scale(1.02);
+            box-shadow: 0 6px 16px rgba(0, 0, 0, 0.25);
+        }
+
+        /* --- Попап (Темный фон) --- */
+        .image-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: rgba(15, 23, 42, 0.85); /* Темно-синий полупрозрачный фон */
+            backdrop-filter: blur(4px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 10000;
+            opacity: 1;
+            transition: opacity 0.3s ease;
+        }
+
+        .image-overlay.hidden {
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        /* --- Контейнер картинки --- */
+        .popup-image-container {
+            position: relative;
+            /* Твое условие: ширина на 200px меньше экрана */
+            width: calc(100vw - 200px); 
+            max-width: 1200px; /* Защита для огромных мониторов */
+            display: flex;
+            justify-content: center;
+        }
+
+        /* Сама большая картинка */
+        .popup-large-photo {
+            width: 100%;
+            height: auto;
+            /* Автовычисление высоты, но не больше 90% от высоты экрана, чтобы влезала */
+            max-height: 90vh; 
+            object-fit: contain; /* Картинка не будет обрезаться */
+            border-radius: 16px;
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
+        }
+
+        /* Кнопка закрытия (Крестик) */
+        .close-popup-btn {
+            position: absolute;
+            top: -40px;
+            right: -40px;
+            background: transparent;
+            border: none;
+            color: #ffffff;
+            font-size: 40px;
+            cursor: pointer;
+            line-height: 1;
+            transition: color 0.2s ease;
+        }
+
+        .close-popup-btn:hover {
+            color: #cbd5e1;
+        }
+
+        /* Защита для смартфонов (экраны меньше 820px) */
+        @media (max-width: 819px) {
+            .popup-image-container {
+                width: calc(100vw - 32px); /* На телефоне картинка занимает почти весь экран */
+            }
+            .close-popup-btn {
+                top: -45px;
+                right: 0px; /* Сдвигаем крестик внутрь, чтобы не улетел за экран */
+            }
+        }
     </style>
 </head>
 <body>
@@ -1303,6 +1392,7 @@
                     <div class="detail-field"><strong>Описание волнения:</strong> <span id="detail-wave-text">Нет данных</span></div>
                     <div class="detail-field"><strong>Категория:</strong> <span id="detail-category">-</span></div>
                 </div>
+            <img id="sidebar-beach-photo" class="beach-thumbnail" src="" alt="Фото пляжа" style="display: none;">
             </article>
         </section>
     </main>
@@ -1338,7 +1428,13 @@
 </div>
 <button id="scroll-down-btn" class="scroll-down-mobile hidden" aria-label="Прокрутить вниз">↓</button>
 <button id="scroll-top-button" class="scroll-top-button" type="button">↑</button>
-
+<!-- Попап для просмотра большой картинки -->
+<div id="image-popup" class="image-overlay hidden">
+    <div class="popup-image-container">
+        <button id="close-image-popup" class="close-popup-btn">&times;</button>
+        <img src="" id="popup-large-photo" class="popup-large-photo" alt="Фотография пляжа">
+    </div>
+</div>
 <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
 <script src="https://unpkg.com/@turf/turf@6/turf.min.js"></script>
 <script>
@@ -1380,6 +1476,7 @@
     const clearSearchButton = document.getElementById('clear-search-button');
     const toggleMapSizeButton = document.getElementById('toggle-map-size-button');
     const fitMapButton = document.getElementById('fit-map-button');
+    const sidebarPhoto = document.getElementById('sidebar-beach-photo');
 
     const cssVariables = getComputedStyle(document.documentElement);
     const polygonColors = {
@@ -2113,7 +2210,9 @@
         
         const scrollDownBtn = document.getElementById('scroll-down-btn');
         const legendPanel = document.querySelector('.legend-panel');
-
+        const imageOverlay = document.getElementById('image-popup');
+        const popupLargePhoto = document.getElementById('popup-large-photo');
+        const closePopupBtn = document.getElementById('close-image-popup');
         // 2. Логика модального окна входа (с проверкой, что элементы существуют)
         if (loginBtn && modal && closeBtn) {
             // Открыть модалку
@@ -2162,6 +2261,31 @@
                 } else {
                     // Запасной вариант
                     window.scrollBy({ top: window.innerHeight * 0.7, behavior: 'smooth' });
+                }
+            });
+        }
+        if (imageOverlay && popupLargePhoto && closePopupBtn) {
+        
+            // 1. Открытие картинки при клике на ЛЮБУЮ миниатюру с классом beach-thumbnail
+            document.addEventListener('click', (e) => {
+                if (e.target.classList.contains('beach-thumbnail')) {
+                    // Берем ссылку (src) из маленькой картинки и вставляем в большую
+                    popupLargePhoto.src = e.target.src;
+                    imageOverlay.classList.remove('hidden');
+                }
+            });
+
+            // 2. Закрытие по крестику
+            closePopupBtn.addEventListener('click', () => {
+                imageOverlay.classList.add('hidden');
+                setTimeout(() => popupLargePhoto.src = '', 300); // Очищаем src после анимации
+            });
+
+            // 3. Закрытие при клике мимо картинки (на темный фон)
+            imageOverlay.addEventListener('click', (e) => {
+                if (e.target === imageOverlay) {
+                    imageOverlay.classList.add('hidden');
+                    setTimeout(() => popupLargePhoto.src = '', 300);
                 }
             });
         }

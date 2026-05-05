@@ -63,4 +63,27 @@ class Beach extends Model
             default => 'Купание не рекомендуется',
         };
     }
+    // Добавляем этот метод в модель Beach.php
+    public function getPhotoUrlAttribute()
+    {
+        // Указываем путь к папке (public/фотографии пляжей/)
+        $directory = public_path('фотографии пляжей');
+        
+        // Ищем файл, который начинается с ID пляжа (например: "32-*.*" или "32.*")
+        $files = glob($directory . '/' . $this->id . '-*.*');
+        
+        // Если с дефисом не нашли, ищем просто по номеру и любому символу дальше
+        if (empty($files)) {
+            $files = glob($directory . '/' . $this->id . '*.*');
+        }
+
+        // Если файл найден, возвращаем ссылку на него
+        if (!empty($files)) {
+            $fileName = basename($files[0]);
+            return asset('фотографии пляжей/' . $fileName);
+        }
+
+        // Если картинки у пляжа нет, можно вернуть заглушку
+        return asset('images/no-photo.png'); 
+    }
 }
