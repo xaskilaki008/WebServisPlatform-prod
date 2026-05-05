@@ -1842,7 +1842,7 @@
                 .addTo(map);
 
             marker.on('click', function () {
-                selectBeach(beach);
+                focusBeachOnMap(beach);
             });
 
             marker.on('popupopen', function (event) {
