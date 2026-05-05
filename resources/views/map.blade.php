@@ -1880,9 +1880,10 @@
                 if (popupContent) layer.bindPopup(popupContent);
 
                 layer.on('click', function () {
-                    const related = getRelatedBeachesForFeature(feature);
+                const related = getRelatedBeachesForFeature(feature);
                     if (related.length > 0) {
-                        showSameBeachInfoAsMarker(related[0]);
+                        // Новый вызов: теперь будет центрирование и зум
+                        focusBeachOnMap(related[0]); 
                     } else {
                         // updateInfoPanel(properties);
                         if (document.getElementById('detail-screen').classList.contains('active')) {
