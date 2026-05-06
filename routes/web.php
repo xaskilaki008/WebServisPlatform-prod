@@ -8,37 +8,42 @@ Route::get('/', function () {
 use Illuminate\Support\Facades\File;
 
 Route::get('/api/beach-photo/{id}', function ($id) {
-    // === АВАРИЙНЫЙ ВЫКЛЮЧАТЕЛЬ (Раскомментируй строку ниже, чтобы всё спрятать) ===
-    // return response()->json(['photo_url' => null, 'photo_urls' => []]);
     $directory = public_path('фотографии пляжей');
     
-    // Ищем все возможные варианты названий
-    $files = array_merge(
-        glob($directory . '/' . $id . '-*.*') ?: [],
-        glob($directory . '/' . $id . '.*') ?: [],
-        glob($directory . '/' . $id . '(*.*') ?: [],
-        glob($directory . '/' . $id . ' (*.*') ?: []
-    );
+    // Защита, если папки вдруг нет
+    if (!is_dir($directory)) {
+        return response()->json(['photo_url' => null, 'photo_urls' => []]);
+    }
 
-    // Удаляем дубликаты
-    $files = array_unique($files);
+    // Читаем ВООБЩЕ ВСЕ файлы в папке напрямую (этот метод не ломается от скобок)
+    $allFiles = scandir($directory);
+    $validUrls = [];
 
-    // === ВОТ ТА САМАЯ ВАЖНАЯ СТРОКА ===
-    // Если картинок нет, сразу обрываем скрипт и возвращаем пустоту
-    if (empty($files)) {
+    foreach ($allFiles as $file) {
+        // Пропускаем системные скрытые файлы
+        if ($file === '.' || $file === '..') continue;
+
+        // Ищем файлы, которые начинаются строго с "1-", "1." или "1("
+        // Используем современную функцию PHP 8 str_starts_with
+        if (
+            str_starts_with($file, $id . '-') || 
+            str_starts_with($file, $id . '.') || 
+            str_starts_with($file, $id . '(')
+        ) {
+            $validUrls[] = asset('фотографии пляжей/' . $file);
+        }
+    }
+
+    // Если ничего не нашли
+    if (empty($validUrls)) {
         return response()->json([
-            'photo_url' => null, // Для обратной совместимости
-            'photo_urls' => []   // Для нашего нового слайдера
+            'photo_url' => null,
+            'photo_urls' => []
         ]);
     }
 
-    $urls = [];
-    foreach ($files as $file) {
-        $urls[] = asset('фотографии пляжей/' . basename($file));
-    }
-
     return response()->json([
-        'photo_url' => $urls[0], // Отдаем первое фото как главное (на всякий случай)
-        'photo_urls' => array_values($urls) // И отдаем весь массив для слайдера
+        'photo_url' => array_values($validUrls)[0], // Отдаем первое фото как главное
+        'photo_urls' => array_values($validUrls)    // Отдаем весь массив для слайдера
     ]);
 });

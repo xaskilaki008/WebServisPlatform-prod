@@ -902,20 +902,19 @@
             position: absolute;
             top: 50%;
             transform: translateY(-50%);
-            background: rgba(0, 0, 0, 0.5); /* Полупрозрачный черный */
+            background: rgba(0, 0, 0, 0.5);
             color: white;
             border: none;
             cursor: pointer;
-            padding: 10px 14px;
+            padding: 8px 12px;
             border-radius: 50%;
             font-size: 16px;
             z-index: 10;
-            transition: background 0.3s ease;
         }
 
         .photo-nav-btn:hover { background: rgba(0, 0, 0, 0.8); }
-        .photo-nav-btn.left { left: 8px; }
-        .photo-nav-btn.right { right: 8px; }
+        .photo-nav-btn.left { left: 10px; }
+        .photo-nav-btn.right { right: 10px; }
 
         /* Особый отступ для большого попапа */
         .popup-nav.left { left: -50px; }
@@ -928,7 +927,7 @@
         /* Счетчик "1 / 3" */
         .photo-counter {
             position: absolute;
-            bottom: 25px;
+            bottom: 15px;
             left: 50%;
             transform: translateX(-50%);
             background: rgba(0, 0, 0, 0.6);
@@ -1452,7 +1451,7 @@
                 <button type="button" id="detail-back-button" class="back-button">back Назад</button>
             </div>
             <article class="detail-card">
-                <div class="detail-image-container">
+                <div class="detail-image-container" style="position: relative;">
                     <button id="photo-prev" class="photo-nav-btn left hidden">&#10094;</button>
                     <img id="detail-beach-photo" class="beach-thumbnail" src="" alt="Фото пляжа" style="display: none;">
                     <button id="photo-next" class="photo-nav-btn right hidden">&#10095;</button>
@@ -1645,60 +1644,59 @@
             detailPhoto.style.display = 'none';
             detailPhoto.src = '';
 
-            // 2. Если у пляжа есть ID, ищем новую картинку
-            if (beach.id) {
-                fetch(`/api/beach-photo/${beach.id}`)
-                    .then(response => response.json())
-                    .then(data => {
-                        if (data.photo_url) {
-                            detailPhoto.src = data.photo_url;
-                            detailPhoto.style.display = 'block'; // Показываем только когда нашли
-                        }
-                    })
-                    .catch(() => {
-                        // В случае ошибки сервера картинка просто останется скрытой
-                        detailPhoto.style.display = 'none'; 
-                    });
-            }
+            // Вместо detailPhoto.src = data.photo_url делаем так:
+            fetch(`/api/beach-photo/${beach.id}`)
+                .then(response => response.json())
+                .then(data => {
+                    // Загружаем массив с бэкенда в глобальную переменную
+                    currentPhotos = data.photo_urls || [];
+                    currentPhotoIndex = 0; // Сбрасываем на первую фотку
+                    updateGalleryUI();     // Запускаем отрисовку
+                });
         }
     }
+    // Функция обновления интерфейса галереи
     function updateGalleryUI() {
         const detailPhoto = document.getElementById('detail-beach-photo');
-        const popupPhoto = document.getElementById('popup-large-photo');
-        
         const prevBtn = document.getElementById('photo-prev');
         const nextBtn = document.getElementById('photo-next');
         const counter = document.getElementById('photo-counter');
-        
-        const pPrevBtn = document.getElementById('popup-prev');
-        const pNextBtn = document.getElementById('popup-next');
-        const pCounter = document.getElementById('popup-counter');
 
         if (currentPhotos.length === 0) {
-            if(detailPhoto) detailPhoto.style.display = 'none';
-            [prevBtn, nextBtn, counter, pPrevBtn, pNextBtn, pCounter].forEach(el => el && el.classList.add('hidden'));
+            // Если фото нет, прячем всё
+            if (detailPhoto) detailPhoto.style.display = 'none';
+            [prevBtn, nextBtn, counter].forEach(el => el && el.classList.add('hidden'));
             return;
         }
 
-        // Отображаем текущую картинку
-        if(detailPhoto) {
-            detailPhoto.src = currentPhotos[currentPhotoIndex];
-            detailPhoto.style.display = 'block';
-        }
-        if (popupPhoto && !document.getElementById('image-popup').classList.contains('hidden')) {
-            popupPhoto.src = currentPhotos[currentPhotoIndex];
-        }
+        // Показываем текущее фото
+        detailPhoto.src = currentPhotos[currentPhotoIndex];
+        detailPhoto.style.display = 'block';
 
-        // Если фото больше одного — показываем кнопки и счетчик
-        const showControls = currentPhotos.length > 1;
-        const counterText = `${currentPhotoIndex + 1} / ${currentPhotos.length}`;
+        // Если фото больше одного, показываем стрелки и счетчик
+        if (currentPhotos.length > 1) {
+            counter.textContent = `${currentPhotoIndex + 1} / ${currentPhotos.length}`;
+            [prevBtn, nextBtn, counter].forEach(el => el && el.classList.remove('hidden'));
+        } else {
+            [prevBtn, nextBtn, counter].forEach(el => el && el.classList.add('hidden'));
+        }
+    }
+
+    // Функция для клика по стрелкам
+    function changePhoto(step, event) {
+        if (event) {
+            event.stopPropagation(); 
+            event.preventDefault();
+        }
+        if (currentPhotos.length <= 1) return;
         
-        if (counter) { counter.textContent = counterText; counter.classList.toggle('hidden', !showControls); }
-        if (pCounter) { pCounter.textContent = counterText; pCounter.classList.toggle('hidden', !showControls); }
+        currentPhotoIndex += step;
         
-        [prevBtn, nextBtn, pPrevBtn, pNextBtn].forEach(el => {
-            if (el) el.classList.toggle('hidden', !showControls);
-        });
+        // Зацикливаем (после последнего фото идет первое)
+        if (currentPhotoIndex < 0) currentPhotoIndex = currentPhotos.length - 1;
+        if (currentPhotoIndex >= currentPhotos.length) currentPhotoIndex = 0;
+        
+        updateGalleryUI();
     }
 
     function changePhoto(step, event) {
@@ -2388,8 +2386,6 @@
             });
             document.getElementById('photo-prev')?.addEventListener('click', (e) => changePhoto(-1, e));
             document.getElementById('photo-next')?.addEventListener('click', (e) => changePhoto(1, e));
-            document.getElementById('popup-prev')?.addEventListener('click', (e) => changePhoto(-1, e));
-            document.getElementById('popup-next')?.addEventListener('click', (e) => changePhoto(1, e));
         }
 
         // 3. Логика кнопки скролла вниз
