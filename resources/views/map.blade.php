@@ -1482,7 +1482,7 @@
     <div class="modal-content">
         <button id="close-modal-btn" class="close-btn">&times;</button>
         <h2>Вход в панель</h2>
-        <p class="modal-subtitle">Только для администраторов и операторов</p>
+        <p class="modal-subtitle">Только для операторов</p>
         
         <!-- Пока форма никуда не отправляет данные, мы добавим это позже -->
         <form id="login-form">
