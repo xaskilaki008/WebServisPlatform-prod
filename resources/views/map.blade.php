@@ -892,34 +892,97 @@
         .beach-thumbnail:hover {
             transform: scale(1.02); /* Легкое увеличение при наведении */
         }
-        .list-card {
-            background-color: var(--card-bg, #ffffff); /* Возвращаем фон */
-            border: 1px solid var(--border-color, #e2e8f0); /* Возвращаем рамку */
-            border-radius: 12px; /* Скругляем углы */
-            padding: 16px; /* Внутренние отступы (воздух) */
+        /* --- Компактная кликабельная карточка --- */
+        .list-card.compact {
+            background-color: var(--card-bg, #ffffff);
+            border: 1px solid var(--border-color, #e2e8f0);
+            border-radius: 8px; /* Меньше скругление */
+            padding: 8px 12px; /* Убрали лишний воздух */
             
             position: relative;
-            display: grid;
-            gap: 8px;
-            min-height: 188px;
-            isolation: isolate;
-            overflow: visible;
+            display: flex; /* Выстраиваем элементы в горизонтальную линию */
+            align-items: center; /* Центрируем по вертикали */
+            gap: 12px;
             cursor: pointer;
-            
-            /* Плавная анимация наведения */
-            transition: box-shadow var(--transition, 0.2s ease), border-color var(--transition, 0.2s ease), transform 0.2s ease;
+            transition: box-shadow 0.2s ease, border-color 0.2s ease, transform 0.2s ease;
         }
 
-        .list-card:hover {
-            transform: translateY(-3px);
-            border-color: #93c5fd; /* Легкая синяя рамка при наведении */
-            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+        .list-card.compact:hover {
+            transform: translateY(-2px);
+            border-color: #93c5fd;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.05);
         }
-        /* Защита кнопки от случайных кликов */
-        .list-card .action-button {
+
+        .list-id-compact {
+            font-size: 16px;
+            font-weight: 700;
+            color: #94a3b8;
+            min-width: 24px;
+        }
+
+        .list-card-content {
+            flex-grow: 1; /* Текст занимает всё свободное место посередине */
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .compact-title { margin: 0; font-size: 14px; font-weight: 600; }
+
+        .compact-meta {
+            display: flex; gap: 8px; align-items: center;
+            font-size: 11px; color: #64748b;
+        }
+
+        .compact-meta .category-badge {
+            padding: 2px 6px; font-size: 10px; /* Уменьшили бейджик */
+        }
+
+        .list-actions-compact { margin: 0; }
+
+        /* Маленькая кнопка "Карта" */
+        .list-card.compact .action-button.small {
             position: relative;
             z-index: 2;
-            padding: 8px 24px; /* Слегка увеличим кнопку, чтобы она смотрелась пропорционально */
+            padding: 6px 10px;
+            font-size: 12px;
+            border-radius: 6px;
+        }
+        /* --- Карусель картинок (Swipe-эффект) --- */
+        .slider-viewport {
+            position: relative;
+            background: #f8fafc; /* Мягкая подложка под боковыми картинками */
+        }
+
+        .slider-track {
+            display: flex;
+            width: 100%;
+            /* Вот она, та самая плавная анимация скольжения */
+            transition: transform 0.5s cubic-bezier(0.25, 1, 0.5, 1); 
+            will-change: transform;
+        }
+
+        .slider-slide {
+            flex: 0 0 80%; /* Слайд занимает 80% экрана, оставляя по 10% для соседей */
+            padding: 0 6px; /* Отступы между картинками */
+            box-sizing: border-box;
+            opacity: 0.4; /* Тусклые соседи */
+            transition: opacity 0.5s ease, transform 0.5s ease;
+            transform: scale(0.85); /* Соседи слегка отдалены */
+        }
+
+        .slider-slide.active {
+            opacity: 1;
+            transform: scale(1); /* Центральная картинка в полном фокусе */
+        }
+
+        .slider-slide img {
+            width: 100%;
+            height: 220px; /* Высота жестко фиксирована, чтобы интерфейс не дергался */
+            object-fit: cover;
+            border-radius: 8px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.15);
+            display: block;
         }
         @media (min-width: 820px) {
             body {
@@ -1419,9 +1482,14 @@
                 <button type="button" id="detail-back-button" class="back-button">back Назад</button>
             </div>
             <article class="detail-card">
-                <div class="detail-image-container" style="position: relative;">
+                <div class="detail-image-container" style="position: relative; margin-bottom: 16px;">
+                    <!-- Окно, которое скрывает лишнее -->
+                    <div class="slider-viewport" style="overflow: hidden; width: 100%; border-radius: 8px;">
+                        <!-- Лента, которая будет ездить влево-вправо -->
+                        <div id="slider-track" class="slider-track"></div>
+                    </div>
+                    
                     <button id="photo-prev" class="photo-nav-btn left hidden">&#10094;</button>
-                    <img id="detail-beach-photo" class="beach-thumbnail" src="" alt="Фото пляжа" style="display: none;">
                     <button id="photo-next" class="photo-nav-btn right hidden">&#10095;</button>
                     <div id="photo-counter" class="photo-counter hidden"></div>
                 </div>
@@ -1625,23 +1693,49 @@
     }
     // Функция обновления интерфейса галереи
     function updateGalleryUI() {
-        const detailPhoto = document.getElementById('detail-beach-photo');
+        const track = document.getElementById('slider-track');
         const prevBtn = document.getElementById('photo-prev');
         const nextBtn = document.getElementById('photo-next');
         const counter = document.getElementById('photo-counter');
 
+        if (!track) return;
+
         if (currentPhotos.length === 0) {
-            // Если фото нет, прячем всё
-            if (detailPhoto) detailPhoto.style.display = 'none';
+            track.innerHTML = '';
             [prevBtn, nextBtn, counter].forEach(el => el && el.classList.add('hidden'));
             return;
         }
 
-        // Показываем текущее фото
-        detailPhoto.src = currentPhotos[currentPhotoIndex];
-        detailPhoto.style.display = 'block';
+        // Рендерим HTML слайдов ТОЛЬКО если их количество изменилось (чтобы не моргало)
+        if (track.children.length !== currentPhotos.length) {
+            track.innerHTML = currentPhotos.map(url => `
+                <div class="slider-slide">
+                    <img src="${url}" alt="Фото пляжа">
+                </div>
+            `).join('');
+        }
 
-        // Если фото больше одного, показываем стрелки и счетчик
+        // Вычисляем плавный сдвиг ленты
+        // Каждый слайд занимает 80% ширины. Добавляем +10%, чтобы активный слайд встал ровно по центру.
+        const slideWidth = 80;
+        let shift = -(currentPhotoIndex * slideWidth) + 10;
+        
+        // Если картинка всего одна, просто ставим её по центру
+        if (currentPhotos.length === 1) shift = 10; 
+
+        // Запускаем анимацию скольжения
+        track.style.transform = `translateX(${shift}%)`;
+
+        // Делаем центральную картинку яркой, а боковые — тусклыми и маленькими
+        Array.from(track.children).forEach((slide, i) => {
+            if (i === currentPhotoIndex) {
+                slide.classList.add('active');
+            } else {
+                slide.classList.remove('active');
+            }
+        });
+
+        // Управляем видимостью кнопок
         if (currentPhotos.length > 1) {
             counter.textContent = `${currentPhotoIndex + 1} / ${currentPhotos.length}`;
             [prevBtn, nextBtn, counter].forEach(el => el && el.classList.remove('hidden'));
@@ -1649,7 +1743,6 @@
             [prevBtn, nextBtn, counter].forEach(el => el && el.classList.add('hidden'));
         }
     }
-
     // Функция для клика по стрелкам
     function changePhoto(step, event) {
         if (event) {
@@ -1914,13 +2007,18 @@
         beachesList.innerHTML = filteredBeaches.map(beach => {
             const selectedClass = selectedBeach && selectedBeach.id === beach.id ? ' selected' : '';
             return `
-                <article class="list-card${selectedClass}" data-action="show-details" data-id="${beach.id}">
-                    <div class="list-id">${beach.number ?? '-'}</div>
-                    <h3>${beach.name || 'Без названия'}</h3>
-                    <p class="list-meta"><strong>Волнение:</strong> ${beach.wave_level ?? '-'} (${getWaveLevelText(beach.wave_level)})</p>
-                    <span class="category-badge ${getCategoryBadgeClass(beach)}">${getBeachCategoryLabel(beach)}</span>
-                    <div class="list-actions">
-                        <button type="button" class="action-button primary" data-action="show-on-map" data-id="${beach.id}">На карте</button>
+                <article class="list-card compact${selectedClass}" data-action="show-details" data-id="${beach.id}">
+                    <div class="list-id-compact">${beach.number ?? '-'}</div>
+                    <div class="list-card-content">
+                        <h3 class="compact-title">${beach.name || 'Без названия'}</h3>
+                        <div class="compact-meta">
+                            <span class="category-badge ${getCategoryBadgeClass(beach)}">${getBeachCategoryLabel(beach)}</span>
+                            <span class="wave-info">Волны: ${beach.wave_level ?? '-'}</span>
+                        </div>
+                    </div>
+                    <div class="list-actions-compact">
+                        <!-- Кнопка стала меньше и аккуратнее -->
+                        <button type="button" class="action-button primary small" data-action="show-on-map" data-id="${beach.id}">Карта</button>
                     </div>
                 </article>
             `;
