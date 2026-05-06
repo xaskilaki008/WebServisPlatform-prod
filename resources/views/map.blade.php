@@ -887,6 +887,73 @@
             opacity: 0;
             visibility: hidden;
         }
+        .detail-image-container {
+            width: 100%;
+            display: flex;
+            justify-content: center;
+            margin-bottom: 20px;
+        }
+        .detail-image-container, .popup-image-container {
+            position: relative; /* Чтобы стрелки позиционировались ровно по краям картинки */
+        }
+
+        /* Дизайн кнопок Влево/Вправо */
+        .photo-nav-btn {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            background: rgba(0, 0, 0, 0.5); /* Полупрозрачный черный */
+            color: white;
+            border: none;
+            cursor: pointer;
+            padding: 10px 14px;
+            border-radius: 50%;
+            font-size: 16px;
+            z-index: 10;
+            transition: background 0.3s ease;
+        }
+
+        .photo-nav-btn:hover { background: rgba(0, 0, 0, 0.8); }
+        .photo-nav-btn.left { left: 8px; }
+        .photo-nav-btn.right { right: 8px; }
+
+        /* Особый отступ для большого попапа */
+        .popup-nav.left { left: -50px; }
+        .popup-nav.right { right: -50px; }
+        @media (max-width: 819px) {
+            .popup-nav.left { left: 10px; }
+            .popup-nav.right { right: 10px; }
+        }
+
+        /* Счетчик "1 / 3" */
+        .photo-counter {
+            position: absolute;
+            bottom: 25px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.6);
+            color: white;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 12px;
+            z-index: 10;
+            pointer-events: none;
+        }
+
+        .hidden { display: none !important; }
+        .beach-thumbnail {
+            width: 100%;
+            max-width: 400px;
+            height: auto;
+            border-radius: 16px; /* Закругленные углы */
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12); /* Мягкая тень */
+            cursor: pointer;
+            transition: transform 0.3s ease;
+        }
+
+        .beach-thumbnail:hover {
+            transform: scale(1.02); /* Легкое увеличение при наведении */
+        }
         @media (min-width: 820px) {
             body {
                 padding: 14px;
@@ -1385,14 +1452,20 @@
                 <button type="button" id="detail-back-button" class="back-button">back Назад</button>
             </div>
             <article class="detail-card">
-                <h2 id="detail-name">Пляж не выбран</h2>
+                <div class="detail-image-container">
+                    <button id="photo-prev" class="photo-nav-btn left hidden">&#10094;</button>
+                    <img id="detail-beach-photo" class="beach-thumbnail" src="" alt="Фото пляжа" style="display: none;">
+                    <button id="photo-next" class="photo-nav-btn right hidden">&#10095;</button>
+                    <div id="photo-counter" class="photo-counter hidden"></div>
+                </div>
+               <h2 id="detail-name">Пляж не выбран</h2>
+
                 <div class="detail-fields">
                     <div class="detail-field"><strong>Номер:</strong> <span id="detail-number">-</span></div>
                     <div class="detail-field"><strong>Уровень волнения:</strong> <span id="detail-wave-level">-</span></div>
                     <div class="detail-field"><strong>Описание волнения:</strong> <span id="detail-wave-text">Нет данных</span></div>
                     <div class="detail-field"><strong>Категория:</strong> <span id="detail-category">-</span></div>
                 </div>
-            <img id="sidebar-beach-photo" class="beach-thumbnail" src="" alt="Фото пляжа" style="display: none;">
             </article>
         </section>
     </main>
@@ -1432,12 +1505,17 @@
 <div id="image-popup" class="image-overlay hidden">
     <div class="popup-image-container">
         <button id="close-image-popup" class="close-popup-btn">&times;</button>
+        <button id="popup-prev" class="photo-nav-btn popup-nav left hidden">&#10094;</button>
         <img src="" id="popup-large-photo" class="popup-large-photo" alt="Фотография пляжа">
+        <button id="popup-next" class="photo-nav-btn popup-nav right hidden">&#10095;</button>
+        <div id="popup-counter" class="photo-counter popup-counter hidden"></div>
     </div>
 </div>
 <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
 <script src="https://unpkg.com/@turf/turf@6/turf.min.js"></script>
 <script>
+    let currentPhotos = [];
+    let currentPhotoIndex = 0;
     const topbar = document.querySelector('.topbar');
     const mapScreen = document.getElementById('map-screen');
     const mapElement = document.getElementById('map');
@@ -1560,8 +1638,84 @@
         const hasCoordinates = beach.latitude !== undefined && beach.latitude !== null && beach.longitude !== undefined && beach.longitude !== null;
         detailCoordinates.textContent = hasCoordinates ? `${beach.latitude}, ${beach.longitude}` : '-';
         detailCoordinates.dataset.coordinates = hasCoordinates ? `${beach.latitude}, ${beach.longitude}` : '';
+        // --- ЛОГИКА ОТОБРАЖЕНИЯ КАРТИНКИ ---
+        const detailPhoto = document.getElementById('detail-beach-photo');
+        if (detailPhoto) {
+            // 1. Сразу прячем старую картинку и очищаем src, чтобы не было "моргания" старого фото
+            detailPhoto.style.display = 'none';
+            detailPhoto.src = '';
+
+            // 2. Если у пляжа есть ID, ищем новую картинку
+            if (beach.id) {
+                fetch(`/api/beach-photo/${beach.id}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.photo_url) {
+                            detailPhoto.src = data.photo_url;
+                            detailPhoto.style.display = 'block'; // Показываем только когда нашли
+                        }
+                    })
+                    .catch(() => {
+                        // В случае ошибки сервера картинка просто останется скрытой
+                        detailPhoto.style.display = 'none'; 
+                    });
+            }
+        }
+    }
+    function updateGalleryUI() {
+        const detailPhoto = document.getElementById('detail-beach-photo');
+        const popupPhoto = document.getElementById('popup-large-photo');
+        
+        const prevBtn = document.getElementById('photo-prev');
+        const nextBtn = document.getElementById('photo-next');
+        const counter = document.getElementById('photo-counter');
+        
+        const pPrevBtn = document.getElementById('popup-prev');
+        const pNextBtn = document.getElementById('popup-next');
+        const pCounter = document.getElementById('popup-counter');
+
+        if (currentPhotos.length === 0) {
+            if(detailPhoto) detailPhoto.style.display = 'none';
+            [prevBtn, nextBtn, counter, pPrevBtn, pNextBtn, pCounter].forEach(el => el && el.classList.add('hidden'));
+            return;
+        }
+
+        // Отображаем текущую картинку
+        if(detailPhoto) {
+            detailPhoto.src = currentPhotos[currentPhotoIndex];
+            detailPhoto.style.display = 'block';
+        }
+        if (popupPhoto && !document.getElementById('image-popup').classList.contains('hidden')) {
+            popupPhoto.src = currentPhotos[currentPhotoIndex];
+        }
+
+        // Если фото больше одного — показываем кнопки и счетчик
+        const showControls = currentPhotos.length > 1;
+        const counterText = `${currentPhotoIndex + 1} / ${currentPhotos.length}`;
+        
+        if (counter) { counter.textContent = counterText; counter.classList.toggle('hidden', !showControls); }
+        if (pCounter) { pCounter.textContent = counterText; pCounter.classList.toggle('hidden', !showControls); }
+        
+        [prevBtn, nextBtn, pPrevBtn, pNextBtn].forEach(el => {
+            if (el) el.classList.toggle('hidden', !showControls);
+        });
     }
 
+    function changePhoto(step, event) {
+        if (event) {
+            event.stopPropagation(); // Не даем клику провалиться ниже
+            event.preventDefault();
+        }
+        if (currentPhotos.length <= 1) return;
+        
+        currentPhotoIndex += step;
+        
+        // Зацикливаем галерею (после последней идет первая)
+        if (currentPhotoIndex < 0) currentPhotoIndex = currentPhotos.length - 1;
+        if (currentPhotoIndex >= currentPhotos.length) currentPhotoIndex = 0;
+        
+        updateGalleryUI();
+    }
     function requestMapResize() {
         [0, 140, 260, 420].forEach(delay => {
             window.setTimeout(() => map.invalidateSize(), delay);
@@ -2232,6 +2386,10 @@
                     modal.classList.add('hidden');
                 }
             });
+            document.getElementById('photo-prev')?.addEventListener('click', (e) => changePhoto(-1, e));
+            document.getElementById('photo-next')?.addEventListener('click', (e) => changePhoto(1, e));
+            document.getElementById('popup-prev')?.addEventListener('click', (e) => changePhoto(-1, e));
+            document.getElementById('popup-next')?.addEventListener('click', (e) => changePhoto(1, e));
         }
 
         // 3. Логика кнопки скролла вниз
