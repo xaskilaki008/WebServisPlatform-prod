@@ -827,10 +827,12 @@
             visibility: hidden;
         }
         .detail-image-container {
+            position: relative;
+            margin-bottom: 16px;
             width: 100%;
+            /* Центрируем слайдер в карточке */
             display: flex;
             justify-content: center;
-            margin-bottom: 20px;
         }
         .detail-image-container, .popup-image-container {
             position: relative; /* Чтобы стрелки позиционировались ровно по краям картинки */
@@ -950,8 +952,13 @@
         }
         /* --- Карусель картинок (Swipe-эффект) --- */
         .slider-viewport {
-            position: relative;
-            background: #f8fafc; /* Мягкая подложка под боковыми картинками */
+            overflow: hidden;
+            width: 100%;
+            /* === ОГРАНИЧЕНИЕ ШИРИНЫ НА ПК === */
+            max-width: 400px; 
+            border-radius: 12px;
+            background: #f1f5f9;
+            cursor: zoom-in; /* Показываем, что на картинку можно нажать */
         }
 
         .slider-track {
@@ -963,12 +970,10 @@
         }
 
         .slider-slide {
-            flex: 0 0 80%; /* Слайд занимает 80% экрана, оставляя по 10% для соседей */
-            padding: 0 6px; /* Отступы между картинками */
+            flex: 0 0 100%; /* На ПК лучше делать 100%, если ширина всего 400px */
+            padding: 0;
             box-sizing: border-box;
-            opacity: 0.4; /* Тусклые соседи */
-            transition: opacity 0.5s ease, transform 0.5s ease;
-            transform: scale(0.85); /* Соседи слегка отдалены */
+            transition: opacity 0.4s ease;
         }
 
         .slider-slide.active {
@@ -978,11 +983,150 @@
 
         .slider-slide img {
             width: 100%;
-            height: 220px; /* Высота жестко фиксирована, чтобы интерфейс не дергался */
-            object-fit: cover;
-            border-radius: 8px;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.15);
+            height: 300px; /* Можно немного увеличить высоту для 400px ширины */
+            object-fit: contain;
+            background-color: #d8d8d8;
             display: block;
+        }
+        .image-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.9); /* Темный фон */
+            backdrop-filter: blur(8px); /* Размытие заднего плана */
+            z-index: 10000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .popup-wrapper {
+            position: relative;
+            width: 90%;
+            max-width: 900px;
+            height: 80vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .popup-content {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            gap: 20px;
+        }
+
+        .popup-image-container {
+            position: relative;
+            height: 100%;
+            display: flex;
+            align-items: center;
+        }
+
+        #popup-large-photo {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+            border-radius: 4px;
+            box-shadow: 0 0 30px rgba(0,0,0,0.5);
+        }
+
+        .close-popup-btn {
+            position: absolute;
+            top: -40px;
+            right: 0;
+            background: none;
+            border: none;
+            color: white;
+            font-size: 40px;
+            cursor: pointer;
+        }
+
+        .popup-nav-btn {
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+            border: none;
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            font-size: 24px;
+            cursor: pointer;
+            transition: 0.3s;
+        }
+
+        .popup-nav-btn:hover { background: rgba(255, 255, 255, 0.3); }
+
+        .hidden { display: none !important; }
+        .gallery-container {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            margin-bottom: 20px;
+            width: 100%;
+        }
+
+        /* Линия миниатюр */
+        .thumbnails-line {
+            display: flex;
+            gap: 8px;
+            overflow-x: auto;
+            padding: 4px 2px;
+            scrollbar-width: thin; /* Тонкий скролл для Firefox */
+        }
+
+        .thumbnails-line::-webkit-scrollbar { height: 4px; }
+        .thumbnails-line::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+
+        .thumb-item {
+            width: 70px;
+            height: 70px;
+            flex: 0 0 70px;
+            object-fit: cover;
+            border-radius: 6px;
+            cursor: pointer;
+            border: 2px solid transparent;
+            transition: all 0.2s ease;
+            opacity: 0.7;
+        }
+
+        .thumb-item:hover { opacity: 1; }
+        .thumb-item.active {
+            border-color: #3b82f6; /* Синяя рамка вокруг активного фото */
+            opacity: 1;
+            transform: scale(1.05);
+        }
+
+        /* Блок главного фото */
+        .main-photo-box {
+            width: 100%;
+            display: flex;
+            justify-content: center;
+        }
+
+        .main-photo-wrapper {
+            width: 100%;
+            max-width: 400px;
+            text-align: center;
+        }
+
+        #gallery-main-img {
+            width: 100%;
+            height: 280px;
+            object-fit: contain;
+            background-color: #000; /* Черный фон для фото */
+            border-radius: 12px;
+            cursor: zoom-in;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+        }
+
+        .photo-number-label {
+            margin-top: 8px;
+            font-size: 13px;
+            font-weight: 500;
+            color: #64748b;
         }
         @media (min-width: 820px) {
             body {
@@ -1482,16 +1626,15 @@
                 <button type="button" id="detail-back-button" class="back-button">back Назад</button>
             </div>
             <article class="detail-card">
-                <div class="detail-image-container" style="position: relative; margin-bottom: 16px;">
-                    <!-- Окно, которое скрывает лишнее -->
-                    <div class="slider-viewport" style="overflow: hidden; width: 100%; border-radius: 8px;">
-                        <!-- Лента, которая будет ездить влево-вправо -->
-                        <div id="slider-track" class="slider-track"></div>
+                <div class="gallery-container">
+                    <div id="gallery-thumbnails" class="thumbnails-line"></div>
+
+                    <div id="gallery-main-display" class="main-photo-box hidden">
+                        <div class="main-photo-wrapper">
+                            <img id="gallery-main-img" src="" alt="Фото пляжа" onclick="openImagePopup(currentPhotoIndex)">
+                            <div id="gallery-photo-number" class="photo-number-label"></div>
+                        </div>
                     </div>
-                    
-                    <button id="photo-prev" class="photo-nav-btn left hidden">&#10094;</button>
-                    <button id="photo-next" class="photo-nav-btn right hidden">&#10095;</button>
-                    <div id="photo-counter" class="photo-counter hidden"></div>
                 </div>
                <h2 id="detail-name">Пляж не выбран</h2>
 
@@ -1544,6 +1687,22 @@
         <img src="" id="popup-large-photo" class="popup-large-photo" alt="Фотография пляжа">
         <button id="popup-next" class="photo-nav-btn popup-nav right hidden">&#10095;</button>
         <div id="popup-counter" class="photo-counter popup-counter hidden"></div>
+    </div>
+</div>
+<div id="image-popup" class="image-overlay hidden">
+    <div class="popup-wrapper">
+        <button id="close-image-popup" class="close-popup-btn">&times;</button>
+        
+        <div class="popup-content">
+            <button id="popup-prev" class="popup-nav-btn left">&#10094;</button>
+            
+            <div class="popup-image-container">
+                <img src="" id="popup-large-photo" alt="Пляж">
+                <div id="popup-counter" class="photo-counter"></div>
+            </div>
+            
+            <button id="popup-next" class="popup-nav-btn right">&#10095;</button>
+        </div>
     </div>
 </div>
 <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
@@ -1675,72 +1834,96 @@
         detailCoordinates.dataset.coordinates = hasCoordinates ? `${beach.latitude}, ${beach.longitude}` : '';
         // --- ЛОГИКА ОТОБРАЖЕНИЯ КАРТИНКИ ---
         const detailPhoto = document.getElementById('detail-beach-photo');
-        if (detailPhoto) {
-            // 1. Сразу прячем старую картинку и очищаем src, чтобы не было "моргания" старого фото
-            detailPhoto.style.display = 'none';
-            detailPhoto.src = '';
+        // --- НОВАЯ ЛОГИКА ЗАГРУЗКИ ФОТО ДЛЯ СЛАЙДЕРА ---
+        const track = document.getElementById('slider-track');
 
-            // Вместо detailPhoto.src = data.photo_url делаем так:
-            fetch(`/api/beach-photo/${beach.id}`)
-                .then(response => response.json())
-                .then(data => {
-                    // Загружаем массив с бэкенда в глобальную переменную
-                    currentPhotos = data.photo_urls || [];
-                    currentPhotoIndex = 0; // Сбрасываем на первую фотку
-                    updateGalleryUI();     // Запускаем отрисовку
-                });
-        }
+        if (track) {
+            // 1. Сбрасываем слайдер перед открытием нового пляжа, чтобы не мелькали старые фото
+            currentPhotos = [];
+            currentPhotoIndex = 0;
+            updateGalleryUI(); 
+            
+            // 2. Делаем запрос к серверу за массивом фотографий
+            // --- ЛОГИКА ГАЛЕРЕИ ---
+            if (beach.id) {
+                fetch(`/api/beach-photo/${beach.id}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        currentPhotos = data.photo_urls || [];
+                        renderGallery(); // Вызываем новую функцию отрисовки
+                    })
+                    .catch(() => {
+                        currentPhotos = [];
+                        renderGallery();
+                    });
+            }
+}
     }
     // Функция обновления интерфейса галереи
-    function updateGalleryUI() {
-        const track = document.getElementById('slider-track');
-        const prevBtn = document.getElementById('photo-prev');
-        const nextBtn = document.getElementById('photo-next');
-        const counter = document.getElementById('photo-counter');
-
-        if (!track) return;
+    function renderGallery() {
+        const thumbContainer = document.getElementById('gallery-thumbnails');
+        const mainDisplay = document.getElementById('gallery-main-display');
 
         if (currentPhotos.length === 0) {
-            track.innerHTML = '';
-            [prevBtn, nextBtn, counter].forEach(el => el && el.classList.add('hidden'));
+            thumbContainer.innerHTML = '';
+            mainDisplay.classList.add('hidden');
             return;
         }
 
-        // Рендерим HTML слайдов ТОЛЬКО если их количество изменилось (чтобы не моргало)
-        if (track.children.length !== currentPhotos.length) {
-            track.innerHTML = currentPhotos.map(url => `
-                <div class="slider-slide">
-                    <img src="${url}" alt="Фото пляжа">
-                </div>
-            `).join('');
+        mainDisplay.classList.remove('hidden');
+
+        // Рисуем ленту миниатюр
+        thumbContainer.innerHTML = currentPhotos.map((url, index) => `
+        <img src="${url}" 
+             class="thumb-item ${index === 0 ? 'active' : ''}" 
+             onclick="setMainPhoto(${index})" 
+             data-index="${index}">
+    `).join('');
+
+        // По умолчанию показываем первое фото
+        setMainPhoto(0);
+    }
+
+    function setMainPhoto(index) {
+        currentPhotoIndex = index;
+        const mainImg = document.getElementById('gallery-main-img');
+        const numberLabel = document.getElementById('gallery-photo-number');
+        const thumbs = document.querySelectorAll('.thumb-item');
+
+        // Обновляем картинку и номер
+        mainImg.src = currentPhotos[index];
+        numberLabel.textContent = `Фотография ${index + 1} из ${currentPhotos.length}`;
+
+        // Подсвечиваем активную миниатюру
+        thumbs.forEach(t => t.classList.remove('active'));
+        const activeThumb = document.querySelector(`.thumb-item[data-index="${index}"]`);
+        if (activeThumb) {
+            activeThumb.classList.add('active');
+            activeThumb.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
         }
 
-        // Вычисляем плавный сдвиг ленты
-        // Каждый слайд занимает 80% ширины. Добавляем +10%, чтобы активный слайд встал ровно по центру.
-        const slideWidth = 80;
-        let shift = -(currentPhotoIndex * slideWidth) + 10;
-        
-        // Если картинка всего одна, просто ставим её по центру
-        if (currentPhotos.length === 1) shift = 10; 
+        // Если попап открыт (Instagram-style), синхронизируем и его
+        if (typeof syncPopup === 'function') syncPopup();
+    }
+        function openImagePopup(index) {
+        currentPhotoIndex = index;
+        document.getElementById('image-popup').classList.remove('hidden');
+        document.body.style.overflow = 'hidden'; // Запрещаем скролл страницы
+        syncPopup();
+    }
+    function closeImagePopup() {
+        document.getElementById('image-popup').classList.add('hidden');
+        document.body.style.overflow = ''; // Возвращаем скролл
+    }
 
-        // Запускаем анимацию скольжения
-        track.style.transform = `translateX(${shift}%)`;
+    function syncPopup() {
+        const popupPhoto = document.getElementById('popup-large-photo');
+        const popupCounter = document.getElementById('popup-counter');
+        const popup = document.getElementById('image-popup');
 
-        // Делаем центральную картинку яркой, а боковые — тусклыми и маленькими
-        Array.from(track.children).forEach((slide, i) => {
-            if (i === currentPhotoIndex) {
-                slide.classList.add('active');
-            } else {
-                slide.classList.remove('active');
-            }
-        });
-
-        // Управляем видимостью кнопок
-        if (currentPhotos.length > 1) {
-            counter.textContent = `${currentPhotoIndex + 1} / ${currentPhotos.length}`;
-            [prevBtn, nextBtn, counter].forEach(el => el && el.classList.remove('hidden'));
-        } else {
-            [prevBtn, nextBtn, counter].forEach(el => el && el.classList.add('hidden'));
+        if (!popup.classList.contains('hidden') && currentPhotos[currentPhotoIndex]) {
+            popupPhoto.src = currentPhotos[currentPhotoIndex];
+            popupCounter.textContent = `${currentPhotoIndex + 1} / ${currentPhotos.length}`;
         }
     }
     // Функция для клика по стрелкам
@@ -2452,6 +2635,14 @@
             });
             document.getElementById('photo-prev')?.addEventListener('click', (e) => changePhoto(-1, e));
             document.getElementById('photo-next')?.addEventListener('click', (e) => changePhoto(1, e));
+            document.getElementById('close-image-popup')?.addEventListener('click', closeImagePopup);
+            document.getElementById('popup-prev')?.addEventListener('click', (e) => changePhoto(-1, e));
+            document.getElementById('popup-next')?.addEventListener('click', (e) => changePhoto(1, e));
+
+            // Закрытие по клику на фон
+            document.getElementById('image-popup')?.addEventListener('click', (e) => {
+                if (e.target.id === 'image-popup') closeImagePopup();
+            });
         }
 
         // 3. Логика кнопки скролла вниз
