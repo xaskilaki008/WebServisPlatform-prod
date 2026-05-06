@@ -893,6 +893,11 @@
             transform: scale(1.02); /* Легкое увеличение при наведении */
         }
         .list-card {
+            background-color: var(--card-bg, #ffffff); /* Возвращаем фон */
+            border: 1px solid var(--border-color, #e2e8f0); /* Возвращаем рамку */
+            border-radius: 12px; /* Скругляем углы */
+            padding: 16px; /* Внутренние отступы (воздух) */
+            
             position: relative;
             display: grid;
             gap: 8px;
@@ -900,17 +905,21 @@
             isolation: isolate;
             overflow: visible;
             cursor: pointer;
-            transition: box-shadow var(--transition), border-color var(--transition), transform var(--transition);
+            
+            /* Плавная анимация наведения */
+            transition: box-shadow var(--transition, 0.2s ease), border-color var(--transition, 0.2s ease), transform 0.2s ease;
         }
 
         .list-card:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.1);
+            transform: translateY(-3px);
+            border-color: #93c5fd; /* Легкая синяя рамка при наведении */
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
         }
-
+        /* Защита кнопки от случайных кликов */
         .list-card .action-button {
             position: relative;
             z-index: 2;
+            padding: 8px 24px; /* Слегка увеличим кнопку, чтобы она смотрелась пропорционально */
         }
         @media (min-width: 820px) {
             body {
