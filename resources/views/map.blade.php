@@ -158,7 +158,6 @@
         }
 
         .panel,
-        .list-card,
         .detail-card,
         .filter-panel {
             background: var(--surface);
@@ -169,8 +168,7 @@
 
         .panel,
         .detail-card,
-        .filter-panel,
-        .list-card {
+        .filter-panel {
             padding: 15px;
         }
 
@@ -442,66 +440,7 @@
             overflow: visible;
         }
 
-        .list-card {
-            position: relative;
-            display: grid;
-            gap: 8px;
-            min-height: 188px;
-            isolation: isolate;
-            overflow: visible;
-            transition: box-shadow var(--transition), border-color var(--transition);
-        }
-
-        .list-card::before {
-            content: "";
-            position: absolute;
-            inset: 0;
-            z-index: -1;
-            border-radius: inherit;
-            background:
-                linear-gradient(115deg, transparent 0%, transparent 38%, rgba(255, 255, 255, 0.82) 50%, transparent 62%, transparent 100%),
-                var(--surface);
-            background-size: 240% 100%, 100% 100%;
-            border: 1px solid transparent;
-            opacity: 0;
-            transform: scale(1);
-            box-shadow: var(--shadow-soft);
-            transition: transform 0.5s ease, opacity 0.2s ease, border-color var(--transition), box-shadow var(--transition);
-        }
-
-        .list-card:hover {
-            border-color: #9fc4de;
-            z-index: 5;
-            box-shadow: none;
-        }
-
-        .list-card:hover::before {
-            opacity: 1;
-            transform: scale(1.2);
-            border-color: #9fc4de;
-            box-shadow: 0 18px 36px rgba(13, 40, 61, 0.2);
-            animation: card-shimmer 0.5s ease;
-        }
-
-        .list-card.selected {
-            border-color: #7db8df;
-            box-shadow: 0 0 0 2px rgba(126, 182, 222, 0.3), var(--shadow-soft);
-        }
-
-        .list-card h3 {
-            margin: 0;
-            font-size: 16px;
-            line-height: 1.35;
-            width: fit-content;
-            max-width: 100%;
-            cursor: help;
-            transform-origin: left center;
-            transition: transform 0.5s ease, color var(--transition);
-        }
-
-        .list-card:hover h3 {
-            transform: scale(1.18);
-        }
+        
 
         @keyframes card-shimmer {
             0% {
@@ -952,6 +891,26 @@
 
         .beach-thumbnail:hover {
             transform: scale(1.02); /* Легкое увеличение при наведении */
+        }
+        .list-card {
+            position: relative;
+            display: grid;
+            gap: 8px;
+            min-height: 188px;
+            isolation: isolate;
+            overflow: visible;
+            cursor: pointer;
+            transition: box-shadow var(--transition), border-color var(--transition), transform var(--transition);
+        }
+
+        .list-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.1);
+        }
+
+        .list-card .action-button {
+            position: relative;
+            z-index: 2;
         }
         @media (min-width: 820px) {
             body {
@@ -1942,17 +1901,17 @@
             return;
         }
 
+        // Очищаем и заново собираем список
         beachesList.innerHTML = filteredBeaches.map(beach => {
             const selectedClass = selectedBeach && selectedBeach.id === beach.id ? ' selected' : '';
             return `
-                <article class="list-card${selectedClass}">
+                <article class="list-card${selectedClass}" data-action="show-details" data-id="${beach.id}">
                     <div class="list-id">${beach.number ?? '-'}</div>
                     <h3>${beach.name || 'Без названия'}</h3>
                     <p class="list-meta"><strong>Волнение:</strong> ${beach.wave_level ?? '-'} (${getWaveLevelText(beach.wave_level)})</p>
                     <span class="category-badge ${getCategoryBadgeClass(beach)}">${getBeachCategoryLabel(beach)}</span>
                     <div class="list-actions">
                         <button type="button" class="action-button primary" data-action="show-on-map" data-id="${beach.id}">На карте</button>
-                        <button type="button" class="action-button" data-action="show-details" data-id="${beach.id}">Подробно</button>
                     </div>
                 </article>
             `;
