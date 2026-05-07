@@ -1075,6 +1075,9 @@
             overflow-x: auto;
             padding: 4px 2px;
             scrollbar-width: thin; /* Тонкий скролл для Firefox */
+            
+            /* СЕКРЕТ КОМПАКТНОСТИ: Центрируем картинки на больших экранах, если их мало */
+            justify-content: center;
         }
 
         .thumbnails-line::-webkit-scrollbar { height: 4px; }
@@ -1128,6 +1131,8 @@
             font-weight: 500;
             color: #64748b;
         }
+        thumbnails-line::-webkit-scrollbar { height: 4px; }
+        .thumbnails-line::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
         @media (min-width: 820px) {
             body {
                 padding: 14px;
@@ -1175,6 +1180,9 @@
 
            #map-screen.is-map-expanded #map {
                 height: 650px !important;
+            }
+            .thumbnails-line {
+                justify-content: flex-start;
             }
         }
 
@@ -1681,15 +1689,6 @@
 <button id="scroll-top-button" class="scroll-top-button" type="button">↑</button>
 <!-- Попап для просмотра большой картинки -->
 <div id="image-popup" class="image-overlay hidden">
-    <div class="popup-image-container">
-        <button id="close-image-popup" class="close-popup-btn">&times;</button>
-        <button id="popup-prev" class="photo-nav-btn popup-nav left hidden">&#10094;</button>
-        <img src="" id="popup-large-photo" class="popup-large-photo" alt="Фотография пляжа">
-        <button id="popup-next" class="photo-nav-btn popup-nav right hidden">&#10095;</button>
-        <div id="popup-counter" class="photo-counter popup-counter hidden"></div>
-    </div>
-</div>
-<div id="image-popup" class="image-overlay hidden">
     <div class="popup-wrapper">
         <button id="close-image-popup" class="close-popup-btn">&times;</button>
         
@@ -1697,13 +1696,24 @@
             <button id="popup-prev" class="popup-nav-btn left">&#10094;</button>
             
             <div class="popup-image-container">
-                <img src="" id="popup-large-photo" alt="Пляж">
+                <img src="" id="popup-large-photo" class="popup-large-photo" alt="Пляж">
                 <div id="popup-counter" class="photo-counter"></div>
             </div>
             
-            <button id="popup-next" class="popup-nav-btn right">&#10095;</button>
+            <button id="popup-prev" class="popup-nav-btn left" onclick="changePhoto(-1, event)">&#10094;</button>
+            <button id="popup-next" class="popup-nav-btn right" onclick="changePhoto(1, event)">&#10095;</button>
         </div>
     </div>
+</div>
+<div class="popup-content">
+    <button id="popup-prev" class="popup-nav-btn left" onclick="changePhoto(-1, event)">&#10094;</button>
+    
+    <div class="popup-image-container">
+        <img src="" id="popup-large-photo" class="popup-large-photo" alt="Пляж">
+        <div id="popup-counter" class="photo-counter"></div>
+    </div>
+    
+    <button id="popup-next" class="popup-nav-btn right" onclick="changePhoto(1, event)">&#10095;</button>
 </div>
 <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
 <script src="https://unpkg.com/@turf/turf@6/turf.min.js"></script>
@@ -1833,32 +1843,24 @@
         detailCoordinates.textContent = hasCoordinates ? `${beach.latitude}, ${beach.longitude}` : '-';
         detailCoordinates.dataset.coordinates = hasCoordinates ? `${beach.latitude}, ${beach.longitude}` : '';
         // --- ЛОГИКА ОТОБРАЖЕНИЯ КАРТИНКИ ---
-        const detailPhoto = document.getElementById('detail-beach-photo');
-        // --- НОВАЯ ЛОГИКА ЗАГРУЗКИ ФОТО ДЛЯ СЛАЙДЕРА ---
-        const track = document.getElementById('slider-track');
+        // --- ЛОГИКА ОТОБРАЖЕНИЯ ГАЛЕРЕИ ---
+        currentPhotos = [];
+        currentPhotoIndex = 0;
+        renderGallery(); // Очищаем галерею перед загрузкой нового пляжа
 
-        if (track) {
-            // 1. Сбрасываем слайдер перед открытием нового пляжа, чтобы не мелькали старые фото
-            currentPhotos = [];
-            currentPhotoIndex = 0;
-            updateGalleryUI(); 
-            
-            // 2. Делаем запрос к серверу за массивом фотографий
-            // --- ЛОГИКА ГАЛЕРЕИ ---
-            if (beach.id) {
-                fetch(`/api/beach-photo/${beach.id}`)
-                    .then(response => response.json())
-                    .then(data => {
-                        currentPhotos = data.photo_urls || [];
-                        renderGallery(); // Вызываем новую функцию отрисовки
-                    })
-                    .catch(() => {
-                        currentPhotos = [];
-                        renderGallery();
-                    });
-            }
-}
-    }
+        if (beach.id) {
+            fetch(`/api/beach-photo/${beach.id}`)
+                .then(response => response.json())
+                .then(data => {
+                    currentPhotos = data.photo_urls || [];
+                    renderGallery(); // Рисуем новые фото
+                })
+                .catch(() => {
+                    currentPhotos = [];
+                    renderGallery();
+                });
+        }
+    } // Конец функции updateDetailScreen
     // Функция обновления интерфейса галереи
     function renderGallery() {
         const thumbContainer = document.getElementById('gallery-thumbnails');
@@ -1926,37 +1928,29 @@
             popupCounter.textContent = `${currentPhotoIndex + 1} / ${currentPhotos.length}`;
         }
     }
-    // Функция для клика по стрелкам
+    // Единственная правильная функция для клика по стрелкам
     function changePhoto(step, event) {
         if (event) {
-            event.stopPropagation(); 
+            event.stopPropagation();
             event.preventDefault();
         }
-        if (currentPhotos.length <= 1) return;
-        
-        currentPhotoIndex += step;
-        
-        // Зацикливаем (после последнего фото идет первое)
-        if (currentPhotoIndex < 0) currentPhotoIndex = currentPhotos.length - 1;
-        if (currentPhotoIndex >= currentPhotos.length) currentPhotoIndex = 0;
-        
-        updateGalleryUI();
-    }
 
-    function changePhoto(step, event) {
-        if (event) {
-            event.stopPropagation(); // Не даем клику провалиться ниже
-            event.preventDefault();
-        }
-        if (currentPhotos.length <= 1) return;
-        
+        if (!currentPhotos || currentPhotos.length <= 1) return;
+
+        // Вычисляем новый индекс
         currentPhotoIndex += step;
-        
-        // Зацикливаем галерею (после последней идет первая)
-        if (currentPhotoIndex < 0) currentPhotoIndex = currentPhotos.length - 1;
-        if (currentPhotoIndex >= currentPhotos.length) currentPhotoIndex = 0;
-        
-        updateGalleryUI();
+
+        // Зацикливаем прокрутку
+        if (currentPhotoIndex < 0) {
+            currentPhotoIndex = currentPhotos.length - 1;
+        } else if (currentPhotoIndex >= currentPhotos.length) {
+            currentPhotoIndex = 0;
+        }
+
+        // Вызываем функцию обновления главного фото
+        if (typeof setMainPhoto === 'function') {
+            setMainPhoto(currentPhotoIndex);
+        }
     }
     function requestMapResize() {
         [0, 140, 260, 420].forEach(delay => {
