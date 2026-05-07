@@ -1681,27 +1681,18 @@
 <button id="scroll-top-button" class="scroll-top-button" type="button">↑</button>
 <!-- Попап для просмотра большой картинки -->
 <div id="image-popup" class="image-overlay hidden">
-    <div class="popup-image-container">
-        <button id="close-image-popup" class="close-popup-btn">&times;</button>
-        <button id="popup-prev" class="photo-nav-btn popup-nav left hidden">&#10094;</button>
-        <img src="" id="popup-large-photo" class="popup-large-photo" alt="Фотография пляжа">
-        <button id="popup-next" class="photo-nav-btn popup-nav right hidden">&#10095;</button>
-        <div id="popup-counter" class="photo-counter popup-counter hidden"></div>
-    </div>
-</div>
-<div id="image-popup" class="image-overlay hidden">
     <div class="popup-wrapper">
         <button id="close-image-popup" class="close-popup-btn">&times;</button>
         
         <div class="popup-content">
-            <button id="popup-prev" class="popup-nav-btn left">&#10094;</button>
+            <button id="popup-prev" class="popup-nav-btn left" onclick="changePhoto(-1, event)">&#10094;</button>
             
             <div class="popup-image-container">
-                <img src="" id="popup-large-photo" alt="Пляж">
+                <img src="" id="popup-large-photo" class="popup-large-photo" alt="Пляж">
                 <div id="popup-counter" class="photo-counter"></div>
             </div>
             
-            <button id="popup-next" class="popup-nav-btn right">&#10095;</button>
+            <button id="popup-next" class="popup-nav-btn right" onclick="changePhoto(1, event)">&#10095;</button>
         </div>
     </div>
 </div>
@@ -1839,18 +1830,19 @@
 
         if (track) {
             // 1. Сбрасываем слайдер перед открытием нового пляжа, чтобы не мелькали старые фото
+            // --- ЛОГИКА ОТОБРАЖЕНИЯ ГАЛЕРЕИ ---
+            // 1. Очищаем галерею перед загрузкой нового пляжа
             currentPhotos = [];
             currentPhotoIndex = 0;
-            updateGalleryUI(); 
-            
+            renderGallery();
+
             // 2. Делаем запрос к серверу за массивом фотографий
-            // --- ЛОГИКА ГАЛЕРЕИ ---
             if (beach.id) {
                 fetch(`/api/beach-photo/${beach.id}`)
                     .then(response => response.json())
                     .then(data => {
                         currentPhotos = data.photo_urls || [];
-                        renderGallery(); // Вызываем новую функцию отрисовки
+                        renderGallery(); // Рисуем новые фото
                     })
                     .catch(() => {
                         currentPhotos = [];
@@ -1927,36 +1919,29 @@
         }
     }
     // Функция для клика по стрелкам
+    // Единственная правильная функция для клика по стрелкам
     function changePhoto(step, event) {
         if (event) {
-            event.stopPropagation(); 
+            event.stopPropagation();
             event.preventDefault();
         }
-        if (currentPhotos.length <= 1) return;
-        
-        currentPhotoIndex += step;
-        
-        // Зацикливаем (после последнего фото идет первое)
-        if (currentPhotoIndex < 0) currentPhotoIndex = currentPhotos.length - 1;
-        if (currentPhotoIndex >= currentPhotos.length) currentPhotoIndex = 0;
-        
-        updateGalleryUI();
-    }
 
-    function changePhoto(step, event) {
-        if (event) {
-            event.stopPropagation(); // Не даем клику провалиться ниже
-            event.preventDefault();
-        }
-        if (currentPhotos.length <= 1) return;
-        
+        if (!currentPhotos || currentPhotos.length <= 1) return;
+
+        // Вычисляем новый индекс
         currentPhotoIndex += step;
-        
-        // Зацикливаем галерею (после последней идет первая)
-        if (currentPhotoIndex < 0) currentPhotoIndex = currentPhotos.length - 1;
-        if (currentPhotoIndex >= currentPhotos.length) currentPhotoIndex = 0;
-        
-        updateGalleryUI();
+
+        // Зацикливаем прокрутку
+        if (currentPhotoIndex < 0) {
+            currentPhotoIndex = currentPhotos.length - 1;
+        } else if (currentPhotoIndex >= currentPhotos.length) {
+            currentPhotoIndex = 0;
+        }
+
+        // Вызываем новую функцию обновления главного фото
+        if (typeof setMainPhoto === 'function') {
+            setMainPhoto(currentPhotoIndex);
+        }
     }
     function requestMapResize() {
         [0, 140, 260, 420].forEach(delay => {
