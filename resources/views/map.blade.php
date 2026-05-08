@@ -1820,36 +1820,30 @@
         detailWaveText.textContent = getWaveLevelText(beach.wave_level);
         detailCategory.textContent = getBeachCategoryLabel(beach);
         detailMapButton.dataset.id = beach.id ?? '';
+
         const hasCoordinates = beach.latitude !== undefined && beach.latitude !== null && beach.longitude !== undefined && beach.longitude !== null;
         detailCoordinates.textContent = hasCoordinates ? `${beach.latitude}, ${beach.longitude}` : '-';
         detailCoordinates.dataset.coordinates = hasCoordinates ? `${beach.latitude}, ${beach.longitude}` : '';
-        // --- ЛОГИКА ОТОБРАЖЕНИЯ КАРТИНКИ ---
-        const detailPhoto = document.getElementById('detail-beach-photo');
-        // --- НОВАЯ ЛОГИКА ЗАГРУЗКИ ФОТО ДЛЯ СЛАЙДЕРА ---
-        const track = document.getElementById('slider-track');
 
-        if (track) {
-            // 1. Сбрасываем слайдер перед открытием нового пляжа, чтобы не мелькали старые фото
-            // --- ЛОГИКА ОТОБРАЖЕНИЯ ГАЛЕРЕИ ---
-            // 1. Очищаем галерею перед загрузкой нового пляжа
-            currentPhotos = [];
-            currentPhotoIndex = 0;
-            renderGallery();
+        // --- ЛОГИКА ОТОБРАЖЕНИЯ ГАЛЕРЕИ ---
+        // 1. Очищаем галерею перед загрузкой нового пляжа
+        currentPhotos = [];
+        currentPhotoIndex = 0;
+        renderGallery();
 
-            // 2. Делаем запрос к серверу за массивом фотографий
-            if (beach.id) {
-                fetch(`/api/beach-photo/${beach.id}`)
-                    .then(response => response.json())
-                    .then(data => {
-                        currentPhotos = data.photo_urls || [];
-                        renderGallery(); // Рисуем новые фото
-                    })
-                    .catch(() => {
-                        currentPhotos = [];
-                        renderGallery();
-                    });
-            }
-}
+        // 2. Делаем запрос к серверу за массивом фотографий
+        if (beach.id) {
+            fetch(`/api/beach-photo/${beach.id}`)
+                .then(response => response.json())
+                .then(data => {
+                    currentPhotos = data.photo_urls || [];
+                    renderGallery(); // Рисуем новые фото
+                })
+                .catch(() => {
+                    currentPhotos = [];
+                    renderGallery();
+                });
+        }
     }
     // Функция обновления интерфейса галереи
     function renderGallery() {
