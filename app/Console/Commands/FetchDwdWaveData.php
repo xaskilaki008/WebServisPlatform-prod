@@ -100,8 +100,8 @@ class FetchDwdWaveData extends Command
             $storageDir = storage_path('app');
 
             foreach ($beaches as $beach) {
-                
-                $command = "cd /d \"{$storageDir}\" && \"{$wgrib2Path}\" \"{$gribFileName}\" -lon {$beach->longitude} {$beach->latitude}";
+
+                $command = "cd /d \"{$storageDir}\" && \"{$wgrib2Path}\" \"{$gribFileName}\" -lon {$beach->fetch_longitude} {$beach->fetch_latitude}";
                 $output = shell_exec($command);
 
                 if ($output && preg_match('/val=([0-9\.\-]+)/', $output, $valMatches)) {

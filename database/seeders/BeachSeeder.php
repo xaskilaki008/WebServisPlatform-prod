@@ -9,31 +9,42 @@ class BeachSeeder extends Seeder
 {
     public function run(): void
     {
-        $path = public_path('sevastopol_beaches.geojson');
-        $content = file_get_contents($path);
-        $data = json_decode($content, true);
+        $shorePath = public_path('sevastopol_beaches.geojson');
+        $seaPath = public_path('sevastopol_beaches(near point).geojson');
 
-        if (! is_array($data['features'] ?? null)) {
-            return;
-        }
+        $shoreData = json_decode(file_get_contents($shorePath), true);
+        $seaData = json_decode(file_get_contents($seaPath), true);
 
-        foreach ($data['features'] as $feature) {
-            $properties = $feature['properties'] ?? [];
-            $coordinates = $feature['geometry']['coordinates'] ?? null;
-
-            if (! is_array($coordinates) || count($coordinates) < 2 || ! isset($properties['num'], $properties['name'])) {
+        // 1. Береговые координаты
+        foreach ($shoreData['features'] as $feature) {
+            if (empty($feature['properties']['name'])) {
                 continue;
             }
 
             Beach::updateOrCreate(
-                ['number' => (int) $properties['num']],
                 [
-                    'name' => (string) $properties['name'],
-                    'latitude' => (float) $coordinates[1],
-                    'longitude' => (float) $coordinates[0],
-                    'wave_level' => isset($properties['wave_level']) ? (int) $properties['wave_level'] : 0,
+                    'name' => $feature['properties']['name']
+                ],
+                [
+                    'longitude' => $feature['geometry']['coordinates'][0],
+                    'latitude' => $feature['geometry']['coordinates'][1],
+                    'number' => $feature['properties']['number'] ?? 0,
+                    'wave_level' => 0, // <--- Добавили дефолтное значение
                 ]
             );
+        }
+
+        // 2. Морские координаты
+        foreach ($seaData['features'] as $feature) {
+            if (empty($feature['properties']['name'])) {
+                continue;
+            }
+
+            Beach::where('name', $feature['properties']['name'])
+                ->update([
+                    'fetch_longitude' => $feature['geometry']['coordinates'][0],
+                    'fetch_latitude' => $feature['geometry']['coordinates'][1],
+                ]);
         }
     }
 }
