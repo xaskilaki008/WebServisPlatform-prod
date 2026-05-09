@@ -15,21 +15,29 @@ class BeachSeeder extends Seeder
         $shoreData = json_decode(file_get_contents($shorePath), true);
         $seaData = json_decode(file_get_contents($seaPath), true);
 
+        $missingNumberCounter = -1; // Счетчик для генерации уникальных фейковых номеров
+
         // 1. Береговые координаты
         foreach ($shoreData['features'] as $feature) {
             if (empty($feature['properties']['name'])) {
                 continue;
             }
 
+            // Безопасно пытаемся получить номер. Если ключа вообще нет — ставим null
+            $number = $feature['properties']['number'] ?? null;
+
+            // Если номера нет или он пустой, даем уникальный отрицательный
+            if (empty($number)) {
+                $number = $missingNumberCounter--;
+            }
+            
             Beach::updateOrCreate(
-                [
-                    'name' => $feature['properties']['name']
-                ],
+                ['name' => $feature['properties']['name']],
                 [
                     'longitude' => $feature['geometry']['coordinates'][0],
                     'latitude' => $feature['geometry']['coordinates'][1],
-                    'number' => $feature['properties']['number'] ?? 0,
-                    'wave_level' => 0, // <--- Добавили дефолтное значение
+                    'number' => $number,
+                    'wave_level' => 0,
                 ]
             );
         }

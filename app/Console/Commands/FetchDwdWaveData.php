@@ -100,10 +100,16 @@ class FetchDwdWaveData extends Command
             $storageDir = storage_path('app');
 
             foreach ($beaches as $beach) {
+                // ЗАЩИТА: Если у пляжа нет морских координат, просто пропускаем его, чтобы не сломать wgrib2
+                if (empty($beach->fetch_longitude) || empty($beach->fetch_latitude)) {
+                    $this->warn(" -> Пропуск пляжа '{$beach->name}': нет морских координат.");
+                    continue;
+                }
 
                 $command = "cd /d \"{$storageDir}\" && \"{$wgrib2Path}\" \"{$gribFileName}\" -lon {$beach->fetch_longitude} {$beach->fetch_latitude}";
                 $output = shell_exec($command);
 
+                // --- ВОТ ЭТОТ БЛОК БЫЛ УТЕРЯН (Вытаскиваем число из ответа и кладем в массив) ---
                 if ($output && preg_match('/val=([0-9\.\-]+)/', $output, $valMatches)) {
                     $value = (float) $valMatches[1];
 
@@ -112,10 +118,13 @@ class FetchDwdWaveData extends Command
                     }
                     $parsedData[$beach->id][$dbColumn] = $value;
                 }
+                // ---------------------------------------------------------------------------------
             }
 
-            // 7. Удаляем временный файл, освобождаем память
-            Storage::delete($gribFileName);
+            // 7. Удаляем временный файл, освобождаем память (Используем чистый PHP unlink)
+            if (file_exists($filePath)) {
+                unlink($filePath);
+            }
             $this->line(" -> Временный файл удален.");
         }
 
