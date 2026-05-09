@@ -26,3 +26,4 @@ Thumbs.db
 *.png
 package-lock.json
 /public/фотографии пляжей
+public/sevastopol_beaches(near point).geojson
