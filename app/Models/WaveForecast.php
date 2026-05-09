@@ -4,30 +4,30 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class WaveForecast extends Model
 {
     use HasFactory;
 
-    // Разрешаем парсеру массово записывать данные в эти колонки
     protected $fillable = [
         'beach_id',
         'forecast_time',
         'wave_height',
         'wave_period',
         'wave_direction',
-        'air_temp',
-        'water_temp'
     ];
 
-    // Указываем Laravel, что forecast_time — это дата и время (объект Carbon)
     protected $casts = [
+        'beach_id' => 'integer',
         'forecast_time' => 'datetime',
+        'wave_height' => 'float',
+        'wave_period' => 'float',
+        'wave_direction' => 'float',
     ];
 
-    // Настраиваем связь: каждый прогноз принадлежит одному пляжу
-    public function beach()
+    public function beach(): BelongsTo
     {
         return $this->belongsTo(Beach::class);
     }
-}   
+}
