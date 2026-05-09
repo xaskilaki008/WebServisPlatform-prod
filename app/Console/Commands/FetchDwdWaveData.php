@@ -95,8 +95,13 @@ class FetchDwdWaveData extends Command
 
             // 6. Вызываем утилиту wgrib2 для извлечения данных по координатам пляжей
             $this->line(" -> Геопространственный парсинг wgrib2...");
+
+            // Получаем чистый путь к папке storage/app
+            $storageDir = storage_path('app');
+
             foreach ($beaches as $beach) {
-                $command = "\"{$wgrib2Path}\" \"{$filePath}\" -lon {$beach->longitude} {$beach->latitude}";
+                
+                $command = "cd /d \"{$storageDir}\" && \"{$wgrib2Path}\" \"{$gribFileName}\" -lon {$beach->longitude} {$beach->latitude}";
                 $output = shell_exec($command);
 
                 if ($output && preg_match('/val=([0-9\.\-]+)/', $output, $valMatches)) {
