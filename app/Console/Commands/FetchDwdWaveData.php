@@ -86,8 +86,8 @@ class FetchDwdWaveData extends Command
                     continue;
                 }
 
-                // 5. Сохраняем чистый GRIB2 файл
-                Storage::put($gribFileName, $gribContent);
+                // 5. Сохраняем чистый GRIB2 файл напрямую по физическому пути
+                file_put_contents($filePath, $gribContent);
             } catch (\Exception $e) {
                 $this->error(" -> Исключение при скачивании/распаковке: " . $e->getMessage());
                 continue;
