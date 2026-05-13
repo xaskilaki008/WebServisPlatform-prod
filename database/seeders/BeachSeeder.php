@@ -3,19 +3,30 @@
 namespace Database\Seeders;
 
 use App\Models\Beach;
+use App\Models\WaveForecast; // <-- Добавь этот use
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Facades\Schema;
 
 class BeachSeeder extends Seeder
 {
     public function run(): void
     {
+        // === ЖЕСТКАЯ ОЧИСТКА БАЗЫ С ОБНУЛЕНИЕМ ID ===
+        Schema::disableForeignKeyConstraints(); // Отключаем защиту внешних ключей на пару секунд
+
+        WaveForecast::truncate(); // Удаляет всё и сбрасывает ID на 1
+        Beach::truncate();        // Удаляет всё и сбрасывает ID на 1
+
+        Schema::enableForeignKeyConstraints();  // Включаем защиту обратно
+        // ============================================
+
         $shorePath = public_path('sevastopol_beaches.geojson');
-        $seaPath = public_path('sevastopol_beaches(near point).geojson');
+        $seaPath = public_path('sevastopol_beaches(near point)(0007).geojson');
 
         $shoreData = json_decode(file_get_contents($shorePath), true);
         $seaData = json_decode(file_get_contents($seaPath), true);
 
-        $missingNumberCounter = -1; // Счетчик для генерации уникальных фейковых номеров
+        $missingNumberCounter = -1;
 
         // 1. Береговые координаты
         foreach ($shoreData['features'] as $feature) {
@@ -23,14 +34,11 @@ class BeachSeeder extends Seeder
                 continue;
             }
 
-            // Безопасно пытаемся получить номер. Если ключа вообще нет — ставим null
             $number = $feature['properties']['number'] ?? null;
-
-            // Если номера нет или он пустой, даем уникальный отрицательный
             if (empty($number)) {
                 $number = $missingNumberCounter--;
             }
-            
+
             Beach::updateOrCreate(
                 ['name' => $feature['properties']['name']],
                 [
