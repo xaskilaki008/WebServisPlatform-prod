@@ -86,4 +86,11 @@ class Beach extends Model
         // Если картинки у пляжа нет, можно вернуть заглушку
         return asset('images/no-photo.png'); 
     }
+    // app/Models/Beach.php
+
+    public function latestForecast()
+    {
+        // Эта связь всегда будет возвращать только одну, самую свежую запись из таблицы прогнозов
+        return $this->hasOne(WaveForecast::class)->latestOfMany();
+    }
 }

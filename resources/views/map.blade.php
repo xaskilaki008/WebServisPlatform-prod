@@ -1643,6 +1643,10 @@
                     <div class="detail-field"><strong>Уровень волнения:</strong> <span id="detail-wave-level">-</span></div>
                     <div class="detail-field"><strong>Описание волнения:</strong> <span id="detail-wave-text">Нет данных</span></div>
                     <div class="detail-field"><strong>Категория:</strong> <span id="detail-category">-</span></div>
+                    
+                    <div class="detail-field"><strong>Высота волны:</strong> <span id="detail-wave-height">-</span></div>
+                    <div class="detail-field"><strong>Период волны:</strong> <span id="detail-wave-period">-</span></div>
+                    <div class="detail-field"><strong>Направление:</strong> <span id="detail-wave-direction">-</span></div>
                 </div>
             </article>
         </section>
@@ -1814,6 +1818,7 @@
     }
 
     function updateDetailScreen(beach = {}) {
+        // 1. Заполняем то, что уже есть (мгновенно)
         detailName.textContent = beach.name || 'Без названия';
         detailNumber.textContent = beach.number ?? '-';
         detailWaveLevel.textContent = beach.wave_level ?? '-';
@@ -1825,13 +1830,41 @@
         detailCoordinates.textContent = hasCoordinates ? `${beach.latitude}, ${beach.longitude}` : '-';
         detailCoordinates.dataset.coordinates = hasCoordinates ? `${beach.latitude}, ${beach.longitude}` : '';
 
-        // --- ЛОГИКА ОТОБРАЖЕНИЯ ГАЛЕРЕИ ---
-        // 1. Очищаем галерею перед загрузкой нового пляжа
+        // --- 2. НОВЫЙ КОД: СТУЧИМСЯ В БАЗУ ЗА ВОЛНАМИ ---
+        if (beach.id) {
+            fetch(`/api/beach-info/${beach.id}`)
+                .then(response => response.json())
+                .then(data => {
+                    // Обрати внимание, берем latest_forecast из ответа
+                    const forecast = data.latest_forecast;
+
+                    if (forecast) {
+                        // Если данные в базе есть, вставляем их
+                        document.getElementById('detail-wave-height').innerText = forecast.wave_height + ' м';
+                        document.getElementById('detail-wave-period').innerText = forecast.wave_period + ' сек';
+                        document.getElementById('detail-wave-direction').innerText = forecast.wave_direction + '°';
+                        detailWaveText.innerText = 'Данные DWD обновлены';
+                    } else {
+                        // Если парсер еще не собрал данные
+                        document.getElementById('detail-wave-height').innerText = 'нет данных';
+                        document.getElementById('detail-wave-period').innerText = 'нет данных';
+                        document.getElementById('detail-wave-direction').innerText = 'нет данных';
+                        detailWaveText.innerText = 'Прогноз ожидается';
+                    }
+                })
+                .catch(err => {
+                    console.error('Ошибка связи с БД при загрузке волн:', err);
+                    detailWaveText.innerText = 'Ошибка загрузки';
+                });
+        }
+
+        // --- 3. СТАРЫЙ КОД: ОТОБРАЖЕНИЯ ГАЛЕРЕИ ---
+        // Очищаем галерею перед загрузкой нового пляжа
         currentPhotos = [];
         currentPhotoIndex = 0;
         renderGallery();
 
-        // 2. Делаем запрос к серверу за массивом фотографий
+        // Делаем запрос к серверу за массивом фотографий
         if (beach.id) {
             fetch(`/api/beach-photo/${beach.id}`)
                 .then(response => response.json())

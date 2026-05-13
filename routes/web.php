@@ -47,3 +47,16 @@ Route::get('/api/beach-photo/{id}', function ($id) {
         'photo_urls' => array_values($validUrls)    // Отдаем весь массив для слайдера
     ]);
 });
+// routes/web.php
+use App\Models\Beach;
+
+Route::get('/api/beach-info/{id}', function ($id) {
+    // Загружаем пляж вместе с его последним прогнозом
+    $beach = Beach::with('latestForecast')->find($id);
+
+    if (!$beach) {
+        return response()->json(['error' => 'Beach not found'], 404);
+    }
+
+    return response()->json($beach);
+});
