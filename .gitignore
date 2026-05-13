@@ -28,3 +28,18 @@ package-lock.json
 /public/фотографии пляжей
 public/sevastopol_beaches(near point).geojson
 public/sevastopol_beaches(near point).qmd
+database/seeders/BeachSeeder.php
+public/sevastopol_beaches(near point)(0001).geojson
+public/sevastopol_beaches(near point)(0001).qmd
+public/sevastopol_beaches(near point)(0002).geojson
+public/sevastopol_beaches(near point)(0002).qmd
+public/sevastopol_beaches(near point)(0003).geojson
+public/sevastopol_beaches(near point)(0003).qmd
+public/sevastopol_beaches(near point)(0004).geojson
+public/sevastopol_beaches(near point)(0004).qmd
+public/sevastopol_beaches(near point)(0005).geojson
+public/sevastopol_beaches(near point)(0005).qmd
+public/sevastopol_beaches(near point)(0006).geojson
+public/sevastopol_beaches(near point)(0006).qmd
+public/sevastopol_beaches(near point)(0007).geojson
+public/sevastopol_beaches(near point)(0007).qmd
