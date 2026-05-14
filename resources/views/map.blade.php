@@ -864,6 +864,34 @@
         /* Особый отступ для большого попапа */
         .popup-nav.left { left: -50px; }
         .popup-nav.right { right: -50px; }
+        /* --- ВРЕМЕННЫЕ КНОПКИ АДМИНА --- */
+        .temp-admin-panel {
+            position: fixed;
+            top: 100px; /* Сместили ниже шапки */
+            left: 20px;
+            z-index: 9999;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .admin-danger-btn {
+            background-color: #db4a40; /* Тот самый красный из твоих переменных */
+            color: #ffffff;
+            border: none;
+            padding: 12px 16px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 700;
+            cursor: pointer;
+            box-shadow: 0 6px 16px rgba(219, 74, 64, 0.4);
+            transition: transform 0.2s ease, background-color 0.2s ease;
+        }
+
+        .admin-danger-btn:hover {
+            background-color: #a22d26;
+            transform: translateY(-2px);
+        }
         @media (max-width: 819px) {
             .popup-nav.left { left: 10px; }
             .popup-nav.right { right: 10px; }
@@ -1538,6 +1566,10 @@
     </style>
 </head>
 <body>
+<div class="temp-admin-panel">
+    <button id="toggle-parsing-btn" class="admin-danger-btn">Парсинг (Вкл/Выкл)</button>
+    <button id="force-fetch-btn" class="admin-danger-btn">Взять данные сейчас</button>
+</div>
 <div class="app-shell">
     <header class="topbar">
         <div class="topbar-inner">
