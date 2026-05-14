@@ -2813,6 +2813,45 @@
                 }
             });
         }
+        // --- ЛОГИКА ДЛЯ ВРЕМЕННЫХ КНОПОК АДМИНА ---
+        const forceFetchBtn = document.getElementById('force-fetch-btn');
+        const toggleParsingBtn = document.getElementById('toggle-parsing-btn');
+
+        if (forceFetchBtn) {
+            forceFetchBtn.addEventListener('click', function () {
+                if (confirm('ВНИМАНИЕ: Запросить свежие данные прямо сейчас? (Сбор с DWD может занять несколько секунд)')) {
+
+                    const originalText = this.textContent;
+                    this.textContent = 'Идёт загрузка...';
+                    this.style.opacity = '0.7';
+                    this.style.pointerEvents = 'none'; // Защита от двойного клика
+
+                    fetch('/api/force-fetch', { method: 'POST' })
+                        .then(res => res.json())
+                        .then(data => alert(data.message || data.error))
+                        .catch(err => {
+                            console.error(err);
+                            alert('Произошла ошибка при обращении к серверу.');
+                        })
+                        .finally(() => {
+                            this.textContent = originalText;
+                            this.style.opacity = '1';
+                            this.style.pointerEvents = 'auto';
+                        });
+                }
+            });
+        }
+
+        if (toggleParsingBtn) {
+            toggleParsingBtn.addEventListener('click', function () {
+                if (confirm('ВНИМАНИЕ: Изменить режим работы ежечасного парсера?')) {
+                    fetch('/api/toggle-parsing', { method: 'POST' })
+                        .then(res => res.json())
+                        .then(data => alert(data.message))
+                        .catch(err => alert('Ошибка при переключении парсера.'));
+                }
+            });
+        }
     });
     updateStickyFilterOffset();
     updateScrollTopButtonVisibility();

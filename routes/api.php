@@ -66,7 +66,7 @@ Route::patch('/beaches/wave-level', function (Request $request) {
 // 4. Получение подробной информации (включая волны)
 Route::get('/beach-info/{id}', function ($id) {
     // Ищем по первичному ключу ID, который присылает карта
-    return \App\Models\Beach::with('latestForecast')->find($id);
+    $beach = \App\Models\Beach::with('latestForecast')->find($id);
 
     if (!$beach) {
         return response()->json(['error' => 'Beach not found'], 404);
