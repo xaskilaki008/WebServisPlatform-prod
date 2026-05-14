@@ -11,7 +11,7 @@
             --bg: #edf3f8;
             --surface: #ffffff;
             --surface-soft: #f6f9fc;
-            --surface-strong: #0f2d44;
+            --surface-strong: #446279;
             --border: #d2deea;
             --text: #143149;
             --text-soft: #547086;
