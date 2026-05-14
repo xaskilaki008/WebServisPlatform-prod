@@ -2598,11 +2598,9 @@
 
     fetch('/api/beaches')
         .then(response => response.json())
+        // НАЙДИТЕ ЭТОТ БЛОК В КОНЦЕ ФАЙЛА:
         .then(data => {
-            // --- НОВАЯ СТРОКА ТУТ: Сортируем по номеру от меньшего к большему ---
-            // Мы сравниваем абсолютные значения (без минусов)
             data.sort((a, b) => Math.abs(a.number || 0) - Math.abs(b.number || 0));
-
             beaches.push(...data);
             
             if (beachesPolygonLayer) refreshPolygonStyles();
@@ -2610,10 +2608,20 @@
             renderBeachesList();
 
             if (beaches.length > 0) {
-                // Если в URL нет конкретного пляжа, выбираем первый по списку (№1)
                 const urlParams = new URLSearchParams(window.location.search);
-                if (!urlParams.get('beach')) {
-                    selectBeach(beaches[0]);
+                const beachIdFromUrl = urlParams.get('beach');
+
+                if (beachIdFromUrl) {
+                    // Ищем пляж в массиве по ID из ссылки
+                    const targetBeach = beaches.find(b => String(b.id) === String(beachIdFromUrl));
+                    if (targetBeach) {
+                        // Если нашли — фокусируемся на нем (это откроет карточку и зум)
+                        focusBeachOnMap(targetBeach);
+                    } else {
+                        selectBeach(beaches[0]); // Если ID в ссылке битый — берем первый
+                    }
+                } else {
+                    selectBeach(beaches[0]); // Если ссылки нет — берем первый
                 }
             }
         })
@@ -2852,6 +2860,18 @@
                 }
             });
         }
+        window.addEventListener('popstate', (event) => {
+            const urlParams = new URLSearchParams(window.location.search);
+            const beachId = urlParams.get('beach');
+
+            if (beachId) {
+                const beach = beaches.find(b => String(b.id) === String(beachId));
+                if (beach) focusBeachOnMap(beach);
+            } else {
+                // Если вернулись на пустой URL — сбрасываем на первый пляж или закрываем детали
+                setActiveScreen('map-screen');
+            }
+        });
     });
     updateStickyFilterOffset();
     updateScrollTopButtonVisibility();
