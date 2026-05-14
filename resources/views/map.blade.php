@@ -624,9 +624,13 @@
         .detail-field {
             background: var(--surface-soft);
             border: 1px solid #dce6f0;
-            border-radius: 11px;
-            padding: 10px 11px;
+            border-radius: 0 !important;
+            padding-top: 4px !important;    /* Отступ сверху */
+            padding-bottom: 4px !important; /* Отступ снизу */
             margin: 0;
+        }
+        .detail-field * {
+            border-radius: 0 !important;
         }
 
         .counter-badge {
@@ -2375,6 +2379,19 @@
         updateDetailBackButton();
         selectBeach(beach);
         setActiveScreen('detail-screen');
+        function openBeachDetails(beach, sourceScreenId = null) {
+            const originScreenId = sourceScreenId || getActiveScreenId();
+            lastNonDetailScreen = originScreenId;
+            detailReturnScreen = originScreenId === 'list-screen' ? 'map-screen' : 'list-screen';
+            updateDetailBackButton();
+            selectBeach(beach);
+            setActiveScreen('detail-screen');
+
+            // --- НОВАЯ ЛОГИКА: Меняем URL ---
+            const newUrl = new URL(window.location);
+            newUrl.searchParams.set('beach', beach.id); // Добавляем ?beach=ID
+            window.history.pushState({ beachId: beach.id }, '', newUrl);
+        }
     }
 
     function addDetailsButtonToPopup(popup, beach) {
@@ -2483,10 +2500,20 @@
 
     detailBackButton.addEventListener('click', function () {
         setActiveScreen(lastNonDetailScreen);
+
+        // --- НОВАЯ ЛОГИКА: Очищаем URL ---
+        const newUrl = new URL(window.location);
+        newUrl.searchParams.delete('beach'); // Удаляем параметр
+        window.history.pushState({}, '', newUrl);
     });
 
+    // То же самое для второй кнопки возврата, если она есть
     detailReturnButton.addEventListener('click', function () {
         setActiveScreen(detailReturnScreen);
+
+        const newUrl = new URL(window.location);
+        newUrl.searchParams.delete('beach');
+        window.history.pushState({}, '', newUrl);
     });
 
     function focusCurrentDetailBeachOnMap() {
@@ -2542,24 +2569,35 @@
     renderLoadingState();
 
     fetch('/api/beaches')
-        .then(response => response.json())
-        .then(data => {
-            beaches.push(...data);
-            if (beachesPolygonLayer) refreshPolygonStyles();
-            renderMapMarkers();
-            renderBeachesList();
+    .then(response => response.json())
+    .then(data => {
+        beaches.push(...data);
+        if (beachesPolygonLayer) refreshPolygonStyles();
+        renderMapMarkers();
+        renderBeachesList();
 
-            if (beaches.length > 0) {
-                selectBeach(beaches[0]);
-            } else {
-                // updateInfoPanel({});
+        // --- НОВАЯ ЛОГИКА: Проверяем URL при старте ---
+        const urlParams = new URLSearchParams(window.location.search);
+        const initialBeachId = urlParams.get('beach'); // Ищем ?beach=...
+
+        if (initialBeachId) {
+            // Если в ссылке есть ID, ищем этот пляж в массиве
+            const beachToOpen = beaches.find(b => String(b.id) === String(initialBeachId));
+            
+            if (beachToOpen) {
+                // Центрируем карту и открываем карточку
+                focusBeachOnMap(beachToOpen);
+                // Карточка откроется сама, так как focusBeachOnMap вызывает selectBeach, 
+                // но чтобы показать нужный экран, вызовем:
+                openBeachDetails(beachToOpen, 'map-screen');
             }
-        })
-        .catch(error => {
-            console.error('Ошибка загрузки пляжей:', error);
-            beachesList.innerHTML = '<div class="empty-state">Не удалось загрузить данные пляжей.</div>';
-            // infoName.textContent = 'Нет данных';
-        });
+        } 
+        // --- КОНЕЦ НОВОЙ ЛОГИКИ ---
+    })
+    .catch(error => {
+        console.error('Ошибка загрузки пляжей:', error);
+        beachesList.innerHTML = '<div class="empty-state">Не удалось загрузить данные пляжей.</div>';
+    });
 
     fetch('/api/beach-polygons')
         .then(response => {

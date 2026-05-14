@@ -52,7 +52,8 @@ use App\Models\Beach;
 
 Route::get('/api/beach-info/{id}', function ($id) {
     // Загружаем пляж вместе с его последним прогнозом
-    $beach = Beach::with('latestForecast')->find($id);
+    // Ищем пляж именно по колонке 'number', которая приходит с карты
+    $beach = Beach::with('latestForecast')->where('number', $id)->first();
 
     if (!$beach) {
         return response()->json(['error' => 'Beach not found'], 404);
