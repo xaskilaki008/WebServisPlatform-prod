@@ -1869,139 +1869,145 @@
     }
 
     function updateDetailScreen(beach = {}) {
-        const cleanId = Math.abs(beach.id);
+            const cleanId = Math.abs(beach.id);
 
-        detailName.textContent = beach.name || 'Без названия';
+            detailName.textContent = beach.name || 'Без названия';
 
-        let rawNumber = beach.number ?? beach.num;
-        detailNumber.textContent = (rawNumber !== undefined && rawNumber !== null && rawNumber !== '')
-            ? Math.abs(Number(rawNumber))
-            : '-';
+            let rawNumber = beach.number ?? beach.num;
+            detailNumber.textContent = (rawNumber !== undefined && rawNumber !== null && rawNumber !== '')
+                ? Math.abs(Number(rawNumber))
+                : '-';
 
-        detailWaveLevel.textContent = beach.wave_level ?? '-';
-        detailWaveText.textContent = getWaveLevelText(beach.wave_level);
-        detailCategory.textContent = getBeachCategoryLabel(beach);
-        detailMapButton.dataset.id = beach.id ?? '';
+            detailWaveLevel.textContent = beach.wave_level ?? '-';
+            detailWaveText.textContent = getWaveLevelText(beach.wave_level);
+            detailCategory.textContent = getBeachCategoryLabel(beach);
+            detailMapButton.dataset.id = beach.id ?? '';
 
-        const hasCoords = beach.latitude !== undefined && beach.longitude !== undefined;
-                detailCoordinates.textContent = hasCoords ? `${beach.latitude}, ${beach.longitude}` : '-';
-                detailCoordinates.dataset.coordinates = hasCoords ? `${beach.latitude}, ${beach.longitude}` : '';
+            const hasCoords = beach.latitude !== undefined && beach.longitude !== undefined;
+            detailCoordinates.textContent = hasCoords ? `${beach.latitude}, ${beach.longitude}` : '-';
+            detailCoordinates.dataset.coordinates = hasCoords ? `${beach.latitude}, ${beach.longitude}` : '';
 
-                currentPhotos = [];
-                currentPhotoIndex = 0;
-                showGallerySkeleton();
+            currentPhotos = [];
+            currentPhotoIndex = 0;
+            showGallerySkeleton();
 
-                if (beach.id) {
-                    fetch(`/api/beach-info/${cleanId}`)
-                        .then(response => response.json())
-                        .then(data => {
-                            const forecast = data.latest_forecast || data;
-                            if (forecast && forecast.wave_height !== undefined) {
-                                document.getElementById('detail-wave-height').innerText = forecast.wave_height + ' м';
-                                document.getElementById('detail-wave-period').innerText = forecast.wave_period + ' сек';
-                                detailWaveText.innerText = 'Данные DWD обновлены';
-                            } else {
-                                document.getElementById('detail-wave-height').innerText = 'нет данных';
-                                document.getElementById('detail-wave-period').innerText = 'нет данных';
-                                detailWaveText.innerText = 'Прогноз ожидается';
-                            }
-                        })
-                        .catch(err => {
-                            console.error('Ошибка загрузки волн:', err);
-                            detailWaveText.innerText = 'Ошибка загрузки';
-                        });
+            if (beach.id) {
+                // Запрос данных о волнах
+                fetch(`/api/beach-info/${cleanId}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        const forecast = data.latest_forecast || data;
+                        if (forecast && forecast.wave_height !== undefined) {
+                            document.getElementById('detail-wave-height').innerText = forecast.wave_height + ' м';
+                            document.getElementById('detail-wave-period').innerText = forecast.wave_period + ' сек';
+                            detailWaveText.innerText = 'Данные DWD обновлены';
+                        } else {
+                            document.getElementById('detail-wave-height').innerText = 'нет данных';
+                            document.getElementById('detail-wave-period').innerText = 'нет данных';
+                            detailWaveText.innerText = 'Прогноз ожидается';
+                        }
+                    })
+                    .catch(err => {
+                        console.error('Ошибка загрузки волн:', err);
+                        detailWaveText.innerText = 'Ошибка загрузки';
+                    });
 
-                    fetch(`/api/beach-photo/${beach.id}`)
-                        .then(res => res.json())
-                        .then(data => {
-                            currentPhotos = data.photo_urls || [];
-                            currentPhotoIndex = 0;
-                            renderGallery();
-                        });
-                }
+                // Запрос фотографий
+                fetch(`/api/beach-photo/${beach.id}`)
+                    .then(res => res.json())
+                    .then(data => {
+                        currentPhotos = data.photo_urls || [];
+                        currentPhotoIndex = 0;
+                        renderGallery();
+                    });
             }
+        }
 
-            function showGallerySkeleton() {
-                const thumbContainer = document.getElementById('gallery-thumbnails');
-                const mainDisplay = document.getElementById('gallery-main-display');
-                const mainImg = document.getElementById('gallery-main-img');
-                const numberLabel = document.getElementById('gallery-photo-number');
-                const mainSkeleton = document.getElementById('skeleton-main-display');
+        // --- ФУНКЦИИ ГАЛЕРЕИ ---
 
-                mainDisplay.classList.remove('hidden');
-                mainImg.classList.add('hidden');
-                numberLabel.classList.add('hidden');
-                if (mainSkeleton) mainSkeleton.classList.remove('hidden');
+        function showGallerySkeleton() {
+            const thumbContainer = document.getElementById('gallery-thumbnails');
+            const mainDisplay = document.getElementById('gallery-main-display');
+            const mainImg = document.getElementById('gallery-main-img');
+            const numberLabel = document.getElementById('gallery-photo-number');
+            const mainSkeleton = document.getElementById('skeleton-main-display');
 
-                thumbContainer.innerHTML = `
+            mainDisplay.classList.remove('hidden');
+            mainImg.classList.add('hidden');
+            numberLabel.classList.add('hidden');
+            if (mainSkeleton) mainSkeleton.classList.remove('hidden');
+
+            thumbContainer.innerHTML = `
             <div class="skeleton skeleton-thumb"></div>
             <div class="skeleton skeleton-thumb"></div>
             <div class="skeleton skeleton-thumb"></div>
             <div class="skeleton skeleton-thumb"></div>
         `;
+        }
+
+        function renderGallery() {
+            const thumbContainer = document.getElementById('gallery-thumbnails');
+            const mainDisplay = document.getElementById('gallery-main-display');
+            const numberLabel = document.getElementById('gallery-photo-number');
+            const mainSkeleton = document.getElementById('skeleton-main-display');
+
+            if (!currentPhotos || currentPhotos.length === 0) {
+                thumbContainer.innerHTML = '';
+                mainDisplay.classList.add('hidden');
+                if (mainSkeleton) mainSkeleton.classList.add('hidden');
+                numberLabel.classList.add('hidden');
+                return;
             }
 
-            function renderGallery() {
-                const thumbContainer = document.getElementById('gallery-thumbnails');
-                const mainDisplay = document.getElementById('gallery-main-display');
-                const numberLabel = document.getElementById('gallery-photo-number');
-                const mainSkeleton = document.getElementById('skeleton-main-display');
+            mainDisplay.classList.remove('hidden');
+            numberLabel.classList.remove('hidden');
 
-                if (!currentPhotos || currentPhotos.length === 0) {
-                    thumbContainer.innerHTML = '';
-                    mainDisplay.classList.add('hidden');
-                    if (mainSkeleton) mainSkeleton.classList.add('hidden');
-                    numberLabel.classList.add('hidden');
-                    return;
-                }
-
-                mainDisplay.classList.remove('hidden');
-                numberLabel.classList.remove('hidden');
-
-                thumbContainer.innerHTML = currentPhotos.map((url, index) => `
+            thumbContainer.innerHTML = currentPhotos.map((url, index) => `
             <img src="${url}" 
                  class="thumb-item ${index === 0 ? 'active' : ''}" 
                  onclick="setMainPhoto(${index})" 
                  data-index="${index}">
         `).join('');
 
-                setMainPhoto(0);
+            setMainPhoto(0);
+        }
+
+        function setMainPhoto(index) {
+            currentPhotoIndex = index;
+            const mainImg = document.getElementById('gallery-main-img');
+            const numberLabel = document.getElementById('gallery-photo-number');
+            const thumbs = document.querySelectorAll('.thumb-item');
+            const mainSkeleton = document.getElementById('skeleton-main-display');
+
+            if (!currentPhotos[index]) return;
+
+            mainImg.classList.add('hidden');
+            if (mainSkeleton) mainSkeleton.classList.remove('hidden');
+
+            mainImg.onload = function () {
+                mainImg.classList.remove('hidden');
+                if (mainSkeleton) mainSkeleton.classList.add('hidden');
+            };
+
+            mainImg.src = currentPhotos[index];
+            numberLabel.textContent = `Фотография ${index + 1} из ${currentPhotos.length}`;
+
+            thumbs.forEach(t => t.classList.remove('active'));
+            const activeThumb = document.querySelector(`.thumb-item[data-index="${index}"]`);
+            if (activeThumb) {
+                activeThumb.classList.add('active');
+                activeThumb.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
             }
 
-            function setMainPhoto(index) {
-                currentPhotoIndex = index;
-                const mainImg = document.getElementById('gallery-main-img');
-                const numberLabel = document.getElementById('gallery-photo-number');
-                const thumbs = document.querySelectorAll('.thumb-item');
-                const mainSkeleton = document.getElementById('skeleton-main-display');
+            if (typeof syncPopup === 'function') syncPopup();
+        }
 
-                if (!currentPhotos[index]) return;
-
-                mainImg.classList.add('hidden');
-                if (mainSkeleton) mainSkeleton.classList.remove('hidden');
-
-                mainImg.onload = function () {
-                    mainImg.classList.remove('hidden');
-                    if (mainSkeleton) mainSkeleton.classList.add('hidden');
-                };
-
-                mainImg.src = currentPhotos[index];
-                numberLabel.textContent = `Фотография ${index + 1} из ${currentPhotos.length}`;
-
-                thumbs.forEach(t => t.classList.remove('active'));
-                const activeThumb = document.querySelector(`.thumb-item[data-index="${index}"]`);
-                if (activeThumb) {
-                    activeThumb.classList.add('active');
-                    activeThumb.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
-                }
-
-                if (typeof syncPopup === 'function') syncPopup();
-            }
-        currentPhotoIndex = index;
-        document.getElementById('image-popup').classList.remove('hidden');
-        document.body.style.overflow = 'hidden'; // Запрещаем скролл страницы
-        syncPopup();
-    }
+        function openImagePopup(index) {
+            currentPhotoIndex = index;
+            document.getElementById('image-popup').classList.remove('hidden');
+            document.body.style.overflow = 'hidden';
+            syncPopup();
+        }
     function closeImagePopup() {
         document.getElementById('image-popup').classList.add('hidden');
         document.body.style.overflow = ''; // Возвращаем скролл
