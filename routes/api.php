@@ -5,6 +5,9 @@ use App\Models\WaveForecast;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\Cache;
+
 
 // 1. Получение списка пляжей
 Route::get('/beaches', function () {
@@ -70,4 +73,29 @@ Route::get('/beach-info/{id}', function ($id) {
     }
 
     return response()->json($beach);
+});
+
+
+// 5. Принудительный запуск парсера (Взять данные сейчас)
+Route::post('/force-fetch', function () {
+    try {
+        // Эта команда программно запускает твой php artisan wave:fetch
+        Artisan::call('wave:fetch');
+        return response()->json(['message' => 'Данные успешно обновлены с серверов DWD!']);
+    } catch (\Exception $e) {
+        return response()->json(['error' => 'Ошибка: ' . $e->getMessage()], 500);
+    }
+});
+
+// 6. Переключатель парсера (Вкл / Выкл)
+Route::post('/toggle-parsing', function () {
+    // Используем кэш Laravel для хранения состояния (по умолчанию считаем, что парсер включен)
+    $currentStatus = Cache::get('parsing_enabled', true);
+
+    // Переворачиваем значение (true -> false, false -> true)
+    $newStatus = !$currentStatus;
+    Cache::put('parsing_enabled', $newStatus);
+
+    $statusText = $newStatus ? 'ВКЛЮЧЕН' : 'ВЫКЛЮЧЕН';
+    return response()->json(['message' => "Ежечасный сбор данных теперь $statusText."]);
 });
