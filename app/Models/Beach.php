@@ -4,17 +4,21 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class Beach extends Model
 {
     use HasFactory;
 
+    // 1. Разрешаем массовое заполнение всех нужных полей, включая координаты для DWD
     protected $fillable = [
-        'number',
         'name',
-        'latitude',
         'longitude',
+        'latitude',
+        'number',
         'wave_level',
+        'fetch_longitude',
+        'fetch_latitude',
     ];
 
     protected $casts = [
@@ -24,16 +28,18 @@ class Beach extends Model
         'wave_level' => 'integer',
     ];
 
+    // 2. Указываем, какие виртуальные поля должны добавляться в JSON для фронтенда
     protected $appends = [
         'wave_level_text',
         'category_key',
         'category_label',
+        'photo_url',
     ];
 
+    // --- ЛОГИКА ОПИСАНИЯ ВОЛНЕНИЯ ---
     public function getWaveLevelTextAttribute(): string
     {
         $level = (int) $this->wave_level;
-
         return match (true) {
             $level === 0 => 'Слабое волнение',
             $level <= 2 => 'Небольшое волнение',
@@ -44,10 +50,10 @@ class Beach extends Model
         };
     }
 
+    // --- ЛОГИКА КАТЕГОРИЙ БЕЗОПАСНОСТИ ---
     public function getCategoryKeyAttribute(): string
     {
         $level = (int) $this->wave_level;
-
         return match (true) {
             $level <= 2 => 'safe',
             $level <= 5 => 'caution',
@@ -63,34 +69,33 @@ class Beach extends Model
             default => 'Купание не рекомендуется',
         };
     }
-    // Добавляем этот метод в модель Beach.php
+
+    // --- ЛОГИКА ПОИСКА ФОТОГРАФИЙ ---
     public function getPhotoUrlAttribute()
     {
-        // Указываем путь к папке (public/фотографии пляжей/)
         $directory = public_path('фотографии пляжей');
-        
-        // Ищем файл, который начинается с ID пляжа (например: "32-*.*" или "32.*")
-        $files = glob($directory . '/' . $this->id . '-*.*');
-        
-        // Если с дефисом не нашли, ищем просто по номеру и любому символу дальше
+        // Используем абсолютное значение номера, так как в именах файлов могут быть минусы
+        $displayNumber = abs($this->number);
+
+        $files = glob($directory . '/' . $displayNumber . '-*.*');
         if (empty($files)) {
-            $files = glob($directory . '/' . $this->id . '*.*');
+            $files = glob($directory . '/' . $displayNumber . '.*');
         }
 
-        // Если файл найден, возвращаем ссылку на него
         if (!empty($files)) {
             $fileName = basename($files[0]);
             return asset('фотографии пляжей/' . $fileName);
         }
 
-        // Если картинки у пляжа нет, можно вернуть заглушку
-        return asset('images/no-photo.png'); 
+        return asset('images/no-photo.png');
     }
-    // app/Models/Beach.php
 
-    public function latestForecast()
+    /**
+     * Связь: получить самый свежий прогноз для этого пляжа
+     */
+    public function latestForecast(): HasOne
     {
-        // Эта связь всегда будет возвращать только одну, самую свежую запись из таблицы прогнозов
-        return $this->hasOne(WaveForecast::class)->latestOfMany();
+        // Используем forecast_time, чтобы брать данные на самый актуальный час
+        return $this->hasOne(WaveForecast::class)->latestOfMany('forecast_time');
     }
 }

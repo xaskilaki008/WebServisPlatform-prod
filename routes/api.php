@@ -56,3 +56,19 @@ Route::patch('/beaches/wave-level', function (Request $request) {
         'beach' => $beach->fresh(),
     ]);
 });
+use App\Models\WaveForecast;
+
+// Маршрут для получения данных о волнах конкретного пляжа
+Route::get('/beach-info/{id}', function ($id) {
+    // Ищем в таблице wave_forecasts самую свежую запись для этого пляжа.
+    // latest('forecast_time') отсортирует прогнозы по времени (от новых к старым).
+    $forecast = WaveForecast::where('beach_id', $id)
+        ->latest('forecast_time')
+        ->first();
+
+    // Возвращаем данные в формате JSON. 
+    // Мы оборачиваем их в ключ 'latest_forecast', так как твой JS ищет именно его.
+    return response()->json([
+        'latest_forecast' => $forecast
+    ]);
+});
