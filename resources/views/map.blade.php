@@ -1821,16 +1821,13 @@
     }
 
     function updateDetailScreen(beach = {}) {
-        // 0. Подготовка данных
-        const cleanId = Math.abs(beach.id); // ID для базы (без минуса)
+        const cleanId = Math.abs(beach.id);
 
-        // 1. МГНОВЕННОЕ ЗАПОЛНЕНИЕ (Текстовые поля)
         detailName.textContent = beach.name || 'Без названия';
 
-        // Номер без минуса
         let rawNumber = beach.number ?? beach.num;
-        detailNumber.textContent = (rawNumber !== undefined && rawNumber !== null && rawNumber !== '') 
-            ? Math.abs(Number(rawNumber)) 
+        detailNumber.textContent = (rawNumber !== undefined && rawNumber !== null && rawNumber !== '')
+            ? Math.abs(Number(rawNumber))
             : '-';
 
         detailWaveLevel.textContent = beach.wave_level ?? '-';
@@ -1838,69 +1835,79 @@
         detailCategory.textContent = getBeachCategoryLabel(beach);
         detailMapButton.dataset.id = beach.id ?? '';
 
-        // Координаты
         const hasCoords = beach.latitude !== undefined && beach.longitude !== undefined;
         detailCoordinates.textContent = hasCoords ? `${beach.latitude}, ${beach.longitude}` : '-';
         detailCoordinates.dataset.coordinates = hasCoords ? `${beach.latitude}, ${beach.longitude}` : '';
 
-        // 2. ГАЛЕРЕЯ (Очистка и запуск загрузки фото)
         currentPhotos = [];
         currentPhotoIndex = 0;
         renderGallery();
 
-        // 3. ВОЛНЫ (Запрос в базу по "чистому" ID без минуса)
-    if (beach.id) {
-        const cleanId = Math.abs(beach.id); // Убираем минус для поиска в БД
-        
-        fetch(`/api/beach-info/${cleanId}`)
-            .then(response => response.json())
-            .then(data => {
-                // Пытаемся достать прогноз (проверяем разные варианты ответа API)
-                const forecast = data.latest_forecast || data;
+        if (beach.id) {
+            fetch(`/api/beach-info/${cleanId}`)
+                .then(response => response.json())
+                .then(data => {
+                    const forecast = data.latest_forecast || data;
+                    if (forecast && forecast.wave_height !== undefined) {
+                        document.getElementById('detail-wave-height').innerText = forecast.wave_height + ' м';
+                        document.getElementById('detail-wave-period').innerText = forecast.wave_period + ' сек';
+                        detailWaveText.innerText = 'Данные DWD обновлены';
+                    } else {
+                        document.getElementById('detail-wave-height').innerText = 'нет данных';
+                        document.getElementById('detail-wave-period').innerText = 'нет данных';
+                        detailWaveText.innerText = 'Прогноз ожидается';
+                    }
+                })
+                .catch(err => {
+                    console.error('Ошибка загрузки волн:', err);
+                    detailWaveText.innerText = 'Ошибка загрузки';
+                });
 
-                if (forecast && forecast.wave_height !== undefined) {
-                    // Заполняем только Высоту и Период
-                    document.getElementById('detail-wave-height').innerText = forecast.wave_height + ' м';
-                    document.getElementById('detail-wave-period').innerText = forecast.wave_period + ' сек';
-                    
-                    // Направление волнения (detail-wave-direction) мы здесь ПРОСТО НЕ ТРОГАЕМ
-                    
-                    detailWaveText.innerText = 'Данные DWD обновлены';
-                } else {
-                    // Если данных в базе нет
-                    document.getElementById('detail-wave-height').innerText = 'нет данных';
-                    document.getElementById('detail-wave-period').innerText = 'нет данных';
-                    detailWaveText.innerText = 'Прогноз ожидается';
-                }
-            })
-            .catch(err => {
-                console.error('Ошибка загрузки волн:', err);
-                detailWaveText.innerText = 'Ошибка загрузки';
-            });
-    }   
-    // Функция обновления интерфейса галереи
+            // Запрос за списком фото
+            fetch(`/api/beach-photo/${beach.id}`)
+                .then(res => res.json())
+                .then(data => {
+                    currentPhotos = data.photo_urls || [];
+                    renderGallery();
+                });
+        }
+    } // <-- ОБЯЗАТЕЛЬНО ЗАКРЫВАЕМ ФУНКЦИЮ ЗДЕСЬ
+
+    // ТЕПЕРЬ ВСЕ ОСТАЛЬНЫЕ ФУНКЦИИ ИДУТ ОТДЕЛЬНО
     function renderGallery() {
         const thumbContainer = document.getElementById('gallery-thumbnails');
         const mainDisplay = document.getElementById('gallery-main-display');
 
-        if (currentPhotos.length === 0) {
+        if (!currentPhotos || currentPhotos.length === 0) {
             thumbContainer.innerHTML = '';
             mainDisplay.classList.add('hidden');
             return;
         }
 
         mainDisplay.classList.remove('hidden');
-
-        // Рисуем ленту миниатюр
         thumbContainer.innerHTML = currentPhotos.map((url, index) => `
         <img src="${url}" 
-             class="thumb-item ${index === 0 ? 'active' : ''}" 
-             onclick="setMainPhoto(${index})" 
-             data-index="${index}">
+                class="thumb-item ${index === 0 ? 'active' : ''}" 
+                onclick="setMainPhoto(${index})" 
+                data-index="${index}">
     `).join('');
-
-        // По умолчанию показываем первое фото
         setMainPhoto(0);
+    }
+
+    function setMainPhoto(index) {
+        currentPhotoIndex = index;
+        const mainImg = document.getElementById('gallery-main-img');
+        const numberLabel = document.getElementById('gallery-photo-number');
+        const thumbs = document.querySelectorAll('.thumb-item');
+
+        if (!currentPhotos[index]) return;
+
+        mainImg.src = currentPhotos[index];
+        numberLabel.textContent = `Фотография ${index + 1} из ${currentPhotos.length}`;
+
+        thumbs.forEach(t => t.classList.remove('active'));
+        const activeThumb = document.querySelector(`.thumb-item[data-index="${index}"]`);
+        if (activeThumb) activeThumb.classList.add('active');
     }
 
     function setMainPhoto(index) {
@@ -2377,19 +2384,10 @@
         updateDetailBackButton();
         selectBeach(beach);
         setActiveScreen('detail-screen');
-        function openBeachDetails(beach, sourceScreenId = null) {
-            const originScreenId = sourceScreenId || getActiveScreenId();
-            lastNonDetailScreen = originScreenId;
-            detailReturnScreen = originScreenId === 'list-screen' ? 'map-screen' : 'list-screen';
-            updateDetailBackButton();
-            selectBeach(beach);
-            setActiveScreen('detail-screen');
 
-            // --- НОВАЯ ЛОГИКА: Меняем URL ---
-            const newUrl = new URL(window.location);
-            newUrl.searchParams.set('beach', beach.id); // Добавляем ?beach=ID
-            window.history.pushState({ beachId: beach.id }, '', newUrl);
-        }
+        const newUrl = new URL(window.location);
+        newUrl.searchParams.set('beach', beach.id);
+        window.history.pushState({ beachId: beach.id }, '', newUrl);
     }
 
     function addDetailsButtonToPopup(popup, beach) {

@@ -94,7 +94,8 @@ class Beach extends Model
      * Связь: получить самый свежий прогноз для этого пляжа
      */
     // Внутри класса Beach в файле app/Models/Beach.php
-    public function latestForecast(): \Illuminate\Database\Eloquent\Relations\HasOne
+    // app/Models/Beach.php
+    public function latestForecast()
     {
         return $this->hasOne(WaveForecast::class)->latestOfMany('forecast_time');
     }
