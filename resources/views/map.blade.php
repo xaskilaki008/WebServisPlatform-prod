@@ -1650,7 +1650,6 @@
                     
                     <div class="detail-field"><strong>Высота волны:</strong> <span id="detail-wave-height">-</span></div>
                     <div class="detail-field"><strong>Период волны:</strong> <span id="detail-wave-period">-</span></div>
-                    <div class="detail-field"><strong>Направление:</strong> <span id="detail-wave-direction">-</span></div>
                 </div>
             </article>
         </section>
@@ -1822,66 +1821,63 @@
     }
 
     function updateDetailScreen(beach = {}) {
-        // 1. Заполняем то, что уже есть (мгновенно)
+        // 0. Подготовка данных
+        const cleanId = Math.abs(beach.id); // ID для базы (без минуса)
+
+        // 1. МГНОВЕННОЕ ЗАПОЛНЕНИЕ (Текстовые поля)
         detailName.textContent = beach.name || 'Без названия';
-        detailNumber.textContent = beach.number ?? '-';
+
+        // Номер без минуса
+        let rawNumber = beach.number ?? beach.num;
+        detailNumber.textContent = (rawNumber !== undefined && rawNumber !== null && rawNumber !== '') 
+            ? Math.abs(Number(rawNumber)) 
+            : '-';
+
         detailWaveLevel.textContent = beach.wave_level ?? '-';
         detailWaveText.textContent = getWaveLevelText(beach.wave_level);
         detailCategory.textContent = getBeachCategoryLabel(beach);
         detailMapButton.dataset.id = beach.id ?? '';
 
-        const hasCoordinates = beach.latitude !== undefined && beach.latitude !== null && beach.longitude !== undefined && beach.longitude !== null;
-        detailCoordinates.textContent = hasCoordinates ? `${beach.latitude}, ${beach.longitude}` : '-';
-        detailCoordinates.dataset.coordinates = hasCoordinates ? `${beach.latitude}, ${beach.longitude}` : '';
+        // Координаты
+        const hasCoords = beach.latitude !== undefined && beach.longitude !== undefined;
+        detailCoordinates.textContent = hasCoords ? `${beach.latitude}, ${beach.longitude}` : '-';
+        detailCoordinates.dataset.coordinates = hasCoords ? `${beach.latitude}, ${beach.longitude}` : '';
 
-        // --- 2. НОВЫЙ КОД: СТУЧИМСЯ В БАЗУ ЗА ВОЛНАМИ ---
-        if (beach.id) {
-            fetch(`/api/beach-info/${beach.id}`)
-                .then(response => response.json())
-                .then(data => {
-                    // Обрати внимание, берем latest_forecast из ответа
-                    const forecast = data.latest_forecast;
-
-                    if (forecast) {
-                        // Если данные в базе есть, вставляем их
-                        document.getElementById('detail-wave-height').innerText = forecast.wave_height + ' м';
-                        document.getElementById('detail-wave-period').innerText = forecast.wave_period + ' сек';
-                        document.getElementById('detail-wave-direction').innerText = forecast.wave_direction + '°';
-                        detailWaveText.innerText = 'Данные DWD обновлены';
-                    } else {
-                        // Если парсер еще не собрал данные
-                        document.getElementById('detail-wave-height').innerText = 'нет данных';
-                        document.getElementById('detail-wave-period').innerText = 'нет данных';
-                        document.getElementById('detail-wave-direction').innerText = 'нет данных';
-                        detailWaveText.innerText = 'Прогноз ожидается';
-                    }
-                })
-                .catch(err => {
-                    console.error('Ошибка связи с БД при загрузке волн:', err);
-                    detailWaveText.innerText = 'Ошибка загрузки';
-                });
-        }
-
-        // --- 3. СТАРЫЙ КОД: ОТОБРАЖЕНИЯ ГАЛЕРЕИ ---
-        // Очищаем галерею перед загрузкой нового пляжа
+        // 2. ГАЛЕРЕЯ (Очистка и запуск загрузки фото)
         currentPhotos = [];
         currentPhotoIndex = 0;
         renderGallery();
 
-        // Делаем запрос к серверу за массивом фотографий
-        if (beach.id) {
-            fetch(`/api/beach-photo/${beach.id}`)
-                .then(response => response.json())
-                .then(data => {
-                    currentPhotos = data.photo_urls || [];
-                    renderGallery(); // Рисуем новые фото
-                })
-                .catch(() => {
-                    currentPhotos = [];
-                    renderGallery();
-                });
-        }
-    }
+        // 3. ВОЛНЫ (Запрос в базу по "чистому" ID без минуса)
+    if (beach.id) {
+        const cleanId = Math.abs(beach.id); // Убираем минус для поиска в БД
+        
+        fetch(`/api/beach-info/${cleanId}`)
+            .then(response => response.json())
+            .then(data => {
+                // Пытаемся достать прогноз (проверяем разные варианты ответа API)
+                const forecast = data.latest_forecast || data;
+
+                if (forecast && forecast.wave_height !== undefined) {
+                    // Заполняем только Высоту и Период
+                    document.getElementById('detail-wave-height').innerText = forecast.wave_height + ' м';
+                    document.getElementById('detail-wave-period').innerText = forecast.wave_period + ' сек';
+                    
+                    // Направление волнения (detail-wave-direction) мы здесь ПРОСТО НЕ ТРОГАЕМ
+                    
+                    detailWaveText.innerText = 'Данные DWD обновлены';
+                } else {
+                    // Если данных в базе нет
+                    document.getElementById('detail-wave-height').innerText = 'нет данных';
+                    document.getElementById('detail-wave-period').innerText = 'нет данных';
+                    detailWaveText.innerText = 'Прогноз ожидается';
+                }
+            })
+            .catch(err => {
+                console.error('Ошибка загрузки волн:', err);
+                detailWaveText.innerText = 'Ошибка загрузки';
+            });
+    }   
     // Функция обновления интерфейса галереи
     function renderGallery() {
         const thumbContainer = document.getElementById('gallery-thumbnails');
@@ -2031,7 +2027,7 @@
                     </span>
                 </div>
                 <div style="font-size: 12px; line-height: 1.4;">
-                    <b>Номер:</b> ${beach.number ?? '-'}<br>
+                    <b>Номер:</b> ${Math.abs(beach.number ?? 0) || '-'}<br>
                     <b>Волнение:</b> ${beach.wave_level ?? '-'} (${getWaveLevelText(beach.wave_level)})
                 </div>
             </div>
@@ -2046,7 +2042,9 @@
             properties.category_label;
 
         if (properties.name) lines.push('<b>' + properties.name + '</b>');
-        if (properties.number !== undefined && properties.number !== null && properties.number !== '') lines.push('Номер: ' + properties.number);
+        if (properties.number !== undefined && properties.number !== null && properties.number !== '') {
+            lines.push('Номер: ' + Math.abs(properties.number));
+        }
         if (properties.wave_level !== undefined && properties.wave_level !== null && properties.wave_level !== '') {
             lines.push('Уровень волнения: ' + properties.wave_level);
             lines.push('Описание: ' + getWaveLevelText(properties.wave_level));
@@ -2207,7 +2205,7 @@
             const selectedClass = selectedBeach && selectedBeach.id === beach.id ? ' selected' : '';
             return `
                 <article class="list-card compact${selectedClass}" data-action="show-details" data-id="${beach.id}">
-                    <div class="list-id-compact">${beach.number ?? '-'}</div>
+                    <div class="list-id-compact">${Math.abs(beach.number ?? 0) || '-'}</div>
                     <div class="list-card-content">
                         <h3 class="compact-title">${beach.name || 'Без названия'}</h3>
                         <div class="compact-meta">
@@ -2569,31 +2567,27 @@
     renderLoadingState();
 
     fetch('/api/beaches')
-    .then(response => response.json())
-    .then(data => {
-        beaches.push(...data);
-        if (beachesPolygonLayer) refreshPolygonStyles();
-        renderMapMarkers();
-        renderBeachesList();
+        .then(response => response.json())
+        .then(data => {
+            // --- НОВАЯ СТРОКА ТУТ: Сортируем по номеру от меньшего к большему ---
+            // Мы сравниваем абсолютные значения (без минусов)
+            data.sort((a, b) => Math.abs(a.number || 0) - Math.abs(b.number || 0));
 
-        // --- НОВАЯ ЛОГИКА: Проверяем URL при старте ---
-        const urlParams = new URLSearchParams(window.location.search);
-        const initialBeachId = urlParams.get('beach'); // Ищем ?beach=...
-
-        if (initialBeachId) {
-            // Если в ссылке есть ID, ищем этот пляж в массиве
-            const beachToOpen = beaches.find(b => String(b.id) === String(initialBeachId));
+            beaches.push(...data);
             
-            if (beachToOpen) {
-                // Центрируем карту и открываем карточку
-                focusBeachOnMap(beachToOpen);
-                // Карточка откроется сама, так как focusBeachOnMap вызывает selectBeach, 
-                // но чтобы показать нужный экран, вызовем:
-                openBeachDetails(beachToOpen, 'map-screen');
+            if (beachesPolygonLayer) refreshPolygonStyles();
+            renderMapMarkers();
+            renderBeachesList();
+
+            if (beaches.length > 0) {
+                // Если в URL нет конкретного пляжа, выбираем первый по списку (№1)
+                const urlParams = new URLSearchParams(window.location.search);
+                if (!urlParams.get('beach')) {
+                    selectBeach(beaches[0]);
+                }
             }
-        } 
-        // --- КОНЕЦ НОВОЙ ЛОГИКИ ---
-    })
+        })
+        
     .catch(error => {
         console.error('Ошибка загрузки пляжей:', error);
         beachesList.innerHTML = '<div class="empty-state">Не удалось загрузить данные пляжей.</div>';
