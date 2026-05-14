@@ -1,17 +1,19 @@
 <?php
 
 use App\Models\Beach;
+use App\Models\WaveForecast;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Route;
-use Illuminate\Validation\Rule;
 
+// 1. Получение списка пляжей
 Route::get('/beaches', function () {
     return Beach::query()
         ->orderBy('number')
         ->get();
 });
 
+// 2. Получение полигонов для карты
 Route::get('/beach-polygons', function () {
     $features = DB::table('beach_polygons')
         ->selectRaw("source_feature_id, properties, ST_AsGeoJSON(geom)::json AS geometry")
@@ -37,6 +39,7 @@ Route::get('/beach-polygons', function () {
     ]);
 });
 
+// 3. Обновление уровня волнения (для админки)
 Route::patch('/beaches/wave-level', function (Request $request) {
     $validated = $request->validate([
         'number' => ['required', 'integer', 'exists:beaches,number'],
@@ -56,19 +59,15 @@ Route::patch('/beaches/wave-level', function (Request $request) {
         'beach' => $beach->fresh(),
     ]);
 });
-use App\Models\WaveForecast;
 
-// Маршрут для получения данных о волнах конкретного пляжа
+// 4. Получение подробной информации (включая волны)
 Route::get('/beach-info/{id}', function ($id) {
-    // Ищем в таблице wave_forecasts самую свежую запись для этого пляжа.
-    // latest('forecast_time') отсортирует прогнозы по времени (от новых к старым).
-    $forecast = WaveForecast::where('beach_id', $id)
-        ->latest('forecast_time')
-        ->first();
+    // Ищем по первичному ключу ID, который присылает карта
+    $beach = Beach::with('latestForecast')->find($id);
 
-    // Возвращаем данные в формате JSON. 
-    // Мы оборачиваем их в ключ 'latest_forecast', так как твой JS ищет именно его.
-    return response()->json([
-        'latest_forecast' => $forecast
-    ]);
+    if (!$beach) {
+        return response()->json(['error' => 'Beach not found'], 404);
+    }
+
+    return response()->json($beach);
 });
