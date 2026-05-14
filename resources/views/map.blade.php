@@ -668,7 +668,21 @@
             min-height: 160px;
             border: 1px solid #dee8f2;
         }
+        /* --- Скелетоны для галереи (YouTube style) --- */
+        .skeleton-main-photo {
+            width: 100%;
+            height: 280px; /* Совпадает с высотой главной картинки */
+            border-radius: 12px;
+            margin: 0 auto;
+            display: block;
+        }
 
+        .skeleton-thumb {
+            width: 70px;
+            height: 70px;
+            flex: 0 0 70px;
+            border-radius: 6px;
+        }
         @keyframes loading {
             0% {
                 background-position: 200% 0;
@@ -1667,6 +1681,8 @@
 
                     <div id="gallery-main-display" class="main-photo-box hidden">
                         <div class="main-photo-wrapper">
+                            <div id="skeleton-main-display" class="skeleton skeleton-main-photo hidden"></div>
+                    
                             <img id="gallery-main-img" src="" alt="Фото пляжа" onclick="openImagePopup(currentPhotoIndex)">
                             <div id="gallery-photo-number" class="photo-number-label"></div>
                         </div>
@@ -1875,6 +1891,31 @@
         currentPhotoIndex = 0;
         renderGallery();
 
+        function showGallerySkeleton() {
+            const thumbContainer = document.getElementById('gallery-thumbnails');
+            const mainDisplay = document.getElementById('gallery-main-display');
+            const mainImg = document.getElementById('gallery-main-img');
+            const numberLabel = document.getElementById('gallery-photo-number');
+            const mainSkeleton = document.getElementById('skeleton-main-display');
+
+            // Открываем блок галереи
+            mainDisplay.classList.remove('hidden');
+
+            // Прячем настоящую картинку и подпись
+            mainImg.classList.add('hidden');
+            numberLabel.classList.add('hidden');
+
+            // Включаем пульсирующий скелет главной картинки
+            if (mainSkeleton) mainSkeleton.classList.remove('hidden');
+
+            // Отрисовываем 4 пульсирующих квадратика для миниатюр
+            thumbContainer.innerHTML = `
+            <div class="skeleton skeleton-thumb"></div>
+            <div class="skeleton skeleton-thumb"></div>
+            <div class="skeleton skeleton-thumb"></div>
+            <div class="skeleton skeleton-thumb"></div>
+        `;
+        }
         if (beach.id) {
             fetch(`/api/beach-info/${cleanId}`)
                 .then(response => response.json())
@@ -1900,30 +1941,39 @@
                 .then(res => res.json())
                 .then(data => {
                     currentPhotos = data.photo_urls || [];
-                    renderGallery();
+                    currentPhotoIndex = 0;
+                    showGallerySkeleton();
                 });
         }
     } // <-- ОБЯЗАТЕЛЬНО ЗАКРЫВАЕМ ФУНКЦИЮ ЗДЕСЬ
 
     // ТЕПЕРЬ ВСЕ ОСТАЛЬНЫЕ ФУНКЦИИ ИДУТ ОТДЕЛЬНО
     function renderGallery() {
-        const thumbContainer = document.getElementById('gallery-thumbnails');
-        const mainDisplay = document.getElementById('gallery-main-display');
+            const thumbContainer = document.getElementById('gallery-thumbnails');
+            const mainDisplay = document.getElementById('gallery-main-display');
+            const numberLabel = document.getElementById('gallery-photo-number');
+            const mainSkeleton = document.getElementById('skeleton-main-display');
 
-        if (!currentPhotos || currentPhotos.length === 0) {
-            thumbContainer.innerHTML = '';
-            mainDisplay.classList.add('hidden');
-            return;
-        }
+            if (!currentPhotos || currentPhotos.length === 0) {
+                thumbContainer.innerHTML = '';
+                mainDisplay.classList.add('hidden');
+                if (mainSkeleton) mainSkeleton.classList.add('hidden');
+                numberLabel.classList.add('hidden');
+                return;
+            }
 
-        mainDisplay.classList.remove('hidden');
-        thumbContainer.innerHTML = currentPhotos.map((url, index) => `
-        <img src="${url}" 
-                class="thumb-item ${index === 0 ? 'active' : ''}" 
-                onclick="setMainPhoto(${index})" 
-                data-index="${index}">
-    `).join('');
-        setMainPhoto(0);
+            mainDisplay.classList.remove('hidden');
+            numberLabel.classList.remove('hidden');
+
+            // Отрисовываем настоящие миниатюры
+            thumbContainer.innerHTML = currentPhotos.map((url, index) => `
+            <img src="${url}" 
+                 class="thumb-item ${index === 0 ? 'active' : ''}" 
+                 onclick="setMainPhoto(${index})" 
+                 data-index="${index}">
+        `).join('');
+
+            setMainPhoto(0);
     }
 
     function setMainPhoto(index) {
@@ -1943,25 +1993,37 @@
     }
 
     function setMainPhoto(index) {
-        currentPhotoIndex = index;
-        const mainImg = document.getElementById('gallery-main-img');
-        const numberLabel = document.getElementById('gallery-photo-number');
-        const thumbs = document.querySelectorAll('.thumb-item');
+            currentPhotoIndex = index;
+            const mainImg = document.getElementById('gallery-main-img');
+            const numberLabel = document.getElementById('gallery-photo-number');
+            const thumbs = document.querySelectorAll('.thumb-item');
+            const mainSkeleton = document.getElementById('skeleton-main-display');
 
-        // Обновляем картинку и номер
-        mainImg.src = currentPhotos[index];
-        numberLabel.textContent = `Фотография ${index + 1} из ${currentPhotos.length}`;
+            if (!currentPhotos[index]) return;
 
-        // Подсвечиваем активную миниатюру
-        thumbs.forEach(t => t.classList.remove('active'));
-        const activeThumb = document.querySelector(`.thumb-item[data-index="${index}"]`);
-        if (activeThumb) {
-            activeThumb.classList.add('active');
-            activeThumb.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
-        }
+            // Пока картинка грузится - прячем её и показываем скелет
+            mainImg.classList.add('hidden');
+            if (mainSkeleton) mainSkeleton.classList.remove('hidden');
 
-        // Если попап открыт (Instagram-style), синхронизируем и его
-        if (typeof syncPopup === 'function') syncPopup();
+            // Как только картинка физически скачалась:
+            mainImg.onload = function () {
+                mainImg.classList.remove('hidden');
+                if (mainSkeleton) mainSkeleton.classList.add('hidden');
+            };
+
+            // Задаем URL (это запускает процесс загрузки)
+            mainImg.src = currentPhotos[index];
+            numberLabel.textContent = `Фотография ${index + 1} из ${currentPhotos.length}`;
+
+            // Подсвечиваем активную миниатюру
+            thumbs.forEach(t => t.classList.remove('active'));
+            const activeThumb = document.querySelector(`.thumb-item[data-index="${index}"]`);
+            if (activeThumb) {
+                activeThumb.classList.add('active');
+                activeThumb.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+            }
+
+            if (typeof syncPopup === 'function') syncPopup();
     }
         function openImagePopup(index) {
         currentPhotoIndex = index;
@@ -2017,6 +2079,7 @@
 
     function setActiveScreen(screenId) {
         screens.forEach(screen => {
+            // Убирает класс 'active' у всех секций и вешает только на ту, чей ID мы передали
             screen.classList.toggle('active', screen.id === screenId);
         });
 
@@ -2407,6 +2470,9 @@
                 }, 80);
             });
         }, 200);
+        const newUrl = new URL(window.location);
+        newUrl.searchParams.set('beach', beach.id + '/map');
+        window.history.pushState({ beachId: beach.id, mode: 'map' }, '', newUrl);
     }
 
     function openBeachDetails(beach, sourceScreenId = null) {
@@ -2417,9 +2483,10 @@
         selectBeach(beach);
         setActiveScreen('detail-screen');
 
+        // Устанавливаем URL для карточки деталей
         const newUrl = new URL(window.location);
         newUrl.searchParams.set('beach', beach.id);
-        window.history.pushState({ beachId: beach.id }, '', newUrl);
+        window.history.pushState({ beachId: beach.id, mode: 'detail' }, '', newUrl);
     }
 
     function addDetailsButtonToPopup(popup, beach) {
@@ -2602,26 +2669,33 @@
         .then(data => {
             data.sort((a, b) => Math.abs(a.number || 0) - Math.abs(b.number || 0));
             beaches.push(...data);
-            
+
             if (beachesPolygonLayer) refreshPolygonStyles();
             renderMapMarkers();
             renderBeachesList();
 
             if (beaches.length > 0) {
                 const urlParams = new URLSearchParams(window.location.search);
-                const beachIdFromUrl = urlParams.get('beach');
+                const beachParam = urlParams.get('beach');
 
-                if (beachIdFromUrl) {
-                    // Ищем пляж в массиве по ID из ссылки
-                    const targetBeach = beaches.find(b => String(b.id) === String(beachIdFromUrl));
+                if (beachParam) {
+                    // Разделяем ID и режим (например, "32/map" -> ["32", "map"])
+                    const parts = beachParam.split('/');
+                    const beachId = parts[0];
+                    const isMapView = parts[1] === 'map';
+
+                    const targetBeach = beaches.find(b => String(b.id) === String(beachId));
                     if (targetBeach) {
-                        // Если нашли — фокусируемся на нем (это откроет карточку и зум)
-                        focusBeachOnMap(targetBeach);
+                        if (isMapView) {
+                            focusBeachOnMap(targetBeach);
+                        } else {
+                            openBeachDetails(targetBeach);
+                        }
                     } else {
-                        selectBeach(beaches[0]); // Если ID в ссылке битый — берем первый
+                        selectBeach(beaches[0]);
                     }
                 } else {
-                    selectBeach(beaches[0]); // Если ссылки нет — берем первый
+                    selectBeach(beaches[0]);
                 }
             }
         })
@@ -2862,13 +2936,19 @@
         }
         window.addEventListener('popstate', (event) => {
             const urlParams = new URLSearchParams(window.location.search);
-            const beachId = urlParams.get('beach');
+            const beachParam = urlParams.get('beach');
 
-            if (beachId) {
+            if (beachParam) {
+                const parts = beachParam.split('/');
+                const beachId = parts[0];
+                const isMapView = parts[1] === 'map';
+
                 const beach = beaches.find(b => String(b.id) === String(beachId));
-                if (beach) focusBeachOnMap(beach);
+                if (beach) {
+                    if (isMapView) focusBeachOnMap(beach);
+                    else openBeachDetails(beach);
+                }
             } else {
-                // Если вернулись на пустой URL — сбрасываем на первый пляж или закрываем детали
                 setActiveScreen('map-screen');
             }
         });
