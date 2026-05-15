@@ -1033,14 +1033,13 @@
             background-color: #d8d8d8;
             display: block;
         }
+        /* Оверлей и центрирование */
         .image-overlay {
             position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.9); /* Темный фон */
-            backdrop-filter: blur(8px); /* Размытие заднего плана */
+            top: 0; left: 0;
+            width: 100vw; height: 100vh;
+            background: rgba(15, 23, 42, 0.9);
+            backdrop-filter: blur(8px);
             z-index: 10000;
             display: flex;
             align-items: center;
@@ -1048,12 +1047,10 @@
         }
 
         .popup-wrapper {
-            position: relative;
-            width: 90%;
-            max-width: 900px;
-            height: 80vh;
             display: flex;
             flex-direction: column;
+            align-items: center;
+            gap: 20px;
         }
 
         .popup-content {
@@ -1064,17 +1061,20 @@
             gap: 20px;
         }
 
+        /* Твой настроенный дизайн контейнера */
         .popup-image-container {
             position: relative;
-            height: 100%;
+            width: calc(100vw - 200px); 
+            max-width: 1200px; 
             display: flex;
-            align-items: center;
+            justify-content: center;
         }
 
         #popup-large-photo {
             max-width: 100%;
             max-height: 100%;
             object-fit: contain;
+            border-radius: 4px;
         }
 
         .close-popup-btn {
@@ -1585,18 +1585,17 @@
             justify-content: center;
         }
 
-        /* Сама большая картинка */
+        /* Твои настройки большой картинки */
         .popup-large-photo {
             width: 100%;
             height: auto;
-            /* Автовычисление высоты, но не больше 90% от высоты экрана, чтобы влезала */
             max-height: 90vh; 
-            object-fit: contain; /* Картинка не будет обрезаться */
+            object-fit: contain; 
             border-radius: 16px;
             box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
         }
 
-        /* Кнопка закрытия (Крестик) */
+        /* Твой дизайн кнопки закрытия */
         .close-popup-btn {
             position: absolute;
             top: -40px;
@@ -1608,8 +1607,17 @@
             cursor: pointer;
             line-height: 1;
             transition: color 0.2s ease;
+            z-index: 10001;
+        }
+        /* Элементы управления каруселью внутри попапа */
+        #image-popup .slider-nav-btn {
+            background-color: rgba(255, 255, 255, 0.15);
+            color: white;
         }
 
+        #image-popup .photo-number-label {
+            color: white;
+        }
         .close-popup-btn:hover {
             color: #cbd5e1;
         }
@@ -1617,11 +1625,11 @@
         /* Защита для смартфонов (экраны меньше 820px) */
         @media (max-width: 819px) {
             .popup-image-container {
-                width: calc(100vw - 32px); /* На телефоне картинка занимает почти весь экран */
+                width: calc(100vw - 40px);
             }
             .close-popup-btn {
-                top: -45px;
-                right: 0px; /* Сдвигаем крестик внутрь, чтобы не улетел за экран */
+                right: 0;
+                top: -50px;
             }
         }
         /* --- СТИЛИ ДЛЯ НОВЫХ БЛОКОВ-ТАБЛИЦ --- */
@@ -1873,17 +1881,17 @@
 <!-- Попап для просмотра большой картинки -->
 <div id="image-popup" class="image-overlay hidden">
     <div class="popup-wrapper">
-        <button id="close-image-popup" class="close-popup-btn">&times;</button>
-        
-        <div class="popup-content">
-            <button id="popup-prev" class="popup-nav-btn left" onclick="changePhoto(-1, event)">&#10094;</button>
-            
-            <div class="popup-image-container">
-                <img src="" id="popup-large-photo" class="popup-large-photo" alt="Пляж">
-                <div id="popup-counter" class="photo-counter"></div>
-            </div>
-            
-            <button id="popup-next" class="popup-nav-btn right" onclick="changePhoto(1, event)">&#10095;</button>
+        <div id="popup-thumbnails" class="thumbnails-line"></div>
+
+        <div class="popup-image-container">
+            <button id="close-image-popup" class="close-popup-btn" onclick="closeImagePopup()">&times;</button>
+            <img src="" id="popup-large-photo" class="popup-large-photo" alt="Пляж">
+        </div>
+
+        <div class="gallery-controls">
+            <button id="popup-prev" class="slider-nav-btn prev" onclick="changePhoto(-1, event)">‹</button>
+            <div id="popup-counter" class="photo-number-label"></div>
+            <button id="popup-next" class="slider-nav-btn next" onclick="changePhoto(1, event)">›</button>
         </div>
     </div>
 </div>
@@ -2022,186 +2030,199 @@
     }
 
     function updateDetailScreen(beach = {}) {
-            const cleanId = Math.abs(beach.id);
+        const cleanId = Math.abs(beach.id);
 
-            detailName.textContent = beach.name || 'Без названия';
+        detailName.textContent = beach.name || 'Без названия';
 
-            let rawNumber = beach.number ?? beach.num;
-            detailNumber.textContent = (rawNumber !== undefined && rawNumber !== null && rawNumber !== '')
-                ? Math.abs(Number(rawNumber))
-                : '-';
+        let rawNumber = beach.number ?? beach.num;
+        detailNumber.textContent = (rawNumber !== undefined && rawNumber !== null && rawNumber !== '')
+            ? Math.abs(Number(rawNumber))
+            : '-';
 
-            detailWaveLevel.textContent = beach.wave_level ?? '-';
-            detailWaveText.textContent = getWaveLevelText(beach.wave_level);
-            detailCategory.textContent = getBeachCategoryLabel(beach);
-            // Эта строка вешает класс подсветки (зеленый/желтый/красный)
-            detailCategory.className = 'category-badge ' + getCategoryBadgeClass(beach);
-            detailMapButton.dataset.id = beach.id ?? '';
+        detailWaveLevel.textContent = beach.wave_level ?? '-';
+        detailWaveText.textContent = getWaveLevelText(beach.wave_level);
+        detailCategory.textContent = getBeachCategoryLabel(beach);
+        // Эта строка вешает класс подсветки (зеленый/желтый/красный)
+        detailCategory.className = 'category-badge ' + getCategoryBadgeClass(beach);
+        detailMapButton.dataset.id = beach.id ?? '';
 
-            const hasCoords = beach.latitude !== undefined && beach.longitude !== undefined;
-            detailCoordinates.textContent = hasCoords ? `${beach.latitude}, ${beach.longitude}` : '-';
-            detailCoordinates.dataset.coordinates = hasCoords ? `${beach.latitude}, ${beach.longitude}` : '';
+        const hasCoords = beach.latitude !== undefined && beach.longitude !== undefined;
+        detailCoordinates.textContent = hasCoords ? `${beach.latitude}, ${beach.longitude}` : '-';
+        detailCoordinates.dataset.coordinates = hasCoords ? `${beach.latitude}, ${beach.longitude}` : '';
 
-            currentPhotos = [];
-            currentPhotoIndex = 0;
-            showGallerySkeleton();
+        currentPhotos = [];
+        currentPhotoIndex = 0;
+        showGallerySkeleton();
 
-            if (beach.id) {
-            // Запрос данных о волнах
-            fetch(`/api/beach-info/${cleanId}`)
-                .then(response => response.json())
-                .then(data => {
-                    const forecast = data.latest_forecast || data;
-                    if (forecast && forecast.wave_height !== undefined) {
-                        document.getElementById('detail-wave-height').innerText = forecast.wave_height + ' м';
-                        document.getElementById('detail-wave-period').innerText = forecast.wave_period + ' сек';
+        if (beach.id) {
+        // Запрос данных о волнах
+        fetch(`/api/beach-info/${cleanId}`)
+            .then(response => response.json())
+            .then(data => {
+                const forecast = data.latest_forecast || data;
+                if (forecast && forecast.wave_height !== undefined) {
+                    document.getElementById('detail-wave-height').innerText = forecast.wave_height + ' м';
+                    document.getElementById('detail-wave-period').innerText = forecast.wave_period + ' сек';
 
-                        // Выводим направление волны с текстовой интерпретацией
-                        const direction = forecast.wave_direction;
-                        if (direction !== undefined && direction !== null) {
-                            const textDir = getWaveDirectionText(direction);
-                            // Выведет формат: "120° (Юго-Восток)"
-                            document.getElementById('detail-wave-direction').innerText = `${direction}° ${textDir ? '(' + textDir + ')' : ''}`;
-                        } else {
-                            document.getElementById('detail-wave-direction').innerText = '-';
-                        }
-
-                        // Выводим время обновления
-                        const updateTime = forecast.forecast_time || forecast.updated_at;
-                        document.getElementById('detail-update-time').innerText = updateTime
-                            ? new Date(updateTime).toLocaleString('ru-RU')
-                            : 'нет данных';
-
-                        // Оставляем реальное описание моря, а не текст ошибки
-                        detailWaveText.innerText = getWaveLevelText(beach.wave_level);
+                    // Выводим направление волны с текстовой интерпретацией
+                    const direction = forecast.wave_direction;
+                    if (direction !== undefined && direction !== null) {
+                        const textDir = getWaveDirectionText(direction);
+                        // Выведет формат: "120° (Юго-Восток)"
+                        document.getElementById('detail-wave-direction').innerText = `${direction}° ${textDir ? '(' + textDir + ')' : ''}`;
                     } else {
-                        document.getElementById('detail-wave-height').innerText = 'нет данных';
-                        document.getElementById('detail-wave-period').innerText = 'нет данных';
-                        document.getElementById('detail-wave-direction').innerText = 'нет данных';
-                        document.getElementById('detail-update-time').innerText = 'Ожидается';
-                        detailWaveText.innerText = getWaveLevelText(beach.wave_level);
+                        document.getElementById('detail-wave-direction').innerText = '-';
                     }
-                })
-                .catch(err => {
-                    console.error('Ошибка загрузки волн:', err);
-                    document.getElementById('detail-update-time').innerText = 'Ошибка загрузки';
+
+                    // Выводим время обновления
+                    const updateTime = forecast.forecast_time || forecast.updated_at;
+                    document.getElementById('detail-update-time').innerText = updateTime
+                        ? new Date(updateTime).toLocaleString('ru-RU')
+                        : 'нет данных';
+
+                    // Оставляем реальное описание моря, а не текст ошибки
+                    detailWaveText.innerText = getWaveLevelText(beach.wave_level);
+                } else {
+                    document.getElementById('detail-wave-height').innerText = 'нет данных';
+                    document.getElementById('detail-wave-period').innerText = 'нет данных';
+                    document.getElementById('detail-wave-direction').innerText = 'нет данных';
+                    document.getElementById('detail-update-time').innerText = 'Ожидается';
+                    detailWaveText.innerText = getWaveLevelText(beach.wave_level);
+                }
+            })
+            .catch(err => {
+                console.error('Ошибка загрузки волн:', err);
+                document.getElementById('detail-update-time').innerText = 'Ошибка загрузки';
+            });
+
+            // Запрос фотографий
+            fetch(`/api/beach-photo/${beach.id}`)
+                .then(res => res.json())
+                .then(data => {
+                    currentPhotos = data.photo_urls || [];
+                    currentPhotoIndex = 0;
+                    renderGallery();
                 });
-
-                // Запрос фотографий
-                fetch(`/api/beach-photo/${beach.id}`)
-                    .then(res => res.json())
-                    .then(data => {
-                        currentPhotos = data.photo_urls || [];
-                        currentPhotoIndex = 0;
-                        renderGallery();
-                    });
-            }
         }
+    }
 
-        // --- ФУНКЦИИ ГАЛЕРЕИ ---
+    // --- ФУНКЦИИ ГАЛЕРЕИ ---
 
-        function showGallerySkeleton() {
+    function showGallerySkeleton() {
+        const thumbContainer = document.getElementById('gallery-thumbnails');
+        const mainDisplay = document.getElementById('gallery-main-display');
+        const mainImg = document.getElementById('gallery-main-img');
+        const numberLabel = document.getElementById('gallery-photo-number');
+        const mainSkeleton = document.getElementById('skeleton-main-display');
+
+        mainDisplay.classList.remove('hidden');
+        mainImg.classList.add('hidden');
+        numberLabel.classList.add('hidden');
+        if (mainSkeleton) mainSkeleton.classList.remove('hidden');
+
+        thumbContainer.innerHTML = `
+        <div class="skeleton skeleton-thumb"></div>
+        <div class="skeleton skeleton-thumb"></div>
+        <div class="skeleton skeleton-thumb"></div>
+        <div class="skeleton skeleton-thumb"></div>
+    `;
+    }
+
+    function renderGallery() {
             const thumbContainer = document.getElementById('gallery-thumbnails');
             const mainDisplay = document.getElementById('gallery-main-display');
-            const mainImg = document.getElementById('gallery-main-img');
             const numberLabel = document.getElementById('gallery-photo-number');
             const mainSkeleton = document.getElementById('skeleton-main-display');
 
-            mainDisplay.classList.remove('hidden');
-            mainImg.classList.add('hidden');
-            numberLabel.classList.add('hidden');
-            if (mainSkeleton) mainSkeleton.classList.remove('hidden');
+            // Кнопки навигации
+            const prevBtn = document.getElementById('main-prev-btn');
+            const nextBtn = document.getElementById('main-next-btn');
 
-            thumbContainer.innerHTML = `
-            <div class="skeleton skeleton-thumb"></div>
-            <div class="skeleton skeleton-thumb"></div>
-            <div class="skeleton skeleton-thumb"></div>
-            <div class="skeleton skeleton-thumb"></div>
-        `;
-        }
-
-        function renderGallery() {
-                const thumbContainer = document.getElementById('gallery-thumbnails');
-                const mainDisplay = document.getElementById('gallery-main-display');
-                const numberLabel = document.getElementById('gallery-photo-number');
-                const mainSkeleton = document.getElementById('skeleton-main-display');
-
-                // Кнопки навигации
-                const prevBtn = document.getElementById('main-prev-btn');
-                const nextBtn = document.getElementById('main-next-btn');
-
-                if (!currentPhotos || currentPhotos.length === 0) {
-                    thumbContainer.innerHTML = '';
-                    mainDisplay.classList.add('hidden');
-                    if (mainSkeleton) mainSkeleton.classList.add('hidden');
-                    numberLabel.classList.add('hidden');
-                    return;
-                }
-
-                // Показываем или скрываем стрелки в зависимости от количества фото
-                if (currentPhotos.length > 1) {
-                    if (prevBtn) prevBtn.classList.remove('hidden');
-                    if (nextBtn) nextBtn.classList.remove('hidden');
-                } else {
-                    if (prevBtn) prevBtn.classList.add('hidden');
-                    if (nextBtn) nextBtn.classList.add('hidden');
-                }
-
-                mainDisplay.classList.remove('hidden');
-                numberLabel.classList.remove('hidden');
-
-                // ... остальной код отрисовки миниатюр ...
-                thumbContainer.innerHTML = currentPhotos.map((url, index) => `
-            <img src="${url}" 
-                 class="thumb-item ${index === 0 ? 'active' : ''}" 
-                 onclick="setMainPhoto(${index})" 
-                 data-index="${index}">
-            `).join('');
-
-                setMainPhoto(0);
-        }
-
-        function setMainPhoto(index) {
-            currentPhotoIndex = index;
-            const mainImg = document.getElementById('gallery-main-img');
-            const numberLabel = document.getElementById('gallery-photo-number');
-            const thumbs = document.querySelectorAll('.thumb-item');
-            const mainSkeleton = document.getElementById('skeleton-main-display');
-
-            if (!currentPhotos[index]) return;
-
-            mainImg.classList.add('hidden');
-            if (mainSkeleton) mainSkeleton.classList.remove('hidden');
-
-            mainImg.onload = function () {
-                mainImg.classList.remove('hidden');
+            if (!currentPhotos || currentPhotos.length === 0) {
+                thumbContainer.innerHTML = '';
+                mainDisplay.classList.add('hidden');
                 if (mainSkeleton) mainSkeleton.classList.add('hidden');
-            };
-
-            mainImg.src = currentPhotos[index];
-            numberLabel.textContent = `Фотография ${index + 1} из ${currentPhotos.length}`;
-
-            thumbs.forEach(t => t.classList.remove('active'));
-            const activeThumb = document.querySelector(`.thumb-item[data-index="${index}"]`);
-            if (activeThumb) {
-                activeThumb.classList.add('active');
-                activeThumb.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+                numberLabel.classList.add('hidden');
+                return;
             }
 
-            if (typeof syncPopup === 'function') syncPopup();
+            // Показываем или скрываем стрелки в зависимости от количества фото
+            if (currentPhotos.length > 1) {
+                if (prevBtn) prevBtn.classList.remove('hidden');
+                if (nextBtn) nextBtn.classList.remove('hidden');
+            } else {
+                if (prevBtn) prevBtn.classList.add('hidden');
+                if (nextBtn) nextBtn.classList.add('hidden');
+            }
+
+            mainDisplay.classList.remove('hidden');
+            numberLabel.classList.remove('hidden');
+
+            // ... остальной код отрисовки миниатюр ...
+            thumbContainer.innerHTML = currentPhotos.map((url, index) => `
+        <img src="${url}" 
+                class="thumb-item ${index === 0 ? 'active' : ''}" 
+                onclick="setMainPhoto(${index})" 
+                data-index="${index}">
+        `).join('');
+
+            setMainPhoto(0);
+    }
+
+    function setMainPhoto(index) {
+        currentPhotoIndex = index;
+        const mainImg = document.getElementById('gallery-main-img');
+        const numberLabel = document.getElementById('gallery-photo-number');
+        const thumbs = document.querySelectorAll('.thumb-item');
+        const mainSkeleton = document.getElementById('skeleton-main-display');
+
+        if (!currentPhotos[index]) return;
+
+        mainImg.classList.add('hidden');
+        if (mainSkeleton) mainSkeleton.classList.remove('hidden');
+
+        mainImg.onload = function () {
+            mainImg.classList.remove('hidden');
+            if (mainSkeleton) mainSkeleton.classList.add('hidden');
+        };
+
+        mainImg.src = currentPhotos[index];
+        numberLabel.textContent = `Фотография ${index + 1} из ${currentPhotos.length}`;
+
+        thumbs.forEach(t => t.classList.remove('active'));
+        const activeThumb = document.querySelector(`.thumb-item[data-index="${index}"]`);
+        if (activeThumb) {
+            activeThumb.classList.add('active');
+            activeThumb.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
         }
 
-        function openImagePopup(index) {
-            currentPhotoIndex = index;
-            document.getElementById('image-popup').classList.remove('hidden');
-            document.body.style.overflow = 'hidden';
-            syncPopup();
-        }
+        if (typeof syncPopup === 'function') syncPopup();
+    }
+
+    function openImagePopup(index) {
+        currentPhotoIndex = index;
+        document.getElementById('image-popup').classList.remove('hidden');
+        document.body.style.overflow = 'hidden';
+
+        // Отрисовываем миниатюры специально для попапа
+        renderPopupThumbnails();
+        syncPopup();
+    }
     function closeImagePopup() {
         document.getElementById('image-popup').classList.add('hidden');
         document.body.style.overflow = ''; // Возвращаем скролл
     }
+    function renderPopupThumbnails() {
+            const popupThumbs = document.getElementById('popup-thumbnails');
+            if (!popupThumbs) return;
 
+            popupThumbs.innerHTML = currentPhotos.map((url, index) => `
+        <img src="${url}" 
+             class="thumb-item ${index === currentPhotoIndex ? 'active' : ''}" 
+             onclick="setMainPhoto(${index})" 
+             data-popup-index="${index}">
+    `).join('');
+    }
     function syncPopup() {
         const popupPhoto = document.getElementById('popup-large-photo');
         const popupCounter = document.getElementById('popup-counter');
@@ -2209,7 +2230,17 @@
 
         if (!popup.classList.contains('hidden') && currentPhotos[currentPhotoIndex]) {
             popupPhoto.src = currentPhotos[currentPhotoIndex];
-            popupCounter.textContent = `${currentPhotoIndex + 1} / ${currentPhotos.length}`;
+            popupCounter.textContent = `Фотография ${currentPhotoIndex + 1} из ${currentPhotos.length}`;
+
+            // Обновляем активную миниатюру в попапе
+            const allPopupThumbs = document.querySelectorAll('#popup-thumbnails .thumb-item');
+            allPopupThumbs.forEach(t => t.classList.remove('active'));
+
+            const activeThumb = document.querySelector(`#popup-thumbnails .thumb-item[data-popup-index="${currentPhotoIndex}"]`);
+            if (activeThumb) {
+                activeThumb.classList.add('active');
+                activeThumb.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+            }
         }
     }
     // Функция для клика по стрелкам
