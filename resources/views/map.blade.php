@@ -520,7 +520,7 @@
 
         .badge-danger {
             background: rgba(219, 74, 64, 0.16);
-            color: #a22d26;
+            color: #a22c264c;
         }
 
         .detail-card h2 {
@@ -890,15 +890,14 @@
         }
 
         .admin-danger-btn {
-            background-color: #db4a40; /* Тот самый красный из твоих переменных */
+            background-color: #db4a402e; /* Тот самый красный из твоих переменных */
             color: #ffffff;
             border: none;
-            padding: 12px 16px;
+            padding: 8px 2px;
             border-radius: 8px;
-            font-size: 14px;
-            font-weight: 700;
+            font-size: 8px;
+            font-weight: 1000;
             cursor: pointer;
-            box-shadow: 0 6px 16px rgba(219, 74, 64, 0.4);
             transition: transform 0.2s ease, background-color 0.2s ease;
         }
 
@@ -1076,8 +1075,6 @@
             max-width: 100%;
             max-height: 100%;
             object-fit: contain;
-            border-radius: 4px;
-            box-shadow: 0 0 30px rgba(0,0,0,0.5);
         }
 
         .close-popup-btn {
@@ -1092,10 +1089,10 @@
         }
 
         .popup-nav-btn {
-            background: rgba(255, 255, 255, 0.1);
-            color: white;
+            background: rgba(255, 255, 255, 0.71);
+            color: black;
             border: none;
-            width: 50px;
+            width: 70px;
             height: 50px;
             border-radius: 50%;
             font-size: 24px;
@@ -1103,7 +1100,7 @@
             transition: 0.3s;
         }
 
-        .popup-nav-btn:hover { background: rgba(255, 255, 255, 0.3); }
+        .popup-nav-btn:hover { background: rgba(168, 184, 183, 0.5); }
 
         .hidden { display: none !important; }
         .gallery-container {
@@ -1121,6 +1118,11 @@
             overflow-x: auto;
             padding: 4px 2px;
             scrollbar-width: thin; /* Тонкий скролл для Firefox */
+            
+            /* --- НОВЫЕ ПРАВИЛА ДЛЯ ЦЕНТРИРОВАНИЯ --- */
+            justify-content: center; /* Центрируем сами картинки внутри блока */
+            max-width: 400px;        /* Ограничиваем ширину линейки шириной главного фото */
+            margin: 0 auto;          /* Выравниваем всю линейку по центру карточки */
         }
 
         .thumbnails-line::-webkit-scrollbar { height: 4px; }
@@ -1151,25 +1153,70 @@
             display: flex;
             justify-content: center;
         }
+        /* Переписываем стили стрелок, чтобы они больше не висели поверх картинки */
+        .slider-nav-btn {
+            width: 36px;
+            height: 36px;
+            background-color: #e2e8f0; /* Светло-серый фон, так как они теперь на белом фоне сайта */
+            color: #1e293b; /* Темный цвет стрелки */
+            border: none;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            transition: background-color 0.2s ease, color 0.2s ease, transform 0.2s ease;
+            user-select: none;
+        }
 
+        /* Эффект при наведении */
+        .slider-nav-btn:hover {
+            background-color: #0b669c; 
+            color: #ffffff;
+            transform: scale(1.05);
+        }
+
+        .slider-nav-btn.prev {
+            left: 10px;
+        }
+
+        .slider-nav-btn.next {
+            right: 10px;
+        }
+
+        /* Скрываем кнопки, если фото нет или оно одно (управляется через JS) */
+        .slider-nav-btn.hidden {
+            display: none !important;
+        }
         .main-photo-wrapper {
             width: 100%;
             max-width: 400px;
             text-align: center;
         }
-
+        .main-photo-wrapper {
+            position: relative; /* Чтобы кнопки позиционировались относительно фото */
+        }
         #gallery-main-img {
             width: 100%;
             height: 280px;
             object-fit: contain;
-            background-color: #000; /* Черный фон для фото */
+            background-color: transparent; /* Заменили #000 на прозрачный */
             border-radius: 12px;
             cursor: zoom-in;
             box-shadow: 0 10px 25px rgba(0,0,0,0.1);
         }
-
+        /* Контейнер для кнопок и счетчика под картинкой */
+        .gallery-controls {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 16px;
+            margin-top: 12px;
+        }
+        /* Выравниваем счетчик по центру относительно кнопок */
         .photo-number-label {
-            margin-top: 8px;
+            margin-top: 0; /* Убрали старый отступ */
             font-size: 13px;
             font-weight: 500;
             color: #64748b;
@@ -1204,7 +1251,7 @@
             }
 
             .detail-fields {
-                grid-template-columns: repeat(2, minmax(0, 1fr));
+                grid-template-columns: repeat(1, minmax(0, 1fr));
                 gap: 11px;
             }
             .scroll-down-mobile {
@@ -1577,6 +1624,62 @@
                 right: 0px; /* Сдвигаем крестик внутрь, чтобы не улетел за экран */
             }
         }
+        /* --- СТИЛИ ДЛЯ НОВЫХ БЛОКОВ-ТАБЛИЦ --- */
+        .detail-group-block {
+            margin-bottom: 16px;
+            border: 1px solid var(--border);
+            border-radius: var(--radius-md);
+            overflow: hidden; /* Обрезает углы внутри блока */
+            box-shadow: var(--shadow-soft);
+        }
+
+        .detail-row-table {
+            display: grid;
+            /* Теперь заголовок (слева) 160px | Значение (справа) забирает всё остальное */
+            grid-template-columns: 160px 1fr; 
+            background: var(--surface-soft);
+            border-bottom: 1px solid var(--border);
+        }
+
+        .detail-row-table:last-child {
+            border-bottom: none; /* Убираем линию у последней строки в блоке */
+        }
+
+        .detail-val {
+            padding: 10px 14px;
+            text-align: left;
+            font-size: 14px;
+            color: var(--text);
+            display: flex;
+            align-items: center;
+        }
+
+        .detail-lbl {
+            padding: 10px 14px;
+            background: rgba(0, 0, 0, 0.02);
+            /* Убираем border-left и ставим border-right, так как колонка теперь слева */
+            border-right: 1px solid var(--border); 
+            text-align: left; /* Названия полей обычно лучше смотрятся прижатыми к левому краю */
+            font-weight: 600;
+            font-size: 13px;
+            color: var(--text-soft);
+            display: flex;
+            align-items: center;
+        }
+
+        /* Возвращаем скругление категории (перебиваем старые стили) */
+        .detail-row-table .category-badge {
+            border-radius: 8px !important; 
+            padding: 4px 10px;
+        }
+
+        /* Простой текст для номера */
+        .detail-number-plain {
+            font-size: 13px;
+            color: var(--text-soft);
+            margin-bottom: 12px;
+            font-weight: 600;
+        }
     </style>
 </head>
 <body>
@@ -1678,26 +1781,59 @@
             <article class="detail-card">
                 <div class="gallery-container">
                     <div id="gallery-thumbnails" class="thumbnails-line"></div>
-
+                
                     <div id="gallery-main-display" class="main-photo-box hidden">
                         <div class="main-photo-wrapper">
                             <div id="skeleton-main-display" class="skeleton skeleton-main-photo hidden"></div>
-                    
+                
                             <img id="gallery-main-img" src="" alt="Фото пляжа" onclick="openImagePopup(currentPhotoIndex)">
-                            <div id="gallery-photo-number" class="photo-number-label"></div>
+                
+                            <div class="gallery-controls">
+                                <button id="main-prev-btn" class="slider-nav-btn prev" onclick="changePhoto(-1, event)">‹</button>
+                                <div id="gallery-photo-number" class="photo-number-label"></div>
+                                <button id="main-next-btn" class="slider-nav-btn next" onclick="changePhoto(1, event)">›</button>
+                            </div>
                         </div>
                     </div>
                 </div>
-               <h2 id="detail-name">Пляж не выбран</h2>
-
-                <div class="detail-fields">
-                    <div class="detail-field"><strong>Номер:</strong> <span id="detail-number">-</span></div>
-                    <div class="detail-field"><strong>Уровень волнения:</strong> <span id="detail-wave-level">-</span></div>
-                    <div class="detail-field"><strong>Описание волнения:</strong> <span id="detail-wave-text">Нет данных</span></div>
-                    <div class="detail-field"><strong>Категория:</strong> <span id="detail-category">-</span></div>
-                    
-                    <div class="detail-field"><strong>Высота волны:</strong> <span id="detail-wave-height">-</span></div>
-                    <div class="detail-field"><strong>Период волны:</strong> <span id="detail-wave-period">-</span></div>
+                <h2 id="detail-name">Пляж не выбран</h2>
+                <div class="detail-number-plain">ID пляжа: <span id="detail-number">-</span></div>
+                
+                <div class="detail-group-block">
+                    <div class="detail-row-table">
+                        <div class="detail-lbl">Уровень волнения:</div>
+                        <div class="detail-val" id="detail-wave-level">-</div>
+                    </div>
+                    <div class="detail-row-table">
+                        <div class="detail-lbl">Категория:</div>
+                        <div class="detail-val"><span id="detail-category" class="category-badge">-</span></div>
+                    </div>
+                </div>
+                
+                <div class="detail-group-block">
+                    <div class="detail-row-table">
+                        <div class="detail-lbl">Описание моря:</div>
+                        <div class="detail-val" id="detail-wave-text">Нет данных</div>
+                    </div>
+                    <div class="detail-row-table">
+                        <div class="detail-lbl">Высота волны:</div>
+                        <div class="detail-val" id="detail-wave-height">-</div>
+                    </div>
+                    <div class="detail-row-table">
+                        <div class="detail-lbl">Период волны:</div>
+                        <div class="detail-val" id="detail-wave-period">-</div>
+                    </div>
+                    <div class="detail-row-table">
+                        <div class="detail-lbl">Направление волны:</div>
+                        <div class="detail-val" id="detail-wave-direction">-</div>
+                    </div>
+                </div>
+                
+                <div class="detail-group-block">
+                    <div class="detail-row-table">
+                        <div class="detail-lbl">Обновлено (DWD):</div>
+                        <div class="detail-val" id="detail-update-time">-</div>
+                    </div>
                 </div>
             </article>
         </section>
@@ -1815,16 +1951,33 @@
     let searchQuery = '';
     let isMapExpanded = false;
     let mapFocusRequestId = 0;
-
     function getWaveLevelText(level) {
-        const numericLevel = Number(level);
-        if (Number.isNaN(numericLevel)) return 'Нет данных';
-        if (numericLevel === 0) return 'Слабое волнение';
-        if (numericLevel <= 2) return 'Небольшое волнение';
-        if (numericLevel <= 4) return 'Умеренное волнение';
-        if (numericLevel <= 6) return 'Заметное волнение';
-        if (numericLevel <= 9) return 'Сильное волнение';
-        return 'Очень сильное волнение';
+        const descriptions = [
+            'Штиль (зеркальная гладь)',
+            'Тихо (легкая рябь)',
+            'Слабое волнение',
+            'Легкое волнение',
+            'Умеренное волнение',
+            'Бурное море',
+            'Очень бурное море',
+            'Сильное волнение',
+            'Очень сильное (шторм)',
+            'Ураган'
+        ];
+        const lvl = Number(level);
+        if (Number.isNaN(lvl) || lvl < 0) return 'Нет данных';
+        if (lvl >= descriptions.length) return 'Экстремальный шторм';
+        return descriptions[lvl];
+    }
+    function getWaveDirectionText(degrees) {
+        const deg = Number(degrees);
+        if (Number.isNaN(deg)) return '';
+
+        if (deg >= 0 && deg <= 90) return 'Северо-Восток';
+        if (deg > 90 && deg <= 180) return 'Юго-Восток';
+        if (deg > 180 && deg <= 270) return 'Юго-Запад';
+        if (deg > 270 && deg <= 360) return 'Северо-Запад';
+        return '';
     }
 
     function getBeachCategoryKey(beach) {
@@ -1881,6 +2034,8 @@
             detailWaveLevel.textContent = beach.wave_level ?? '-';
             detailWaveText.textContent = getWaveLevelText(beach.wave_level);
             detailCategory.textContent = getBeachCategoryLabel(beach);
+            // Эта строка вешает класс подсветки (зеленый/желтый/красный)
+            detailCategory.className = 'category-badge ' + getCategoryBadgeClass(beach);
             detailMapButton.dataset.id = beach.id ?? '';
 
             const hasCoords = beach.latitude !== undefined && beach.longitude !== undefined;
@@ -1892,25 +2047,45 @@
             showGallerySkeleton();
 
             if (beach.id) {
-                // Запрос данных о волнах
-                fetch(`/api/beach-info/${cleanId}`)
-                    .then(response => response.json())
-                    .then(data => {
-                        const forecast = data.latest_forecast || data;
-                        if (forecast && forecast.wave_height !== undefined) {
-                            document.getElementById('detail-wave-height').innerText = forecast.wave_height + ' м';
-                            document.getElementById('detail-wave-period').innerText = forecast.wave_period + ' сек';
-                            detailWaveText.innerText = 'Данные DWD обновлены';
+            // Запрос данных о волнах
+            fetch(`/api/beach-info/${cleanId}`)
+                .then(response => response.json())
+                .then(data => {
+                    const forecast = data.latest_forecast || data;
+                    if (forecast && forecast.wave_height !== undefined) {
+                        document.getElementById('detail-wave-height').innerText = forecast.wave_height + ' м';
+                        document.getElementById('detail-wave-period').innerText = forecast.wave_period + ' сек';
+
+                        // Выводим направление волны с текстовой интерпретацией
+                        const direction = forecast.wave_direction;
+                        if (direction !== undefined && direction !== null) {
+                            const textDir = getWaveDirectionText(direction);
+                            // Выведет формат: "120° (Юго-Восток)"
+                            document.getElementById('detail-wave-direction').innerText = `${direction}° ${textDir ? '(' + textDir + ')' : ''}`;
                         } else {
-                            document.getElementById('detail-wave-height').innerText = 'нет данных';
-                            document.getElementById('detail-wave-period').innerText = 'нет данных';
-                            detailWaveText.innerText = 'Прогноз ожидается';
+                            document.getElementById('detail-wave-direction').innerText = '-';
                         }
-                    })
-                    .catch(err => {
-                        console.error('Ошибка загрузки волн:', err);
-                        detailWaveText.innerText = 'Ошибка загрузки';
-                    });
+
+                        // Выводим время обновления
+                        const updateTime = forecast.forecast_time || forecast.updated_at;
+                        document.getElementById('detail-update-time').innerText = updateTime
+                            ? new Date(updateTime).toLocaleString('ru-RU')
+                            : 'нет данных';
+
+                        // Оставляем реальное описание моря, а не текст ошибки
+                        detailWaveText.innerText = getWaveLevelText(beach.wave_level);
+                    } else {
+                        document.getElementById('detail-wave-height').innerText = 'нет данных';
+                        document.getElementById('detail-wave-period').innerText = 'нет данных';
+                        document.getElementById('detail-wave-direction').innerText = 'нет данных';
+                        document.getElementById('detail-update-time').innerText = 'Ожидается';
+                        detailWaveText.innerText = getWaveLevelText(beach.wave_level);
+                    }
+                })
+                .catch(err => {
+                    console.error('Ошибка загрузки волн:', err);
+                    document.getElementById('detail-update-time').innerText = 'Ошибка загрузки';
+                });
 
                 // Запрос фотографий
                 fetch(`/api/beach-photo/${beach.id}`)
@@ -1946,30 +2121,44 @@
         }
 
         function renderGallery() {
-            const thumbContainer = document.getElementById('gallery-thumbnails');
-            const mainDisplay = document.getElementById('gallery-main-display');
-            const numberLabel = document.getElementById('gallery-photo-number');
-            const mainSkeleton = document.getElementById('skeleton-main-display');
+                const thumbContainer = document.getElementById('gallery-thumbnails');
+                const mainDisplay = document.getElementById('gallery-main-display');
+                const numberLabel = document.getElementById('gallery-photo-number');
+                const mainSkeleton = document.getElementById('skeleton-main-display');
 
-            if (!currentPhotos || currentPhotos.length === 0) {
-                thumbContainer.innerHTML = '';
-                mainDisplay.classList.add('hidden');
-                if (mainSkeleton) mainSkeleton.classList.add('hidden');
-                numberLabel.classList.add('hidden');
-                return;
-            }
+                // Кнопки навигации
+                const prevBtn = document.getElementById('main-prev-btn');
+                const nextBtn = document.getElementById('main-next-btn');
 
-            mainDisplay.classList.remove('hidden');
-            numberLabel.classList.remove('hidden');
+                if (!currentPhotos || currentPhotos.length === 0) {
+                    thumbContainer.innerHTML = '';
+                    mainDisplay.classList.add('hidden');
+                    if (mainSkeleton) mainSkeleton.classList.add('hidden');
+                    numberLabel.classList.add('hidden');
+                    return;
+                }
 
-            thumbContainer.innerHTML = currentPhotos.map((url, index) => `
+                // Показываем или скрываем стрелки в зависимости от количества фото
+                if (currentPhotos.length > 1) {
+                    if (prevBtn) prevBtn.classList.remove('hidden');
+                    if (nextBtn) nextBtn.classList.remove('hidden');
+                } else {
+                    if (prevBtn) prevBtn.classList.add('hidden');
+                    if (nextBtn) nextBtn.classList.add('hidden');
+                }
+
+                mainDisplay.classList.remove('hidden');
+                numberLabel.classList.remove('hidden');
+
+                // ... остальной код отрисовки миниатюр ...
+                thumbContainer.innerHTML = currentPhotos.map((url, index) => `
             <img src="${url}" 
                  class="thumb-item ${index === 0 ? 'active' : ''}" 
                  onclick="setMainPhoto(${index})" 
                  data-index="${index}">
-        `).join('');
+            `).join('');
 
-            setMainPhoto(0);
+                setMainPhoto(0);
         }
 
         function setMainPhoto(index) {
@@ -2026,27 +2215,15 @@
     // Функция для клика по стрелкам
     // Единственная правильная функция для клика по стрелкам
     function changePhoto(step, event) {
-        if (event) {
-            event.stopPropagation();
-            event.preventDefault();
-        }
+            if (event) event.stopPropagation(); // Чтобы не открывался попап при клике на стрелку
 
-        if (!currentPhotos || currentPhotos.length <= 1) return;
+            if (!currentPhotos || currentPhotos.length <= 1) return;
 
-        // Вычисляем новый индекс
-        currentPhotoIndex += step;
+            // Классическая циклическая логика (1 -> 2 -> 3 -> 1)
+            const total = currentPhotos.length;
+            currentPhotoIndex = (currentPhotoIndex + step + total) % total;
 
-        // Зацикливаем прокрутку
-        if (currentPhotoIndex < 0) {
-            currentPhotoIndex = currentPhotos.length - 1;
-        } else if (currentPhotoIndex >= currentPhotos.length) {
-            currentPhotoIndex = 0;
-        }
-
-        // Вызываем новую функцию обновления главного фото
-        if (typeof setMainPhoto === 'function') {
             setMainPhoto(currentPhotoIndex);
-        }
     }
     function requestMapResize() {
         [0, 140, 260, 420].forEach(delay => {
