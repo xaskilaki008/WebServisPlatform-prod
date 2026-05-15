@@ -30,4 +30,28 @@ class WaveForecast extends Model
     {
         return $this->belongsTo(Beach::class);
     }
+    public function getWaveLevelAttribute()
+    {
+        $height = $this->wave_height;
+
+        if ($height < 0.5)
+            return 1; // Низкий (Зеленый)
+        if ($height < 1.2)
+            return 2; // Умеренный (Желтый)
+        return 3; // Высокий (Красный)
+    }
+    public function calculateWaveLevel(): int
+    {
+        $height = $this->wave_height;
+
+        // Автоматическое определение балла (0-9+) на основе высоты
+        return match (true) {
+            $height < 0.1 => 0, // Слабое волнение
+            $height < 0.5 => 2, // Небольшое
+            $height < 1.25 => 4, // Умеренное
+            $height < 2.5 => 6, // Заметное
+            $height < 4.0 => 9, // Сильное
+            default => 10, // Очень сильное
+        };
+    }
 }
