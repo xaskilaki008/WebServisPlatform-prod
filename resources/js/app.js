@@ -231,6 +231,10 @@ function onBeachClick(beachId) {
                     if (opStatusEl) opStatusEl.innerHTML = opStatusText;
                     if (opUpdateEl) opUpdateEl.textContent = data.operator_updated_at || '-';
                     
+                    // Делаем кнопку ссылкой на новую страницу
+                    const operatorLink = document.getElementById('open-operator-link');
+                    if (operatorLink) operatorLink.href = `/operator/${beach.id}`;
+                    
                 } else {
                     document.getElementById('detail-wave-height').innerText = 'нет данных';
                     document.getElementById('detail-wave-period').innerText = 'нет данных';
@@ -1295,85 +1299,54 @@ function onBeachClick(beachId) {
                 setActiveScreen('map-screen');
             }
         });
-        // --- ПАНЕЛЬ ОПЕРАТОРА ---
-        let selectedOperatorStatus = null;
+        // --- ЛОГИКА ОТДЕЛЬНОЙ СТРАНИЦЫ ОПЕРАТОРА ---
+        const operatorPage = document.getElementById('operator-page');
+        if (operatorPage) {
+            // Берем ID пляжа прямо из HTML
+            const beachId = operatorPage.dataset.beachId;
+            let selectedOperatorStatus = null;
 
-        const operatorModal = document.getElementById('operator-panel-modal');
-        const statusBtns = document.querySelectorAll('.status-btn');
-        const submitBtn = document.getElementById('submit-operator-data');
+            const statusBtns = document.querySelectorAll('.status-btn');
+            const submitBtn = document.getElementById('submit-operator-data');
 
-        // Открытие панели
-        document.getElementById('open-operator-btn')?.addEventListener('click', () => {
-            // Используем твою существующую глобальную переменную selectedBeach
-            if (!selectedBeach) return;
-
-            document.getElementById('operator-panel-beach-name').textContent = selectedBeach.name || 'Название пляжа';
-
-            // Сброс выбора кнопок
-            selectedOperatorStatus = null;
-            statusBtns.forEach(btn => btn.classList.remove('selected'));
-            submitBtn.disabled = true;
-
-            operatorModal.classList.remove('hidden');
-        });
-
-        // Закрытие панели
-        document.getElementById('close-operator-btn')?.addEventListener('click', () => {
-            operatorModal.classList.add('hidden');
-        });
-
-        // Выбор статуса из 7 кнопок
-        statusBtns.forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                const currentBtn = e.currentTarget;
-                selectedOperatorStatus = currentBtn.getAttribute('data-value');
-
-                // Подсветка активной кнопки
-                statusBtns.forEach(b => b.classList.remove('selected'));
-                currentBtn.classList.add('selected');
-
-                submitBtn.disabled = false;
-            });
-        });
-
-        // Отправка данных на бэкенд
-        submitBtn?.addEventListener('click', () => {
-            if (!selectedOperatorStatus || !selectedBeach) return;
-
-            submitBtn.textContent = 'Сохранение...';
-            submitBtn.disabled = true;
-
-            fetch(`/api/beach-info/${selectedBeach.id}/operator-status`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
-                },
-                body: JSON.stringify({ status: selectedOperatorStatus })
-            })
-                .then(res => res.json())
-                .then(data => {
-                    operatorModal.classList.add('hidden');
-                    submitBtn.textContent = 'Сохранить изменения';
-
-                    // Моментально обновляем текст в карточке без перезагрузки
-                    const statusText = selectedOperatorStatus === 'hazard'
-                        ? '<span style="color:red;font-weight:bold;">Опасность</span>'
-                        : `${selectedOperatorStatus} баллов (Бофорт)`;
-
-                    const opStatusEl = document.getElementById('operator-status-text');
-                    const opUpdateEl = document.getElementById('operator-updated-at');
-
-                    if (opStatusEl) opStatusEl.innerHTML = statusText;
-                    if (opUpdateEl) opUpdateEl.textContent = data.updated_at;
-                })
-                .catch(err => {
-                    console.error('Ошибка сохранения статуса оператора:', err);
-                    submitBtn.textContent = 'Сохранить изменения';
+            // Выбор статуса
+            statusBtns.forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    selectedOperatorStatus = e.currentTarget.getAttribute('data-value');
+                    statusBtns.forEach(b => b.classList.remove('selected'));
+                    e.currentTarget.classList.add('selected');
                     submitBtn.disabled = false;
-                    alert('Произошла ошибка при сохранении на сервер.');
                 });
-        });
+            });
+
+            // Сохранение
+            submitBtn?.addEventListener('click', () => {
+                if (!selectedOperatorStatus || !beachId) return;
+
+                submitBtn.textContent = 'Сохранение...';
+                submitBtn.disabled = true;
+
+                fetch(`/api/beach-info/${beachId}/operator-status`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+                    },
+                    body: JSON.stringify({ status: selectedOperatorStatus })
+                })
+                    .then(res => res.json())
+                    .then(data => {
+                        // После успешного сохранения возвращаем пользователя обратно на карту!
+                        window.location.href = '/?beach=' + beachId;
+                    })
+                    .catch(err => {
+                        console.error('Ошибка:', err);
+                        alert('Произошла ошибка при сохранении на сервер.');
+                        submitBtn.textContent = 'Сохранить изменения';
+                        submitBtn.disabled = false;
+                    });
+            });
+        }
     });
     updateStickyFilterOffset();
     updateScrollTopButtonVisibility();

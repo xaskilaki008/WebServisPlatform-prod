@@ -93,7 +93,7 @@
                 <button type="button" id="detail-back-button" class="back-button">back Назад</button>
             </div>
             @include('partials.detail-card')
-            @include('partials.operator-panel')
+            
             
         </section>
     </main>

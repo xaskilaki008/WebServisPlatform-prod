@@ -62,7 +62,7 @@
                         <span class="field-value" id="operator-updated-at">-</span>
                     </div>
                 </div>
-                <button id="open-operator-btn" class="operator-action-btn">Изменить статус</button>
+                <button id="open-operator-btn" class="operator-action-btn"><a id="open-operator-link" href="#" class="operator-action-btn" style="display:block; text-align:center; text-decoration:none; box-sizing:border-box;">Изменить статус</a></button>
             </div>
         </div>
     </div>
