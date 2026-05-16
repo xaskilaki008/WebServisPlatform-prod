@@ -1,4 +1,4 @@
-<article id="detail-card" class="detail-card hidden">
+<article id="detail-card" class="detail-card">
     <div id="gallery-main-display" class="gallery-main-display hidden">
         <div id="skeleton-main-display" class="skeleton skeleton-main-display hidden"></div>
         <img id="gallery-main-img" class="gallery-main-img hidden" src="" alt="Фото пляжа">
