@@ -92,62 +92,67 @@
                 </div>
                 <button type="button" id="detail-back-button" class="back-button">back Назад</button>
             </div>
-            <article class="detail-card">
-                <div class="gallery-container">
-                    <div id="gallery-thumbnails" class="thumbnails-line"></div>
-                
-                    <div id="gallery-main-display" class="main-photo-box hidden">
-                        <div class="main-photo-wrapper">
-                            <div id="skeleton-main-display" class="skeleton skeleton-main-photo hidden"></div>
-                
-                            <img id="gallery-main-img" src="" alt="Фото пляжа">
-                
-                            <div class="gallery-controls">
-                                <button id="main-prev-btn" class="slider-nav-btn prev" onclick="changePhoto(-1, event)">‹</button>
-                                <div id="gallery-photo-number" class="photo-number-label"></div>
-                                <button id="main-next-btn" class="slider-nav-btn next" onclick="changePhoto(1, event)">›</button>
+            <article id="detail-card" class="detail-card hidden">
+                <div class="detail-info">
+                    <h3 id="detail-title">Название пляжа</h3>
+            
+                    <div class="data-comparison-container">
+            
+                        <div class="data-column auto-data">
+                            <div class="column-header">Система (DWD)</div>
+                            <div id="detail-fields" class="fields-list">
                             </div>
                         </div>
-                    </div>
-                </div>
-                <h2 id="detail-name">Пляж не выбран</h2>
-                <div class="detail-number-plain">ID пляжа: <span id="detail-number">-</span></div>
-                
-                <div class="detail-group-block">
-                    <div class="detail-row-table">
-                        <div class="detail-lbl">Уровень волнения:</div>
-                        <div class="detail-val" id="detail-wave-level">-</div>
-                    </div>
-                    <div class="detail-row-table">
-                        <div class="detail-lbl">Категория:</div>
-                        <div class="detail-val"><span id="detail-category" class="category-badge">-</span></div>
-                    </div>
-                </div>
-                <div class="detail-group-block">
-                    <div class="detail-row-table">
-                        <div class="detail-lbl">Описание моря:</div>
-                        <div class="detail-val" id="detail-wave-text">Нет данных</div>
-                    </div>
-                    <div class="detail-row-table">
-                        <div class="detail-lbl">Высота волны:</div>
-                        <div class="detail-val" id="detail-wave-height">-</div>
-                    </div>
-                    <div class="detail-row-table">
-                        <div class="detail-lbl">Период волны:</div>
-                        <div class="detail-val" id="detail-wave-period">-</div>
-                    </div>
-                    <div class="detail-row-table">
-                        <div class="detail-lbl">Направление волны:</div>
-                        <div class="detail-val" id="detail-wave-direction">-</div>
-                    </div>
-                </div>
-                <div class="detail-group-block">
-                    <div class="detail-row-table">
-                        <div class="detail-lbl">Обновлено (DWD):</div>
-                        <div class="detail-val" id="detail-update-time">-</div>
+            
+                        <div class="data-column operator-data">
+                            <div class="column-header">Оператор</div>
+                            <div class="fields-list">
+                                <div class="field-row">
+                                    <span class="field-label">Статус:</span>
+                                    <span class="field-value" id="operator-status-text">Нет данных</span>
+                                </div>
+                                <div class="field-row">
+                                    <span class="field-label">Обновлено:</span>
+                                    <span class="field-value" id="operator-updated-at">-</span>
+                                </div>
+                            </div>
+            
+                            <button id="open-operator-btn" class="operator-action-btn">Изменить статус</button>
+                        </div>
+            
                     </div>
                 </div>
             </article>
+            
+            <div id="operator-panel-modal" class="image-overlay hidden">
+                <div class="operator-panel-wrapper">
+                    <button id="close-operator-btn" class="close-popup-btn">&times;</button>
+            
+                    <div class="operator-header">
+                        <h2>Панель оператора</h2>
+                        <p id="operator-panel-beach-name">Название пляжа</p>
+                    </div>
+            
+                    <div class="operator-body">
+                        <p class="instruction">Укажите фактическое состояние акватории:</p>
+            
+                        <div class="beaufort-grid">
+                            <button class="status-btn" data-value="0"><span class="status-icon">🪞</span> 0 баллов</button>
+                            <button class="status-btn" data-value="1"><span class="status-icon">💧</span> 1 балл</button>
+                            <button class="status-btn" data-value="2"><span class="status-icon">🌊</span> 2 балла</button>
+                            <button class="status-btn" data-value="3"><span class="status-icon">🌊</span> 3 балла</button>
+                            <button class="status-btn" data-value="4"><span class="status-icon">🌊</span> 4 балла</button>
+                            <button class="status-btn" data-value="5"><span class="status-icon">🌊</span> 5 баллов</button>
+                            <button class="status-btn hazard-btn" data-value="hazard"><span class="status-icon">🛢️</span>
+                                Опасность</button>
+                        </div>
+            
+                        <div class="operator-actions">
+                            <button id="submit-operator-data" class="save-btn" disabled>Сохранить изменения</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </section>
     </main>
 </div>
