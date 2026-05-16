@@ -10,4 +10,4 @@ Route::get('/', function () {
 
 // АПИ для фронтенда (Backend)
 Route::get('/api/beach-info/{id}', [BeachController::class, 'getInfo']);
-Route::get('/api/beach-photos/{id}', [BeachController::class, 'getPhoto']);
+Route::get('/api/beach-photo/{id}', [BeachController::class, 'getPhoto']);

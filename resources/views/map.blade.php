@@ -113,7 +113,7 @@
                         <div class="main-photo-wrapper">
                             <div id="skeleton-main-display" class="skeleton skeleton-main-photo hidden"></div>
                 
-                            <img id="gallery-main-img" src="" alt="Фото пляжа" onclick="openImagePopup(currentPhotoIndex)">
+                            <img id="gallery-main-img" src="" alt="Фото пляжа">
                 
                             <div class="gallery-controls">
                                 <button id="main-prev-btn" class="slider-nav-btn prev" onclick="changePhoto(-1, event)">‹</button>

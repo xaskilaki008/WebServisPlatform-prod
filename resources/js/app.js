@@ -92,6 +92,11 @@ function onBeachClick(beachId) {
     let activeCategory = 'all';
     let searchQuery = '';
     let isMapExpanded = false;
+    // --- ЭКСПОРТ ФУНКЦИЙ ДЛЯ HTML ---
+    window.setMainPhoto = setMainPhoto;
+    window.changePhoto = changePhoto;
+    window.closeImagePopup = closeImagePopup;
+    window.openImagePopup = openImagePopup;
     let mapFocusRequestId = 0;
     function getWaveLevelText(level) {
         const descriptions = [
@@ -1090,6 +1095,14 @@ function onBeachClick(beachId) {
         const imageOverlay = document.getElementById('image-popup');
         const popupLargePhoto = document.getElementById('popup-large-photo');
         const closePopupBtn = document.getElementById('close-image-popup');
+        // --- ОТКРЫТИЕ ПОПАПА ПО КЛИКУ НА ГЛАВНУЮ КАРТИНКУ ---
+        const mainGalleryImg = document.getElementById('gallery-main-img');
+        if (mainGalleryImg) {
+            mainGalleryImg.addEventListener('click', () => {
+                // Здесь скрипт "видит" currentPhotoIndex, так как они в одном файле
+                openImagePopup(currentPhotoIndex);
+            });
+        }
         // 2. Логика модального окна входа (с проверкой, что элементы существуют)
         if (loginBtn && modal && closeBtn) {
             // Открыть модалку
