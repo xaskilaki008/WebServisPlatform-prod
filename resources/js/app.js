@@ -20,7 +20,6 @@ function onBeachClick(beachId) {
                 document.querySelectorAll('.wave-data').forEach(el => el.innerText = '--');
             }
         });
-
     // 3. Запрашиваем фото (твой существующий маршрут)
     fetch(`/api/beach-photo/${beachId}`)
         .then(response => response.json())
@@ -253,12 +252,7 @@ function onBeachClick(beachId) {
                     currentPhotoIndex = 0;
                     renderGallery();
                 });
-                const opStatusText = data.operator_status === 'hazard'
-                    ? '<span style="color:red;font-weight:bold;">Опасность</span>'
-                    : (data.operator_status !== null ? `${data.operator_status} баллов (Бофорт)` : 'Нет данных');
-
-                document.getElementById('operator-status-text').innerHTML = opStatusText;
-                document.getElementById('operator-updated-at').textContent = data.operator_updated_at || '-';
+                
         }
     }
 

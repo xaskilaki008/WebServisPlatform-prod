@@ -5,8 +5,8 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\Beach;
-use App\Models\WaveForecast;
-use Illuminate\Support\Facades\File;
+use App\Models\WaveForecast; // Обязательно подключаем модель прогнозов!
+use Illuminate\Support\Facades\File; // Меняем Storage на File
 
 class BeachController extends Controller
 {
@@ -14,6 +14,7 @@ class BeachController extends Controller
     {
         $beach = Beach::findOrFail($id);
 
+        // ВОССТАНАВЛИВАЕМ СВЯЗЬ: Ищем самый свежий прогноз для этого пляжа
         $forecast = WaveForecast::where('beach_id', $id)
             ->orderBy('forecast_time', 'desc')
             ->first();
@@ -21,12 +22,12 @@ class BeachController extends Controller
         return response()->json([
             'id' => $beach->id,
             'name' => $beach->name,
+            'wave_level_text' => $beach->wave_level_text,
+            'category_label' => $beach->category_label,
             'wave_level' => $beach->wave_level,
 
-            // Твой JS сам разбирается, если данные лежат прямо в корне:
-            // const forecast = data.latest_forecast || data;
+            // Отдаем на фронтенд данные из таблицы wave_forecasts
             'wave_height' => $forecast ? $forecast->wave_height : null,
-            'wave_period' => $forecast ? $forecast->wave_period : null, // Добавили период!
             'wave_direction' => $forecast ? $forecast->wave_direction : null,
             'forecast_time' => $forecast ? $forecast->forecast_time : null,
         ]);
@@ -34,11 +35,11 @@ class BeachController extends Controller
 
     public function getPhoto($id)
     {
+        // Ищем папку напрямую в корневой директории public
         $directory = public_path('фотографии пляжей');
 
         if (!File::exists($directory)) {
-            // ИСПРАВЛЕНО: JS ждет ключ 'photo_urls', а не 'urls'
-            return response()->json(['photo_urls' => []]);
+            return response()->json(['urls' => []]);
         }
 
         $files = File::files($directory);
@@ -47,11 +48,11 @@ class BeachController extends Controller
             return str_starts_with($file->getFilename(), $id . '-');
         });
 
+        // Создаем правильные URL-ссылки для фронтенда с помощью asset()
         $urls = array_map(function ($file) {
             return asset('фотографии пляжей/' . $file->getFilename());
         }, $beachPhotos);
 
-        // ИСПРАВЛЕНО: Отдаем под ключом 'photo_urls'
-        return response()->json(['photo_urls' => array_values($urls)]);
+        return response()->json(['urls' => array_values($urls)]);
     }
 }
