@@ -43,17 +43,6 @@
                     <div id="map"></div>
                 </section>
                 <aside class="left-column">
-                    <!-- <div id="info-panel" class="panel">
-                        <h2>Текущий пляж</h2>
-                        <div class="info-grid">
-                            <div class="info-row"><b>Название</b><span id="info-name">Загрузка...</span></div>
-                            <div class="info-row"><b>Номер</b><span id="info-number">-</span></div>
-                            <div class="info-row"><b>Уровень волнения</b><span id="info-wave-level">-</span></div>
-                            <div class="info-row"><b>Описание</b><span id="info-wave-text">Нет данных</span></div>
-                            <div class="info-row"><b>Категория</b><span id="info-category-badge" class="category-inline category-badge">-</span></div>
-                        </div>
-                    </div> -->
-
                     <div class="panel legend-panel">
                         <div class="legend-text">
                             <h3>Легенда статусов</h3>
@@ -78,7 +67,6 @@
                     <h2 class="screen-title">Найдено пляжей: <span id="results-counter" class="counter-badge">0</span></h2>
                 </div>
             </div>
-
             <div class="filter-panel">
                 <h3 class="filter-title">Поиск и фильтры</h3>
                 <p class="filter-description">Список обновляется мгновенно по названию и категории безопасности.</p>
@@ -93,7 +81,6 @@
                     <button type="button" class="filter-chip" data-category="danger">Купание не рекомендуется</button>
                 </div>
             </div>
-
             <div id="beaches-list" class="list-wrap"></div>
         </section>
 
@@ -136,7 +123,6 @@
                         <div class="detail-val"><span id="detail-category" class="category-badge">-</span></div>
                     </div>
                 </div>
-                
                 <div class="detail-group-block">
                     <div class="detail-row-table">
                         <div class="detail-lbl">Описание моря:</div>
@@ -155,7 +141,6 @@
                         <div class="detail-val" id="detail-wave-direction">-</div>
                     </div>
                 </div>
-                
                 <div class="detail-group-block">
                     <div class="detail-row-table">
                         <div class="detail-lbl">Обновлено (DWD):</div>
