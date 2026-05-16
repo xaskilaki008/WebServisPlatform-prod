@@ -4,30 +4,39 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
-// Не забудь подключить свои модели!
 use App\Models\Beach;
-use App\Models\WaveForecast;
+use Illuminate\Support\Facades\Storage;
 
 class BeachController extends Controller
 {
     public function getInfo($id)
     {
-        // Сюда вставляешь логику, которая раньше была в замыкании
         $beach = Beach::findOrFail($id);
 
-        // Пример возврата данных
         return response()->json([
             'id' => $beach->id,
             'name' => $beach->name,
+            'wave_level_text' => $beach->wave_level_text,
+            'category_label' => $beach->category_label,
             'wave_level' => $beach->wave_level,
-            // ... остальные поля
+            // Добавь сюда любые другие поля, которые нужны на фронтенде
         ]);
     }
 
     public function getPhoto($id)
     {
-        // Сюда вставляешь логику выдачи фотографий
-        // ...
-        return response()->json(['urls' => $urls]);
+        $directory = 'public/фотографии пляжей';
+        $files = Storage::files($directory);
+
+        // Ищем фото, начинающиеся с ID пляжа
+        $beachPhotos = array_filter($files, function ($file) use ($id) {
+            return str_starts_with(basename($file), $id . '-');
+        });
+
+        $urls = array_map(function ($file) {
+            return Storage::url($file);
+        }, $beachPhotos);
+
+        return response()->json(['urls' => array_values($urls)]);
     }
 }
