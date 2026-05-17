@@ -484,6 +484,7 @@ function updateDetailBackButton() {
 }
 
 function syncSearchStateFromInput() {
+    if (!searchInput) return;
     searchQuery = searchInput.value.trim().toLowerCase();
 }
 
@@ -926,10 +927,12 @@ navButtons.forEach(button => {
     });
 });
 
-searchInput.addEventListener('input', function () {
-    syncSearchStateFromInput();
-    renderBeachesList();
-});
+if (searchInput) {
+    searchInput.addEventListener('input', (e) => {
+        syncSearchStateFromInput();
+        renderBeachesList();
+    });
+}
 
 filterChips.forEach(chip => {
     chip.addEventListener('click', function () {
