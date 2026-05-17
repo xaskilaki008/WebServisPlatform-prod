@@ -1,6 +1,7 @@
 <?php
 
 use App\Models\Beach;
+use App\Models\BeachOperator;
 use App\Models\WaveForecast;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -8,6 +9,26 @@ use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Cache;
 
+Route::post('/operator/login', function (Request $request) {
+    $validated = $request->validate([
+        'hash' => ['required', 'string'],
+    ]);
+
+    $operator = BeachOperator::query()
+        ->where('operator_hash', $validated['hash'])
+        ->first();
+
+    if (!$operator) {
+        return response()->json(['success' => false], 403);
+    }
+
+    return response()
+        ->json([
+            'success' => true,
+            'beach_id' => $operator->beach_id,
+        ])
+        ->cookie('operator_hash', $operator->operator_hash, 60 * 24);
+});
 
 // 1. Получение списка пляжей
 Route::get('/beaches', function () {

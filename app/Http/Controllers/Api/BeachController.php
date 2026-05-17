@@ -22,6 +22,7 @@ class BeachController extends Controller
             'id' => $beach->id,
             'name' => $beach->name,
             'wave_level' => $beach->wave_level,
+            'operator_status' => $beach->operator_status,
 
             // Твой JS сам разбирается, если данные лежат прямо в корне:
             // const forecast = data.latest_forecast || data;

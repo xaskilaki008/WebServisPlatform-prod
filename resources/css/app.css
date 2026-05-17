@@ -1836,3 +1836,155 @@ body {
     font-weight: 600;
 }
 
+.operator-warning-panel {
+    background: #fef08a;
+    border: 1px solid #facc15;
+    border-radius: var(--radius-md);
+    color: #1e293b;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 12px;
+    padding: 10px 12px;
+}
+
+.operator-warning-panel div {
+    display: grid;
+    gap: 2px;
+}
+
+.operator-warning-panel span {
+    font-size: 13px;
+}
+
+.operator-page {
+    background: #f8fafc;
+    color: #1e293b;
+    min-height: 100vh;
+    padding: 18px;
+}
+
+.operator-shell {
+    width: 100%;
+    max-width: 360px;
+    margin: 0 auto;
+}
+
+.operator-card {
+    background: #ffffff;
+    border: 1px solid #cbd5e1;
+    border-radius: 8px;
+    box-shadow: 0 16px 34px rgba(15, 23, 42, 0.12);
+    padding: 16px;
+}
+
+.operator-header {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 14px;
+}
+
+.operator-header h1 {
+    color: #1e293b;
+    font-size: 20px;
+    line-height: 1.15;
+    margin: 0;
+}
+
+.operator-kicker {
+    color: #475569;
+    font-size: 12px;
+    font-weight: 700;
+    margin: 0 0 4px;
+}
+
+.operator-back-link {
+    color: #0b669c;
+    font-size: 13px;
+    font-weight: 700;
+    text-decoration: none;
+}
+
+.operator-flash,
+.operator-error {
+    border-radius: 8px;
+    font-size: 13px;
+    margin-bottom: 12px;
+    padding: 9px 10px;
+}
+
+.operator-flash {
+    background: #dcfce7;
+    color: #166534;
+}
+
+.operator-error {
+    background: #fee2e2;
+    color: #991b1b;
+}
+
+.operator-form {
+    display: grid;
+    gap: 14px;
+}
+
+.operator-status-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+}
+
+.operator-status-option {
+    cursor: pointer;
+}
+
+.operator-status-option input {
+    position: absolute;
+    opacity: 0;
+    pointer-events: none;
+}
+
+.operator-status-option span {
+    min-height: 86px;
+    border: 1px solid #cbd5e1;
+    border-radius: 8px;
+    color: #1e293b;
+    display: grid;
+    place-items: center;
+    gap: 5px;
+    padding: 8px;
+    text-align: center;
+}
+
+.operator-status-option img {
+    max-height: 45px;
+    max-width: 100%;
+    object-fit: contain;
+}
+
+.operator-status-option input:checked + span {
+    border-color: #0b669c;
+    box-shadow: 0 0 0 2px rgba(11, 102, 156, 0.18);
+}
+
+.operator-status-hazard {
+    grid-column: 1 / -1;
+}
+
+.operator-status-hazard span,
+.operator-status-hazard b {
+    color: #000000 !important;
+}
+
+.operator-save-button {
+    min-height: 44px;
+    background: #facc15;
+    border: none;
+    border-radius: 8px;
+    color: #000000 !important;
+    cursor: pointer;
+    font: inherit;
+    font-weight: 800;
+}

@@ -17,6 +17,7 @@ class Beach extends Model
         'latitude',
         'number',
         'wave_level',
+        'operator_status',
         'fetch_longitude',
         'fetch_latitude',
     ];
@@ -26,6 +27,7 @@ class Beach extends Model
         'latitude' => 'float',
         'longitude' => 'float',
         'wave_level' => 'integer',
+        'operator_status' => 'string',
     ];
 
     // 2. Указываем, какие виртуальные поля должны добавляться в JSON для фронтенда

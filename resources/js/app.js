@@ -57,6 +57,10 @@ function onBeachClick(beachId) {
     const detailWaveText = document.getElementById('detail-wave-text');
     const detailCategory = document.getElementById('detail-category');
     const detailBackButton = document.getElementById('detail-back-button');
+    const operatorColumnView = document.getElementById('operator-column-view');
+    const operatorStatusValue = document.getElementById('operator-status-value');
+    const openOperatorLink = document.getElementById('open-operator-link');
+    const operatorContext = window.operatorContext || { isOperator: false, operatorBeachId: null };
     const detailTitleRow = document.createElement('div');
     const detailGeoWrap = document.createElement('div');
     const detailGeoButton = document.createElement('button');
@@ -151,6 +155,36 @@ function onBeachClick(beachId) {
         return 'badge-danger';
     }
 
+    function getOperatorStatusText(status) {
+        if (status === null || status === undefined || status === '') return 'Нет данных';
+        if (String(status) === 'hazard') return 'Опасность';
+        return `Бофорт ${status}`;
+    }
+
+    function updateOperatorControls(beach = {}, status = null) {
+        const operatorStatus = status ?? beach.operator_status ?? null;
+        const beachId = Number(beach.id);
+        const showOperatorColumn = operatorStatus !== null || Boolean(operatorContext.isOperator);
+        const canEdit = Boolean(operatorContext.isOperator) && Number(operatorContext.operatorBeachId) === beachId;
+
+        if (operatorColumnView) {
+            operatorColumnView.classList.toggle('hidden', !showOperatorColumn);
+        }
+
+        if (operatorStatusValue) {
+            operatorStatusValue.textContent = getOperatorStatusText(operatorStatus);
+        }
+
+        if (openOperatorLink) {
+            openOperatorLink.classList.toggle('hidden', !canEdit);
+            if (canEdit) {
+                openOperatorLink.href = `/operator/${beachId}`;
+            } else {
+                openOperatorLink.removeAttribute('href');
+            }
+        }
+    }
+
     function renderLoadingState() {
         beachesList.innerHTML = `
             <div class="skeleton skeleton-card"></div>
@@ -191,6 +225,7 @@ function onBeachClick(beachId) {
 
         currentPhotos = [];
         currentPhotoIndex = 0;
+        updateOperatorControls(beach, beach.operator_status ?? null);
         showGallerySkeleton();
 
         if (beach.id) {
@@ -203,16 +238,6 @@ function onBeachClick(beachId) {
                     document.getElementById('detail-wave-height').innerText = forecast.wave_height + ' м';
                     document.getElementById('detail-wave-period').innerText = forecast.wave_period + ' сек';
 
-                    // Выводим направление волны с текстовой интерпретацией
-                    const direction = forecast.wave_direction;
-                    if (direction !== undefined && direction !== null) {
-                        const textDir = getWaveDirectionText(direction);
-                        // Выведет формат: "120° (Юго-Восток)"
-                        document.getElementById('detail-wave-direction').innerText = `${direction}° ${textDir ? '(' + textDir + ')' : ''}`;
-                    } else {
-                        document.getElementById('detail-wave-direction').innerText = '-';
-                    }
-
                     // Выводим время обновления
                     const updateTime = forecast.forecast_time || forecast.updated_at;
                     document.getElementById('detail-update-time').innerText = updateTime
@@ -224,10 +249,10 @@ function onBeachClick(beachId) {
                 } else {
                     document.getElementById('detail-wave-height').innerText = 'нет данных';
                     document.getElementById('detail-wave-period').innerText = 'нет данных';
-                    document.getElementById('detail-wave-direction').innerText = 'нет данных';
                     document.getElementById('detail-update-time').innerText = 'Ожидается';
                     detailWaveText.innerText = getWaveLevelText(beach.wave_level);
                 }
+                updateOperatorControls(beach, data.operator_status ?? beach.operator_status ?? null);
             })
             .catch(err => {
                 console.error('Ошибка загрузки волн:', err);
@@ -879,10 +904,12 @@ function onBeachClick(beachId) {
         });
     });
 
-    searchInput.addEventListener('input', function () {
-        syncSearchStateFromInput();
-        renderBeachesList();
-    });
+    if (searchInput) {
+        searchInput.addEventListener('input', function () {
+            syncSearchStateFromInput();
+            renderBeachesList();
+        });
+    }
 
     filterChips.forEach(chip => {
         chip.addEventListener('click', function () {
@@ -1078,12 +1105,16 @@ function onBeachClick(beachId) {
         scrollable.scrollTo({ top: 0, behavior: 'smooth' });
     });
 
-    clearSearchButton.addEventListener('click', function () {
-        searchInput.value = '';
-        searchQuery = '';
-        renderBeachesList();
-        searchInput.focus();
-    });
+    if (clearSearchButton) {
+        clearSearchButton.addEventListener('click', function () {
+            if (searchInput) {
+                searchInput.value = '';
+                searchInput.focus();
+            }
+            searchQuery = '';
+            renderBeachesList();
+        });
+    }
     document.addEventListener('DOMContentLoaded', () => {
         // 1. Объявляем все переменные строго ОДИН раз в самом начале
         const loginBtn = document.getElementById('secret-login-btn');
@@ -1095,6 +1126,7 @@ function onBeachClick(beachId) {
         const imageOverlay = document.getElementById('image-popup');
         const popupLargePhoto = document.getElementById('popup-large-photo');
         const closePopupBtn = document.getElementById('close-image-popup');
+        const operatorRefreshLists = document.getElementById('operator-refresh-lists');
         // --- ОТКРЫТИЕ ПОПАПА ПО КЛИКУ НА ГЛАВНУЮ КАРТИНКУ ---
         const mainGalleryImg = document.getElementById('gallery-main-img');
         if (mainGalleryImg) {
@@ -1104,22 +1136,26 @@ function onBeachClick(beachId) {
             });
         }
         // 2. Логика модального окна входа (с проверкой, что элементы существуют)
-        if (loginBtn && modal && closeBtn) {
-            // Открыть модалку
-            loginBtn.addEventListener('click', () => {
-                modal.classList.remove('hidden');
-            });
+        if (loginBtn) {
+            loginBtn.addEventListener('click', async () => {
+                const hash = prompt('Введите хэш');
+                if (!hash) return;
 
-            // Закрыть по крестику
-            closeBtn.addEventListener('click', () => {
-                modal.classList.add('hidden');
-            });
+                const response = await fetch('/api/operator/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json',
+                    },
+                    body: JSON.stringify({ hash }),
+                });
 
-            // Закрыть по клику вне белого окна (на темный фон)
-            modal.addEventListener('click', (e) => {
-                if (e.target === modal) {
-                    modal.classList.add('hidden');
+                if (response.ok) {
+                    window.location.reload();
+                    return;
                 }
+
+                alert('Доступ запрещен');
             });
             document.getElementById('photo-prev')?.addEventListener('click', (e) => changePhoto(-1, e));
             document.getElementById('photo-next')?.addEventListener('click', (e) => changePhoto(1, e));
@@ -1130,6 +1166,12 @@ function onBeachClick(beachId) {
             // Закрытие по клику на фон
             document.getElementById('image-popup')?.addEventListener('click', (e) => {
                 if (e.target.id === 'image-popup') closeImagePopup();
+            });
+        }
+
+        if (operatorRefreshLists) {
+            operatorRefreshLists.addEventListener('click', () => {
+                window.location.reload();
             });
         }
 
@@ -1287,3 +1329,4 @@ function onBeachClick(beachId) {
     });
     updateStickyFilterOffset();
     updateScrollTopButtonVisibility();
+    window.changePhoto = changePhoto;
