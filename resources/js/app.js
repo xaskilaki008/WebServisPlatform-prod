@@ -93,7 +93,7 @@ let searchQuery = '';
 let isMapExpanded = false;
 // --- ЭКСПОРТ ФУНКЦИЙ ДЛЯ HTML ---
 window.setMainPhoto = setMainPhoto;
-window.changePhoto = changePhoto;
+
 window.closeImagePopup = closeImagePopup;
 window.openImagePopup = openImagePopup;
 let mapFocusRequestId = 0;
@@ -167,123 +167,36 @@ function updateInfoPanel(beach = {}) {
     infoCategoryBadge.className = 'category-inline category-badge ' + getCategoryBadgeClass(beach);
 }
 
-function updateDetailScreen(beach = {}) {
-    const cleanId = Math.abs(beach.id);
+const containerEl = document.getElementById('comparison-container');
+const opColumnEl = document.getElementById('operator-column-view');
+const opLinkEl = document.getElementById('open-operator-link');
 
-    detailName.textContent = beach.name || 'Без названия';
+if (containerEl && opColumnEl && opLinkEl) {
+    const isOperator = containerEl.dataset.isOperator === 'true';
+    const operatorBeachId = parseInt(containerEl.dataset.operatorBeach);
+    const currentBeachId = parseInt(cleanId);
 
-    let rawNumber = beach.number ?? beach.num;
-    detailNumber.textContent = (rawNumber !== undefined && rawNumber !== null && rawNumber !== '')
-        ? Math.abs(Number(rawNumber))
-        : '-';
+    // Проверяем наличие фактических данных от оператора в ответе сервера
+    const hasOperatorData = beach.operator_status !== null && beach.operator_status !== undefined;
 
-    detailWaveLevel.textContent = beach.wave_level ?? '-';
-    detailWaveText.textContent = getWaveLevelText(beach.wave_level);
-    detailCategory.textContent = getBeachCategoryLabel(beach);
-    // Эта строка вешает класс подсветки (зеленый/желтый/красный)
-    detailCategory.className = 'category-badge ' + getCategoryBadgeClass(beach);
-    detailMapButton.dataset.id = beach.id ?? '';
-
-    const hasCoords = beach.latitude !== undefined && beach.longitude !== undefined;
-    detailCoordinates.textContent = hasCoords ? `${beach.latitude}, ${beach.longitude}` : '-';
-    detailCoordinates.dataset.coordinates = hasCoords ? `${beach.latitude}, ${beach.longitude}` : '';
-
-    currentPhotos = [];
-    currentPhotoIndex = 0;
-    showGallerySkeleton();
-
-    if (beach.id) {
-    // Запрос данных о волнах
-    fetch(`/api/beach-info/${cleanId}`)
-        .then(response => response.json())
-        .then(beach => {
-            const forecast = beach.latest_forecast || beach;
-            if (forecast && forecast.wave_height !== undefined) {
-                document.getElementById('detail-wave-height').innerText = forecast.wave_height + ' м';
-                document.getElementById('detail-wave-period').innerText = forecast.wave_period + ' сек';
-
-                const updateTime = forecast.forecast_time || forecast.updated_at;
-                document.getElementById('detail-update-time').innerText = updateTime
-                    ? new Date(updateTime).toLocaleString('ru-RU')
-                    : 'нет данных';
-
-                detailWaveText.innerText = getWaveLevelText(beach.wave_level);
-
-                // ВНИМАНИЕ: ЗДЕСЬ ТОЖЕ БЫЛА ОШИБКА "data is not defined"
-                // Я заменил data на beach!
-                const opStatusText = beach.operator_status === 'hazard'
-                    ? '<span style="color:red;font-weight:bold;">Опасность</span>'
-                    : (beach.operator_status !== null && beach.operator_status !== undefined ? `${beach.operator_status} баллов (Бофорт)` : 'Нет данных');
-
-                const opStatusEl = document.getElementById('operator-status-text');
-                const opUpdateEl = document.getElementById('operator-updated-at');
-
-                if (opStatusEl) opStatusEl.innerHTML = opStatusText;
-                if (opUpdateEl) opUpdateEl.textContent = beach.operator_updated_at || '-';
-
-                const operatorLink = document.getElementById('open-operator-link');
-                if (operatorLink) operatorLink.href = `/operator/${beach.id}`;
-
-            } else {
-                document.getElementById('detail-wave-height').innerText = 'нет данных';
-                document.getElementById('detail-wave-period').innerText = 'нет данных';
-
-                // ==========================================
-                // УДАЛИ И ЭТУ СТРОКУ ТОЖЕ:
-                // ==========================================
-                // document.getElementById('detail-wave-direction').innerText = 'нет данных';
-                // ==========================================
-
-                document.getElementById('detail-update-time').innerText = 'Ожидается';
-                detailWaveText.innerText = getWaveLevelText(beach.wave_level);
-            }
-        })
-        .catch(err => {
-            console.error('Ошибка загрузки волн:', err);
-            document.getElementById('detail-update-time').innerText = 'Ошибка загрузки';
-        });
-
-        // Запрос фотографий
-        fetch(`/api/beach-photo/${beach.id}`)
-            .then(res => res.json())
-            .then(data => {
-                currentPhotos = data.photo_urls || [];
-                currentPhotoIndex = 0;
-                renderGallery();
-            });
-            
+    if (hasOperatorData || isOperator) {
+        // Показываем колонку если данные есть, ЛИБО если зашел сам оператор
+        opColumnEl.classList.remove('hidden');
+        opColumnEl.style.display = 'block';
+    } else {
+        // Обычный пользователь видит просто пустое место (колонка скрыта)
+        opColumnEl.classList.add('hidden');
+        opColumnEl.style.display = 'none';
     }
-    // === ДИНАМИЧЕСКИЙ КОНТРОЛЬ ДОСТУПА И ВИДИМОСТИ КОЛОНОК ===
-    const containerEl = document.getElementById('comparison-container');
-    const opColumnEl = document.getElementById('operator-column-view');
-    const opLinkEl = document.getElementById('open-operator-link');
 
-    if (containerEl && opColumnEl && opLinkEl) {
-        const isOperator = containerEl.dataset.isOperator === 'true';
-        const operatorBeachId = parseInt(containerEl.dataset.operatorBeach);
-        const currentBeachId = parseInt(cleanId);
-
-        // Проверяем, есть ли уже сохраненные данные от оператора в бд
-        const hasData = beach.operator_status !== null && beach.operator_status !== undefined;
-
-        // Условие отображения колонки оператора: если данные ЕСТЬ, либо если зашел авторизованный оператор
-        if (hasData || isOperator) {
-            opColumnEl.classList.remove('hidden');
-            opColumnEl.style.display = 'block';
-        } else {
-            opColumnEl.classList.add('hidden');
-            opColumnEl.style.display = 'none'; // Обычный пользователь видит пустое место
-        }
-
-        // Условие отображения кнопки: ТОЛЬКО если это родной пляж этого оператора
-        if (isOperator && operatorBeachId === currentBeachId) {
-            opLinkEl.classList.remove('hidden');
-            opLinkEl.style.display = 'block';
-            opLinkEl.href = `/operator/${currentBeachId}`;
-        } else {
-            opLinkEl.classList.add('hidden');
-            opLinkEl.style.display = 'none'; // Скрыто для всех остальных
-        }
+    // Кнопку "operator-action-btn" (Изменить статус) видит ТОЛЬКО оператор СВОЕГО пляжа
+    if (isOperator && operatorBeachId === currentBeachId) {
+        opLinkEl.classList.remove('hidden');
+        opLinkEl.style.display = 'block';
+        opLinkEl.href = `/operator/${currentBeachId}`;
+    } else {
+        opLinkEl.classList.add('hidden');
+        opLinkEl.style.display = 'none';
     }
 }
 
@@ -1393,19 +1306,27 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 // 1. Клик по секретной кнопке авторизации оператора
 document.getElementById('secret-login-btn')?.addEventListener('click', () => {
-    fetch('/secret-login', {
+    const hash = prompt('Введите секретный хэш-код оператора для верификации:');
+    if (!hash) return;
+
+    fetch('/api/operator/login', {
         method: 'POST',
         headers: {
-            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
-            'Content-Type': 'application/json'
-        }
+            'Content-Type': 'application/json',
+            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+        },
+        body: JSON.stringify({ hash: hash })
     })
-        .then(res => res.json())
+        .then(res => {
+            if (!res.ok) throw new Error('Неверный хэш');
+            return res.json();
+        })
         .then(data => {
-            if (data.success) {
-                alert('Режим оператора успешно активирован!');
-                window.location.reload();
-            }
+            alert('Верификация пройдена успешно!');
+            window.location.href = `/?beach=${data.beach_id}`;
+        })
+        .catch(err => {
+            alert('Ошибка авторизации: неверный хэш-код оператора.');
         });
 });
 
@@ -1452,3 +1373,4 @@ if (operatorPage) {
 }
 updateStickyFilterOffset();
 updateScrollTopButtonVisibility();
+window.changePhoto = changePhoto;

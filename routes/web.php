@@ -6,60 +6,50 @@ use Illuminate\Http\Request;
 use App\Models\Beach;
 use Illuminate\Support\Facades\DB;
 
-// 1. ГЛАВНАЯ СТРАНИЦА (Твоя карта)
+// Главная страница
 Route::get('/', function (Request $request) {
-    $operatorCookie = Cookie::get('operator_session');
-    $authOperator = null;
+    $hash = Cookie::get('operator_hash');
+    $operator = null;
 
-    if ($operatorCookie) {
-        $authOperator = DB::table('beach_operators')
-            ->where('operator_hash', $operatorCookie)
-            ->first();
+    if ($hash) {
+        $operator = DB::table('beach_operators')->where('operator_hash', $hash)->first();
     }
 
-    // Передаем маркеры авторизации в твой существующий map.blade.php
     return view('map', [
-        'isOperator' => !is_null($authOperator),
-        'operatorBeachId' => $authOperator ? $authOperator->beach_id : null
+        'isOperator' => !is_null($operator),
+        'operatorBeachId' => $operator ? $operator->beach_id : null
     ]);
 });
 
-// 2. СЕКРЕТНЫЙ ВХОД (Для кнопки id="secret-login-btn")
-Route::post('/secret-login', function () {
-    $testHash = 'operator_sevastopol_secure_2026';
+// Реальный POST-маршрут авторизации оператора по вводимому хэшу
+Route::post('/api/operator/login', function (Request $request) {
+    $hash = $request->input('hash');
+    $operator = DB::table('beach_operators')->where('operator_hash', $hash)->first();
 
-    // Автоматически привяжем тестового оператора к пляжу с ID = 2, если записи нет
-    $exists = DB::table('beach_operators')->where('operator_hash', $testHash)->exists();
-    if (!$exists) {
-        DB::table('beach_operators')->insert([
-            'beach_id' => 2, // Пляж оператора
-            'operator_hash' => $testHash,
-            'name' => 'Дежурный оператор',
-            'created_at' => now(),
-            'updated_at' => now()
-        ]);
+    if ($operator) {
+        // Устанавливаем куку на 24 часа
+        Cookie::queue('operator_hash', $hash, 1440);
+        return response()->json(['success' => true, 'beach_id' => $operator->beach_id]);
     }
 
-    // Пишем куку в браузер на 1 день
-    Cookie::queue('operator_session', $testHash, 1440);
-    return response()->json(['success' => true]);
+    return response()->json(['success' => false, 'message' => 'Неверный хэш-код оператора'], 401);
 });
 
-// 3. СТРАНИЦА ОПЕРАТОРА (С жесткой верификацией прав)
+// Страница панели оператора с жесткой привязкой к его пляжу
 Route::get('/operator/{id}', function ($id) {
-    $operatorCookie = Cookie::get('operator_session');
+    $hash = Cookie::get('operator_hash');
 
-    if (!$operatorCookie) {
-        abort(403, 'Доступ запрещен. Не авторизован.');
+    if (!$hash) {
+        abort(403, 'Доступ запрещен. Cookie-хэш отсутствует.');
     }
 
-    $authOperator = DB::table('beach_operators')
-        ->where('operator_hash', $operatorCookie)
+    $operator = DB::table('beach_operators')
+        ->where('operator_hash', $hash)
         ->where('beach_id', $id)
         ->first();
 
-    if (!$authOperator) {
-        abort(403, 'У вас нет прав для управления этим пляжем.');
+    if (!$operator) {
+        abort(403, 'Вы не являетесь уполномоченным оператором данного пляжа.');
     }
 
     $beach = Beach::findOrFail($id);

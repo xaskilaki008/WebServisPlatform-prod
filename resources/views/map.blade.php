@@ -15,6 +15,12 @@
     <button id="force-fetch-btn" class="admin-danger-btn">Get data</button>
 </div>
 <div class="app-shell">
+    @if($isOperator)
+        <div id="operator-duplicated-menu" style="background: #fef08a; border-bottom: 2px solid #facc15; padding: 10px; display: flex; gap: 10px; justify-content: center; align-items: center; z-index: 9999; position: relative;">
+            <span style="color: #1e293b; font-weight: bold; font-size: 13px;">Панель оператора активна</span>
+            <button onclick="window.location.reload()" style="background: #facc15; border: 1px solid #eab308; padding: 5px 10px; border-radius: 4px; font-weight: 600; color: #1e293b; cursor: pointer;">Обновить списки</button>
+        </div>
+    @endif
     <header class="topbar">
         <div class="topbar-inner">
             <div class="topbar-title-wrap">
