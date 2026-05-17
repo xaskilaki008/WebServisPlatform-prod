@@ -1299,27 +1299,31 @@ function onBeachClick(beachId) {
                 setActiveScreen('map-screen');
             }
         });
-        // --- ЛОГИКА ОТДЕЛЬНОЙ СТРАНИЦЫ ОПЕРАТОРА ---
+        // === ЛОГИКА ОТДЕЛЬНОЙ СТРАНИЦЫ ОПЕРАТОРА ===
         const operatorPage = document.getElementById('operator-page');
         if (operatorPage) {
-            // Берем ID пляжа прямо из HTML
             const beachId = operatorPage.dataset.beachId;
             let selectedOperatorStatus = null;
 
             const statusBtns = document.querySelectorAll('.status-btn');
             const submitBtn = document.getElementById('submit-operator-data');
 
-            // Выбор статуса
+            // Обработка клика по кнопкам баллов Бофорта
             statusBtns.forEach(btn => {
                 btn.addEventListener('click', (e) => {
-                    selectedOperatorStatus = e.currentTarget.getAttribute('data-value');
+                    const currentBtn = e.currentTarget;
+                    selectedOperatorStatus = currentBtn.getAttribute('data-value');
+
+                    // Подсвечиваем активную кнопку
                     statusBtns.forEach(b => b.classList.remove('selected'));
-                    e.currentTarget.classList.add('selected');
-                    submitBtn.disabled = false;
+                    currentBtn.classList.add('selected');
+
+                    // Активируем кнопку сохранения
+                    if (submitBtn) submitBtn.disabled = false;
                 });
             });
 
-            // Сохранение
+            // Отправка AJAX POST-запроса на бэкенд при сохранении
             submitBtn?.addEventListener('click', () => {
                 if (!selectedOperatorStatus || !beachId) return;
 
@@ -1334,15 +1338,18 @@ function onBeachClick(beachId) {
                     },
                     body: JSON.stringify({ status: selectedOperatorStatus })
                 })
-                    .then(res => res.json())
+                    .then(res => {
+                        if (!res.ok) throw new Error('Ошибка сервера');
+                        return res.json();
+                    })
                     .then(data => {
-                        // После успешного сохранения возвращаем пользователя обратно на карту!
-                        window.location.href = '/?beach=' + beachId;
+                        // После успешного сохранения редиректим обратно на карту
+                        window.location.href = `/?beach=${beachId}`;
                     })
                     .catch(err => {
-                        console.error('Ошибка:', err);
-                        alert('Произошла ошибка при сохранении на сервер.');
-                        submitBtn.textContent = 'Сохранить изменения';
+                        console.error('Ошибка сохранения статуса оператора:', err);
+                        alert('Не удалось сохранить изменения на сервере.');
+                        submitBtn.textContent = 'Сохранить';
                         submitBtn.disabled = false;
                     });
             });
