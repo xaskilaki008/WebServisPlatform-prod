@@ -49,7 +49,7 @@
                 <aside class="left-column">
                     <div class="panel legend-panel">
                         <div class="legend-text">
-                            <h3>Цвета квадратов пляжей</h3>
+                            Цвета квадратов пляжей
                         </div>
                         
                         <img class="mobile-legend-image" src="{{ asset('./flag-colors.png') }}" alt="Цвета флажков">
