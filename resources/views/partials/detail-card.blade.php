@@ -22,7 +22,7 @@
             data-is-operator="{{ $isOperator ? 'true' : 'false' }}" data-operator-beach="{{ $operatorBeachId ?? '' }}">
 
             <div class="data-column auto-data">
-                <div class="column-header">Система (DWD)</div>
+                <div class="column-header">Система</div>
                 <div class="fields-list">
                     <div class="field-row"><span class="field-label">Статус:</span><span id="detail-category"
                             class="category-badge"></span></div>

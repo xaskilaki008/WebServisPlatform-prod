@@ -10,11 +10,6 @@
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
 <body>
-    @if(!$isOperator)
-        <button id="secret-login-btn"
-            style="position: fixed; bottom: 15px; left: 15px; z-index: 9999; background: #1e293b; color: #ffffff; border: none; padding: 6px 10px; font-size: 11px; opacity: 0.2; cursor: pointer; border-radius: 4px; transition: opacity 0.2s;"
-            onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=0.2">💻 Вход</button>
-    @endif
 <div class="temp-admin-panel">
     <button id="toggle-parsing-btn" class="admin-danger-btn">On partsing</button>
     <button id="force-fetch-btn" class="admin-danger-btn">Get data</button>

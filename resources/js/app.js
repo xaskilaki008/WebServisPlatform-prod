@@ -196,49 +196,44 @@ function updateDetailScreen(beach = {}) {
     // Запрос данных о волнах
     fetch(`/api/beach-info/${cleanId}`)
         .then(response => response.json())
-        .then(data => {
-            const forecast = data.latest_forecast || data;
+        .then(beach => {
+            const forecast = beach.latest_forecast || beach;
             if (forecast && forecast.wave_height !== undefined) {
                 document.getElementById('detail-wave-height').innerText = forecast.wave_height + ' м';
                 document.getElementById('detail-wave-period').innerText = forecast.wave_period + ' сек';
 
-                // Выводим направление волны с текстовой интерпретацией
-                const direction = forecast.wave_direction;
-                if (direction !== undefined && direction !== null) {
-                    const textDir = getWaveDirectionText(direction);
-                    // Выведет формат: "120° (Юго-Восток)"
-                    document.getElementById('detail-wave-direction').innerText = `${direction}° ${textDir ? '(' + textDir + ')' : ''}`;
-                } else {
-                    document.getElementById('detail-wave-direction').innerText = '-';
-                }
-
-                // Выводим время обновления
                 const updateTime = forecast.forecast_time || forecast.updated_at;
                 document.getElementById('detail-update-time').innerText = updateTime
                     ? new Date(updateTime).toLocaleString('ru-RU')
                     : 'нет данных';
 
-                // Оставляем реальное описание моря, а не текст ошибки
                 detailWaveText.innerText = getWaveLevelText(beach.wave_level);
-                
-                const opStatusText = data.operator_status === 'hazard'
+
+                // ВНИМАНИЕ: ЗДЕСЬ ТОЖЕ БЫЛА ОШИБКА "data is not defined"
+                // Я заменил data на beach!
+                const opStatusText = beach.operator_status === 'hazard'
                     ? '<span style="color:red;font-weight:bold;">Опасность</span>'
-                    : (data.operator_status !== null && data.operator_status !== undefined ? `${data.operator_status} баллов (Бофорт)` : 'Нет данных');
+                    : (beach.operator_status !== null && beach.operator_status !== undefined ? `${beach.operator_status} баллов (Бофорт)` : 'Нет данных');
 
                 const opStatusEl = document.getElementById('operator-status-text');
                 const opUpdateEl = document.getElementById('operator-updated-at');
 
                 if (opStatusEl) opStatusEl.innerHTML = opStatusText;
-                if (opUpdateEl) opUpdateEl.textContent = data.operator_updated_at || '-';
-                
-                // Делаем кнопку ссылкой на новую страницу
+                if (opUpdateEl) opUpdateEl.textContent = beach.operator_updated_at || '-';
+
                 const operatorLink = document.getElementById('open-operator-link');
                 if (operatorLink) operatorLink.href = `/operator/${beach.id}`;
-                
+
             } else {
                 document.getElementById('detail-wave-height').innerText = 'нет данных';
                 document.getElementById('detail-wave-period').innerText = 'нет данных';
-                document.getElementById('detail-wave-direction').innerText = 'нет данных';
+
+                // ==========================================
+                // УДАЛИ И ЭТУ СТРОКУ ТОЖЕ:
+                // ==========================================
+                // document.getElementById('detail-wave-direction').innerText = 'нет данных';
+                // ==========================================
+
                 document.getElementById('detail-update-time').innerText = 'Ожидается';
                 detailWaveText.innerText = getWaveLevelText(beach.wave_level);
             }
@@ -269,7 +264,7 @@ function updateDetailScreen(beach = {}) {
         const currentBeachId = parseInt(cleanId);
 
         // Проверяем, есть ли уже сохраненные данные от оператора в бд
-        const hasData = data.operator_status !== null && data.operator_status !== undefined;
+        const hasData = beach.operator_status !== null && beach.operator_status !== undefined;
 
         // Условие отображения колонки оператора: если данные ЕСТЬ, либо если зашел авторизованный оператор
         if (hasData || isOperator) {
@@ -1039,7 +1034,7 @@ renderLoadingState();
 
 fetch('/api/beaches')
     .then(response => response.json())
-    // НАЙДИТЕ ЭТОТ БЛОК В КОНЦЕ ФАЙЛА:
+
     .then(data => {
         data.sort((a, b) => Math.abs(a.number || 0) - Math.abs(b.number || 0));
         beaches.push(...data);
@@ -1128,12 +1123,17 @@ scrollTopButton.addEventListener('click', function () {
     scrollable.scrollTo({ top: 0, behavior: 'smooth' });
 });
 
-clearSearchButton.addEventListener('click', function () {
-    searchInput.value = '';
-    searchQuery = '';
-    renderBeachesList();
-    searchInput.focus();
-});
+const clearSearchBtn = document.querySelector('.search-clear-btn'); // У тебя эта переменная может называться немного иначе
+
+// Добавь проверку if:
+if (clearSearchBtn) {
+    clearSearchBtn.addEventListener('click', () => {
+        searchInput.value = '';
+        syncSearchStateFromInput();
+        renderBeachesList();
+        clearSearchBtn.classList.remove('visible');
+    });
+}
 
 document.addEventListener('DOMContentLoaded', () => {
     // 1. Объявляем все переменные строго ОДИН раз в самом начале
