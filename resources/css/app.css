@@ -21,7 +21,7 @@
     --accent: #0e81c6;
     --accent-strong: #0b669c;
     --status-safe: #1f9d5a;
-    --status-caution: #db9c08;
+    --status-caution: yellow;
     --status-danger: #db4a40;
     --shadow-soft: 0 10px 30px rgba(21, 48, 72, 0.08);
     --shadow-strong: 0 20px 42px rgba(8, 30, 48, 0.18);
@@ -528,8 +528,8 @@ body {
 }
 
 .badge-caution {
-    background: rgba(219, 156, 8, 0.18);
-    color: #8e6100;
+    background: yellow;
+    color: #000000;
 }
 
 .badge-danger {
@@ -1837,8 +1837,8 @@ body {
 }
 
 .operator-warning-panel {
-    background: #fef08a;
-    border: 1px solid #facc15;
+    background: yellow;
+    border: 1px solid yellow;
     border-radius: var(--radius-md);
     color: #1e293b;
     display: flex;
@@ -2070,7 +2070,7 @@ body {
 
 .operator-save-button {
     min-height: 44px;
-    background: #facc15;
+    background: yellow;
     border: none;
     border-radius: 8px;
     color: #000000 !important;
