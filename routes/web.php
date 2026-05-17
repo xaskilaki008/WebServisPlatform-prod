@@ -6,9 +6,8 @@ use Illuminate\Http\Request;
 use App\Models\Beach;
 use Illuminate\Support\Facades\DB;
 
-// Главная страница (Карта)
+// 1. ГЛАВНАЯ СТРАНИЦА (Твоя карта)
 Route::get('/', function (Request $request) {
-    // Проверяем, авторизован ли какой-нибудь оператор вообще
     $operatorCookie = Cookie::get('operator_session');
     $authOperator = null;
 
@@ -18,42 +17,40 @@ Route::get('/', function (Request $request) {
             ->first();
     }
 
+    // Передаем маркеры авторизации в твой существующий map.blade.php
     return view('map', [
         'isOperator' => !is_null($authOperator),
         'operatorBeachId' => $authOperator ? $authOperator->beach_id : null
     ]);
 });
 
-// Секретный вход для оператора (имитация сканирования пропуска или авторизации)
+// 2. СЕКРЕТНЫЙ ВХОД (Для кнопки id="secret-login-btn")
 Route::post('/secret-login', function () {
-    // В реальной системе тут генерация, для ВКР сделаем фиксацию тестового оператора для пляжа №2
-    $testHash = 'test_operator_hash_123';
+    $testHash = 'operator_sevastopol_secure_2026';
 
-    // Проверим или создадим тестовую запись, чтобы система сразу работала
+    // Автоматически привяжем тестового оператора к пляжу с ID = 2, если записи нет
     $exists = DB::table('beach_operators')->where('operator_hash', $testHash)->exists();
     if (!$exists) {
-        $firstBeach = Beach::first() ?? (object) ['id' => 2];
         DB::table('beach_operators')->insert([
-            'beach_id' => $firstBeach->id ?? 2,
+            'beach_id' => 2, // Пляж оператора
             'operator_hash' => $testHash,
-            'name' => 'Иванов И.И. (Оператор)',
+            'name' => 'Дежурный оператор',
             'created_at' => now(),
             'updated_at' => now()
         ]);
     }
 
-    // Записываем куку на 1 день
+    // Пишем куку в браузер на 1 день
     Cookie::queue('operator_session', $testHash, 1440);
-
     return response()->json(['success' => true]);
 });
 
-// Страница панели оператора с жесткой проверкой прав
+// 3. СТРАНИЦА ОПЕРАТОРА (С жесткой верификацией прав)
 Route::get('/operator/{id}', function ($id) {
     $operatorCookie = Cookie::get('operator_session');
 
     if (!$operatorCookie) {
-        abort(403, 'Доступ запрещен. Не найдены параметры авторизации.');
+        abort(403, 'Доступ запрещен. Не авторизован.');
     }
 
     $authOperator = DB::table('beach_operators')
@@ -62,7 +59,7 @@ Route::get('/operator/{id}', function ($id) {
         ->first();
 
     if (!$authOperator) {
-        abort(403, 'Вы не являетесь оператором данного пляжа.');
+        abort(403, 'У вас нет прав для управления этим пляжем.');
     }
 
     $beach = Beach::findOrFail($id);

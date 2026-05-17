@@ -10,72 +10,85 @@
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 
     <style>
-        /* === УНИВЕРСАЛЬНЫЕ ПРАВИЛА ДЛЯ ШРИФТА И ЦВЕТА === */
         * {
             font-family: 'Inter', system-ui, -apple-system, sans-serif;
             color: #1e293b;
-            /* Принудительно задаем единый цвет текста везде */
+            box-sizing: border-box;
         }
 
         body {
             background-color: #f1f5f9;
             margin: 0;
-            padding: 0;
+            padding: 8px;
             display: flex;
             justify-content: center;
             align-items: center;
             min-height: 100vh;
         }
 
+        /* Сильно уменьшенная и компактная панель */
         .operator-container {
             background: #ffffff;
             width: 100%;
-            max-width: 550px;
-            padding: 30px;
-            border-radius: 16px;
-            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.05);
-            box-sizing: border-box;
-            margin: 20px;
+            max-width: 360px;
+            /* Сузили контейнер */
+            padding: 16px;
+            /* Уменьшили отступы */
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
         }
 
         .operator-header h2 {
-            margin: 0 0 8px 0;
-            font-size: 24px;
+            margin: 0 0 2px 0;
+            font-size: 16px;
             font-weight: 700;
         }
 
         .beach-name {
-            font-size: 18px;
-            margin: 0 0 24px 0;
+            font-size: 13px;
+            color: #2563eb;
+            margin: 0 0 12px 0;
             font-weight: 600;
         }
 
         .instruction {
-            font-size: 15px;
-            margin-bottom: 16px;
+            font-size: 12px;
+            margin-bottom: 8px;
+            color: #475569;
         }
 
-        /* Удобная сетка для 7 кнопок статуса */
+        /* Сетка для PNG значков */
         .beaufort-grid {
             display: grid;
             grid-template-columns: repeat(2, 1fr);
-            gap: 12px;
-            margin-bottom: 24px;
+            gap: 6px;
+            margin-bottom: 14px;
         }
 
         .beaufort-grid button {
             background: #f8fafc;
-            border: 2px solid #e2e8f0;
-            padding: 14px;
-            border-radius: 10px;
+            border: 1px solid #e2e8f0;
+            padding: 6px;
+            border-radius: 6px;
             cursor: pointer;
-            font-size: 15px;
+            font-size: 12px;
             font-weight: 500;
             display: flex;
+            flex-direction: column;
             align-items: center;
-            gap: 10px;
-            transition: all 0.2s ease;
-            outline: none;
+            justify-content: center;
+            gap: 4px;
+            transition: all 0.15s ease;
+        }
+
+        /* Значки PNG из папки согласно ТЗ (максимум до 200х200px) */
+        .operator-icon-img {
+            width: 100%;
+            max-width: 40px;
+            /* Компактный размер для аккуратного вида */
+            height: auto;
+            max-height: 40px;
+            object-fit: contain;
         }
 
         .beaufort-grid button:hover {
@@ -83,69 +96,55 @@
             border-color: #cbd5e1;
         }
 
-        /* Подсветка выбранной кнопки (стандартной) */
         .beaufort-grid button.selected {
-            background: #e2e8f0;
-            border-color: #94a3b8;
+            background: #fef08a;
+            /* Желтый фокус */
+            border-color: #eab308;
             font-weight: 600;
-            box-shadow: 0 0 0 3px rgba(148, 163, 184, 0.2);
         }
 
-        /* Кнопка опасности (Оставляем красной для безопасности) */
+        /* Кнопка опасности — ТЕКСТ СТРОГО ЧЕРНЫЙ */
         .beaufort-grid button.hazard-btn {
             grid-column: span 2;
-            justify-content: center;
-            background: #fff5f5;
-            border-color: #fee2e2;
-            color: #991b1b;
-            /* Красный текст для привлечения внимания */
-        }
-
-        .beaufort-grid button.hazard-btn:hover {
             background: #fef2f2;
             border-color: #fca5a5;
         }
 
-        .beaufort-grid button.hazard-btn.selected {
-            background: #fef2f2;
-            border-color: #ef4444;
-            color: #b91c1c;
-            box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1);
+        .beaufort-grid button.hazard-btn span.hazard-text-label {
+            color: #000000 !important;
+            /* Текст строго черный */
+            font-weight: 700;
         }
 
-        .status-icon {
-            font-size: 18px;
+        .beaufort-grid button.hazard-btn.selected {
+            background: #fca5a5;
+            border-color: #ef4444;
         }
 
         .operator-actions {
             display: flex;
-            gap: 12px;
+            gap: 6px;
         }
 
+        /* Кнопка сохранения — ТЕКСТ СТРОГО ЧЕРНЫЙ */
         .btn-save {
             flex: 2;
-            background: #3b82f6;
-            color: white;
-            /* Белый текст для читаемости на синем фоне */
-            border: none;
-            padding: 12px;
-            border-radius: 8px;
-            font-size: 15px;
-            font-weight: 600;
+            background: #facc15;
+            color: #000000 !important;
+            /* Текст строго черный */
+            border: 1px solid #eab308;
+            padding: 8px;
+            border-radius: 6px;
+            font-size: 13px;
+            font-weight: 700;
             cursor: pointer;
-            transition: background 0.2s ease;
-        }
-
-        .btn-save:hover:not(:disabled) {
-            background: #2563eb;
         }
 
         .btn-save:disabled {
-            background: #94a3b8;
-            color: #f1f5f9;
-            /* Светлый текст на заблокированной кнопке */
+            background: #cbd5e1;
+            border-color: #94a3b8;
+            color: #64748b !important;
             cursor: not-allowed;
-            opacity: 0.7;
         }
 
         .btn-cancel {
@@ -155,15 +154,10 @@
             align-items: center;
             background: #e2e8f0;
             text-decoration: none;
-            padding: 12px;
-            border-radius: 8px;
-            font-size: 15px;
+            padding: 8px;
+            border-radius: 6px;
+            font-size: 12px;
             font-weight: 500;
-            transition: background 0.2s ease;
-        }
-
-        .btn-cancel:hover {
-            background: #cbd5e1;
         }
     </style>
 </head>
@@ -173,21 +167,42 @@
     <div id="operator-page" class="operator-container" data-beach-id="{{ $beach->id }}">
         <div class="operator-header">
             <h2>Панель оператора</h2>
-            <p class="beach-name" id="operator-panel-beach-name">{{ $beach->name }}</p>
+            <p class="beach-name">{{ $beach->name }}</p>
         </div>
 
         <div class="operator-body">
-            <p class="instruction">Укажите фактическое состояние акватории:</p>
+            <p class="instruction">Фактическое состояние (Бофорт):</p>
 
             <div class="beaufort-grid">
-                <button class="status-btn" data-value="0"><span class="status-icon">🪞</span> 0 баллов</button>
-                <button class="status-btn" data-value="1"><span class="status-icon">💧</span> 1 балл</button>
-                <button class="status-btn" data-value="2"><span class="status-icon">🌊</span> 2 балла</button>
-                <button class="status-btn" data-value="3"><span class="status-icon">🌊</span> 3 балла</button>
-                <button class="status-btn" data-value="4"><span class="status-icon">🌊</span> 4 балла</button>
-                <button class="status-btn" data-value="5"><span class="status-icon">🌊</span> 5 баллов</button>
-                <button class="status-btn hazard-btn" data-value="hazard"><span class="status-icon">🛢️</span>
-                    Опасность</button>
+                <button class="status-btn" data-value="0">
+                    <img src="/значки и иконки/operator-simbols/0.png" class="operator-icon-img" alt="0">
+                    <span>0 баллов</span>
+                </button>
+                <button class="status-btn" data-value="1">
+                    <img src="/значки и иконки/operator-simbols/1.png" class="operator-icon-img" alt="1">
+                    <span>1 балл</span>
+                </button>
+                <button class="status-btn" data-value="2">
+                    <img src="/значки и иконки/operator-simbols/2.png" class="operator-icon-img" alt="2">
+                    <span>2 балла</span>
+                </button>
+                <button class="status-btn" data-value="3">
+                    <img src="/значки и иконки/operator-simbols/3.png" class="operator-icon-img" alt="3">
+                    <span>3 балла</span>
+                </button>
+                <button class="status-btn" data-value="4">
+                    <img src="/значки и иконки/operator-simbols/4.png" class="operator-icon-img" alt="4">
+                    <span>4 балла</span>
+                </button>
+                <button class="status-btn" data-value="5">
+                    <img src="/значки и иконки/operator-simbols/5.png" class="operator-icon-img" alt="5">
+                    <span>5 баллов</span>
+                </button>
+
+                <button class="status-btn hazard-btn" data-value="hazard">
+                    <img src="/значки и иконки/operator-simbols/hazard.png" class="operator-icon-img" alt="⚠️">
+                    <span class="hazard-text-label">Опасность</span>
+                </button>
             </div>
 
             <div class="operator-actions">

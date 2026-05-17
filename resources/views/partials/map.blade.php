@@ -10,16 +10,20 @@
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
 <body>
+    @if(!$isOperator)
+        <button id="secret-login-btn"
+            style="position: fixed; bottom: 15px; left: 15px; z-index: 9999; background: #1e293b; color: #ffffff; border: none; padding: 6px 10px; font-size: 11px; opacity: 0.2; cursor: pointer; border-radius: 4px; transition: opacity 0.2s;"
+            onmouseover="this.style.opacity=1" onmouseout="this.style.opacity=0.2">💻 Вход</button>
+    @endif
 <div class="temp-admin-panel">
-    <button id="toggle-parsing-btn" class="admin-danger-btn">Парсинг (Вкл/Выкл)</button>
-    <button id="force-fetch-btn" class="admin-danger-btn">Взять данные сейчас</button>
+    <button id="toggle-parsing-btn" class="admin-danger-btn">On partsing</button>
+    <button id="force-fetch-btn" class="admin-danger-btn">Get data</button>
 </div>
 <div class="app-shell">
     <header class="topbar">
         <div class="topbar-inner">
             <div class="topbar-title-wrap">
-                <h1 class="topbar-title">Мониторинг пляжей Севастополя</h1>
-                <p class="topbar-subtitle">Будьте в курсе доступности пляжей любимого моря</p>
+                <h1 class="topbar-title">Мониторинг для пляжей Крыма</h1>
             </div>
             <div class="topbar-nav">
                 <button type="button" class="nav-button active" data-screen-target="map-screen">Карта</button>
@@ -45,8 +49,7 @@
                 <aside class="left-column">
                     <div class="panel legend-panel">
                         <div class="legend-text">
-                            <h3>Легенда статусов</h3>
-                            <p class="legend-meta">Флажок и полигон связаны единым цветом категории безопасности.</p>
+                            <h3>Цвета квадратов пляжей</h3>
                         </div>
                         
                         <img class="mobile-legend-image" src="{{ asset('./flag-colors.png') }}" alt="Цвета флажков">
@@ -67,19 +70,19 @@
                     <h2 class="screen-title">Найдено пляжей: <span id="results-counter" class="counter-badge">0</span></h2>
                 </div>
             </div>
+            @if($isOperator)
+                <div class="operator-compact-menu"
+                    style="background: #fef08a; border: 1px solid #facc15; padding: 8px 12px; display: flex; gap: 8px; align-items: center; border-radius: 6px; margin: 10px auto; max-width: 95%; z-index: 1000; position: relative;">
+                    <span style="font-weight: bold; font-size: 12px; color: #1e293b;">Панель оператора:</span>
+                    <button onclick="window.location.reload()"
+                        style="background: #facc15; border: 1px solid #eab308; padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: 600; color: #1e293b; cursor: pointer;">Обновить
+                        состояние</button>
+                    <button class="compact-action-btn"
+                        style="background: #facc15; border: 1px solid #eab308; padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: 600; color: #1e293b; cursor: pointer;">Экспорт
+                        списка</button>
+                </div>
+            @endif
             <div class="filter-panel">
-                <h3 class="filter-title">Поиск и фильтры</h3>
-                <p class="filter-description">Список обновляется мгновенно по названию и категории безопасности.</p>
-                <div class="search-row">
-                    <input id="search-input" class="search-input" type="text" placeholder="Введите часть названия пляжа">
-                    <button type="button" id="clear-search-button" class="clear-search-button">Очистить поиск</button>
-                </div>
-                <div class="filter-chips">
-                    <button type="button" class="filter-chip active" data-category="all">Все пляжи</button>
-                    <button type="button" class="filter-chip" data-category="safe">Купание допустимо</button>
-                    <button type="button" class="filter-chip" data-category="caution">Нужна осторожность</button>
-                    <button type="button" class="filter-chip" data-category="danger">Купание не рекомендуется</button>
-                </div>
             </div>
             <div id="beaches-list" class="list-wrap"></div>
         </section>
