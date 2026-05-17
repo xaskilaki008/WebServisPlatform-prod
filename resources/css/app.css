@@ -1958,6 +1958,96 @@ body {
     text-align: center;
 }
 
+.operator-fieldset {
+    border: 1px solid #cbd5e1;
+    border-radius: 8px;
+    margin: 0;
+    padding: 10px;
+}
+
+.operator-fieldset legend {
+    color: #1e293b;
+    font-size: 13px;
+    font-weight: 800;
+    padding: 0 4px;
+}
+
+.operator-readonly {
+    display: grid;
+    gap: 6px;
+    margin-bottom: 14px;
+}
+
+.operator-readonly label,
+.operator-textarea-field span,
+.operator-number-field span {
+    color: #475569;
+    font-size: 12px;
+    font-weight: 800;
+}
+
+.operator-readonly div {
+    border: 1px solid #cbd5e1;
+    border-radius: 8px;
+    color: #1e293b;
+    font-size: 13px;
+    padding: 8px 10px;
+}
+
+.operator-status-option small {
+    color: #475569;
+    font-size: 11px;
+    line-height: 1.2;
+}
+
+.operator-textarea-field,
+.operator-number-field {
+    display: grid;
+    gap: 6px;
+}
+
+.operator-textarea-field textarea,
+.operator-number-field input,
+.operator-fieldset select {
+    width: 100%;
+    border: 1px solid #cbd5e1;
+    border-radius: 8px;
+    color: #1e293b;
+    font: inherit;
+    padding: 9px 10px;
+}
+
+.operator-radio-list {
+    display: grid;
+    gap: 8px;
+    color: #1e293b;
+    font-size: 13px;
+}
+
+.operator-period-row {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 8px;
+}
+
+.operator-secondary-button {
+    border: 1px solid #cbd5e1;
+    border-radius: 8px;
+    background: #f8fafc;
+    color: #1e293b;
+    cursor: pointer;
+    font: inherit;
+    font-weight: 700;
+    min-height: 40px;
+}
+
+.operator-help {
+    color: #64748b;
+    font-size: 12px;
+    line-height: 1.35;
+    margin-top: 6px;
+}
+
 .operator-status-option img {
     max-height: 45px;
     max-width: 100%;
@@ -1987,4 +2077,40 @@ body {
     cursor: pointer;
     font: inherit;
     font-weight: 800;
+}
+
+.map-card #toggle-map-size-button {
+    position: absolute;
+    right: 12px;
+    bottom: 12px;
+    z-index: 920;
+}
+
+.map-expand-button {
+    width: 48px;
+    height: 48px;
+    min-height: 48px;
+    padding: 0;
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+}
+
+.map-expand-button img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    display: block;
+}
+
+.operator-detail-block {
+    background: #fffef0;
+}
+
+@media (min-width: 920px) {
+    .operator-detail-block {
+        float: right;
+        width: min(360px, 42%);
+        margin-left: 14px;
+    }
 }

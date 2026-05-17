@@ -42,11 +42,11 @@
                         <div class="map-toolbar-group">
                             <button id="fit-map-button" type="button" class="map-control-button">Показать все</button>
                         </div>
-                        <div class="map-toolbar-group">
-                            <button id="toggle-map-size-button" type="button" class="map-control-button">Развернуть карту</button>
-                        </div>
                     </div>
                     <div id="map"></div>
+                    <button id="toggle-map-size-button" type="button" class="map-control-button map-expand-button" aria-label="Развернуть карту" title="Развернуть карту">
+                        <img src="{{ asset('значки и иконки/map-controls/expand-map.png') }}" alt="">
+                    </button>
                 </section>
                 <aside class="left-column">
                     <div class="panel legend-panel">

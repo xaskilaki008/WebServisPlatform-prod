@@ -23,6 +23,22 @@ class BeachController extends Controller
             'name' => $beach->name,
             'wave_level' => $beach->wave_level,
             'operator_status' => $beach->operator_status,
+            'operator_warning' => $beach->operator_warning,
+            'operator_wave_direction' => $beach->operator_wave_direction,
+            'operator_wave_azimuth' => $beach->operator_wave_azimuth,
+            'operator_wave_period' => $beach->operator_wave_period,
+            'operator_access_status' => $beach->operator_access_status,
+            'operator_updated_at' => $beach->operator_updated_at,
+            'operator_category_key' => $beach->operator_category_key,
+            'operator_category_label' => $beach->operator_category_label,
+            'operator_status_text' => $beach->operator_status_text,
+            'operator_direction_text' => $beach->operator_direction_text,
+            'operator_access_label' => $beach->operator_access_label,
+            'operator_data_is_fresh' => $beach->operator_data_is_fresh,
+            'operator_data_is_stale' => $beach->operator_data_is_stale,
+            'effective_wave_level' => $beach->effective_wave_level,
+            'category_key' => $beach->category_key,
+            'category_label' => $beach->category_label,
 
             // Твой JS сам разбирается, если данные лежат прямо в корне:
             // const forecast = data.latest_forecast || data;

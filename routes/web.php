@@ -4,6 +4,7 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\BeachController;
 use App\Models\Beach;
 use App\Models\BeachOperator;
+use App\Models\BeachOperatorLog;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Schema;
 
@@ -31,7 +32,7 @@ Route::get('/operator/{id}', function (Request $request, int $id) {
 
     return view('operator', [
         'operator' => $operator,
-        'beach' => Beach::query()->findOrFail($id),
+        'beach' => Beach::query()->with('latestForecast')->findOrFail($id),
     ]);
 });
 
@@ -45,12 +46,33 @@ Route::post('/operator/{id}', function (Request $request, int $id) {
 
     $validated = $request->validate([
         'operator_status' => ['required', 'in:0,1,2,3,4,5,hazard'],
+        'operator_warning' => ['nullable', 'string', 'max:250'],
+        'operator_wave_direction' => ['required', 'in:direct,left,right,azimuth,chaotic'],
+        'operator_wave_azimuth' => ['nullable', 'required_if:operator_wave_direction,azimuth', 'integer', 'between:0,360'],
+        'operator_wave_period' => ['required', 'integer', 'between:2,12'],
+        'operator_access_status' => ['required', 'in:open,limited,closed'],
     ]);
 
     $beach = Beach::query()->findOrFail($id);
-    $beach->update(['operator_status' => $validated['operator_status']]);
+    $beach->update([
+        'operator_status' => $validated['operator_status'],
+        'operator_warning' => $validated['operator_warning'] ?? null,
+        'operator_wave_direction' => $validated['operator_wave_direction'],
+        'operator_wave_azimuth' => $validated['operator_wave_direction'] === 'azimuth'
+            ? ($validated['operator_wave_azimuth'] ?? null)
+            : null,
+        'operator_wave_period' => $validated['operator_wave_period'],
+        'operator_access_status' => $validated['operator_access_status'],
+        'operator_updated_at' => now(),
+    ]);
 
-    return redirect("/operator/{$id}")->with('status', 'Статус сохранен');
+    BeachOperatorLog::query()->create([
+        'beach_operator_id' => $operator->id,
+        'beach_id' => $beach->id,
+        'submitted_at' => now(),
+    ]);
+
+    return redirect("/operator/{$id}")->with('status', 'Данные сохранены и опубликованы');
 });
 
 // АПИ для фронтенда (Backend)
