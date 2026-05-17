@@ -51,7 +51,7 @@
                 <aside class="left-column">
                     <div class="panel legend-panel">
                         <div class="legend-text">
-                            <h3>Легенда статусов</h3>
+                            Легенда статусов
                             <p class="legend-meta">Флажок и полигон связаны единым цветом категории безопасности.</p>
                         </div>
                         
