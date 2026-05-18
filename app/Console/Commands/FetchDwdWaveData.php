@@ -27,6 +27,10 @@ class FetchDwdWaveData extends Command
         $this->info("Начинаем получение данных DWD EWAM (Европейская модель волнения)...");
 
         $wgrib2Path = env('WGRIB2_PATH', 'wgrib2');
+        $now = Carbon::now(config('app.timezone', 'UTC'));
+        $modelRunHour = $now->hour < 12 ? 0 : 12;
+        $modelRunDir = str_pad((string) $modelRunHour, 2, '0', STR_PAD_LEFT);
+        $modelRunAt = $now->copy()->startOfDay()->addHours($modelRunHour);
         $beaches = Beach::all();
 
         if ($beaches->isEmpty()) {
@@ -40,7 +44,7 @@ class FetchDwdWaveData extends Command
             $this->info("Обработка параметра: {$dwdDir}...");
 
             // 1. Получаем список файлов (HTML-код каталога)
-            $indexUrl = "https://opendata.dwd.de/weather/maritime/wave_models/ewam/grib/00/{$dwdDir}/";
+            $indexUrl = "https://opendata.dwd.de/weather/maritime/wave_models/ewam/grib/{$modelRunDir}/{$dwdDir}/";
 
             try {
                 $indexResponse = Http::withoutVerifying()->get($indexUrl);
@@ -54,7 +58,7 @@ class FetchDwdWaveData extends Command
             }
 
             // 2. Ищем самый свежий архив на нулевой час прогноза (000)
-            $pattern = '/(EWAM_[A-Z0-9_]+_\d{10}_000\.grib2\.bz2)/i';
+            $pattern = '/(EWAM_[A-Z0-9_]+_\d{8}' . $modelRunDir . '_000\.grib2\.bz2)/i';
             if (!preg_match_all($pattern, $indexResponse->body(), $matches)) {
                 $this->error(" -> Файлы по паттерну не найдены на сервере.");
                 continue;
@@ -131,15 +135,18 @@ class FetchDwdWaveData extends Command
         // 8. Массовое сохранение в БД
         if (!empty($parsedData)) {
             $this->info("Сохранение данных в БД...");
-            $forecastTime = Carbon::now()->startOfHour();
+            $forecastTime = $modelRunAt->copy();
 
             foreach ($parsedData as $beachId => $data) {
                 WaveForecast::updateOrCreate(
                     [
                         'beach_id' => $beachId,
-                        'forecast_time' => $forecastTime
+                        'model_run_at' => $modelRunAt,
                     ],
-                    $data
+                    array_merge($data, [
+                        'forecast_time' => $forecastTime,
+                        'model_run_hour' => $modelRunHour,
+                    ])
                 );
             }
         }

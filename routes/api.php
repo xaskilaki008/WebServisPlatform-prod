@@ -3,6 +3,7 @@
 use App\Models\Beach;
 use App\Models\BeachOperator;
 use App\Models\WaveForecast;
+use App\Http\Controllers\Api\BeachController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Route;
@@ -85,7 +86,8 @@ Route::patch('/beaches/wave-level', function (Request $request) {
 });
 
 // 4. Получение подробной информации (включая волны)
-Route::get('/beach-info/{id}', function ($id) {
+Route::get('/beach-info/{id}', [BeachController::class, 'getInfo']);
+Route::get('/beach-info-legacy/{id}', function ($id) {
     // Ищем по первичному ключу ID, который присылает карта
     $beach = \App\Models\Beach::with('latestForecast')->find($id);
 

@@ -56,6 +56,9 @@ const detailNumber = document.getElementById('detail-number');
 const detailWaveLevel = document.getElementById('detail-wave-level');
 const detailWaveText = document.getElementById('detail-wave-text');
 const detailCategory = document.getElementById('detail-category');
+const detailWaveDirection = document.getElementById('detail-wave-direction');
+const detailAirTemp = document.getElementById('detail-air-temp');
+const detailWaterTemp = document.getElementById('detail-water-temp');
 const detailBackButton = document.getElementById('detail-back-button');
 const operatorColumnView = document.getElementById('operator-column-view');
 const operatorStatusValue = document.getElementById('operator-status-value');
@@ -64,6 +67,7 @@ const operatorDirectionValue = document.getElementById('operator-direction-value
 const operatorPeriodValue = document.getElementById('operator-period-value');
 const operatorAccessValue = document.getElementById('operator-access-value');
 const operatorWarningValue = document.getElementById('operator-warning-value');
+const operatorUpdateTime = document.getElementById('operator-update-time');
 const operatorStaleRow = document.getElementById('operator-stale-row');
 const openOperatorLink = document.getElementById('open-operator-link');
 const operatorContext = window.operatorContext || { isOperator: false, operatorBeachId: null };
@@ -186,6 +190,16 @@ function getOperatorStatusText(status) {
     return labels[status] || `Бофорт ${status}`;
 }
 
+function formatDetailValue(value, suffix = '') {
+    return value !== null && value !== undefined && value !== ''
+        ? `${value}${suffix}`
+        : '-';
+}
+
+function formatDetailDate(value) {
+    return value ? new Date(value).toLocaleString('ru-RU') : '-';
+}
+
 function updateOperatorControls(beach = {}, status = null) {
     const operatorStatus = status ?? beach.operator_status ?? null;
     const beachId = Number(beach.id);
@@ -215,6 +229,10 @@ function updateOperatorControls(beach = {}, status = null) {
 
     if (operatorAccessValue) {
         operatorAccessValue.textContent = beach.operator_access_label || '-';
+    }
+
+    if (operatorUpdateTime) {
+        operatorUpdateTime.textContent = formatDetailDate(beach.operator_updated_at);
     }
 
     if (operatorWarningValue) {
@@ -528,7 +546,10 @@ function buildPopupContent(beach, options = {}) {
     const numberLine = options.hideNumber
         ? ''
         : `<b>Номер:</b> ${Math.abs(beach.number ?? 0) || '-'}<br>`;
-    
+    const popupNumberLine = options.hideNumber
+        ? ''
+        : `<div class="popup-beach-number">Номер: ${Math.abs(beach.number ?? 0) || '-'}</div>`;
+
     return `
         <div style="min-width: 160px;">
             <b style="font-size: 14px;">${beach.name || 'Без названия'}</b><br>
@@ -538,7 +559,7 @@ function buildPopupContent(beach, options = {}) {
                 </span>
             </div>
             <div style="font-size: 12px; line-height: 1.4;">
-                ${numberLine}
+                ${popupNumberLine}
                 <b>Волнение:</b> ${effectiveWaveLevel ?? '-'} (${getWaveLevelText(effectiveWaveLevel)})
             </div>
         </div>

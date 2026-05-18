@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\Beach;
 use App\Models\WaveForecast;
+use Carbon\Carbon;
 use Illuminate\Support\Facades\File;
 
 class BeachController extends Controller
@@ -14,9 +15,33 @@ class BeachController extends Controller
     {
         $beach = Beach::findOrFail($id);
 
-        $forecast = WaveForecast::where('beach_id', $id)
+        $currentModelRunAt = $this->currentDwdModelRunAt();
+
+        $forecast = WaveForecast::query()
+            ->where('beach_id', $id)
+            ->where('model_run_at', '<=', $currentModelRunAt)
+            ->orderBy('model_run_at', 'desc')
             ->orderBy('forecast_time', 'desc')
             ->first();
+
+        if (!$forecast) {
+            $forecast = WaveForecast::query()
+                ->where('beach_id', $id)
+                ->orderBy('model_run_at', 'desc')
+                ->orderBy('forecast_time', 'desc')
+                ->first();
+        }
+
+        $latestForecast = $forecast ? [
+            'wave_height' => $forecast->wave_height,
+            'wave_period' => $forecast->wave_period,
+            'wave_direction' => $forecast->wave_direction,
+            'air_temp' => $forecast->air_temp,
+            'water_temp' => $forecast->water_temp,
+            'forecast_time' => $forecast->forecast_time,
+            'model_run_at' => $forecast->model_run_at,
+            'model_run_hour' => $forecast->model_run_hour,
+        ] : null;
 
         return response()->json([
             'id' => $beach->id,
@@ -45,8 +70,21 @@ class BeachController extends Controller
             'wave_height' => $forecast ? $forecast->wave_height : null,
             'wave_period' => $forecast ? $forecast->wave_period : null, // Добавили период!
             'wave_direction' => $forecast ? $forecast->wave_direction : null,
+            'air_temp' => $forecast ? $forecast->air_temp : null,
+            'water_temp' => $forecast ? $forecast->water_temp : null,
             'forecast_time' => $forecast ? $forecast->forecast_time : null,
+            'model_run_at' => $forecast ? $forecast->model_run_at : null,
+            'model_run_hour' => $forecast ? $forecast->model_run_hour : null,
+            'latest_forecast' => $latestForecast,
         ]);
+    }
+
+    private function currentDwdModelRunAt(): Carbon
+    {
+        $now = Carbon::now(config('app.timezone', 'UTC'));
+        $modelRunHour = $now->hour < 12 ? 0 : 12;
+
+        return $now->copy()->startOfDay()->addHours($modelRunHour);
     }
 
     public function getPhoto($id)
