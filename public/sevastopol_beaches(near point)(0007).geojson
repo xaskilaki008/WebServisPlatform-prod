@@ -1,6 +1,6 @@
 {
 "type": "FeatureCollection",
-"name": "sevastopol_beaches(near point)(0008)",
+"name": "sevastopol_beaches(near point)(0007)",
 "crs": { "type": "name", "properties": { "name": "urn:ogc:def:crs:OGC:1.3:CRS84" } },
 "features": [
 { "type": "Feature", "properties": { "section": "Договор о благоустройстве пляжа", "num": 1, "name": "Андреевка", "area_ha": 1.61, "shoreline_m": 950.0, "swimzone_m": 300.0 }, "geometry": { "type": "Point", "coordinates": [ 33.529225193430861, 44.822136620505241 ] } },
@@ -11,8 +11,8 @@
 { "type": "Feature", "properties": { "section": "Договор о благоустройстве пляжа", "num": 6, "name": "Учкуевка", "area_ha": 9.52, "shoreline_m": 1520.0, "swimzone_m": 700.0 }, "geometry": { "type": "Point", "coordinates": [ 33.536292534220252, 44.645762614383514 ] } },
 { "type": "Feature", "properties": { "section": "Договор о благоустройстве пляжа", "num": 7, "name": "Ушакова балка", "area_ha": 0.06, "shoreline_m": 75.0, "swimzone_m": 70.0 }, "geometry": { "type": "Point", "coordinates": [ 33.52542698399175, 44.626189991179984 ] } },
 { "type": "Feature", "properties": { "section": "Договор о благоустройстве пляжа", "num": 8, "name": "Мыс Хрустальный", "area_ha": 0.76, "shoreline_m": 404.0, "swimzone_m": 350.0 }, "geometry": { "type": "Point", "coordinates": [ 33.522848854127652, 44.625432365883078 ] } },
-{ "type": "Feature", "properties": { "section": "Договор о благоустройстве пляжа", "num": 9, "name": "Солнечный", "area_ha": 0.22, "shoreline_m": 108.0, "swimzone_m": 108.0 }, "geometry": { "type": "Point", "coordinates": [ 33.481161900726413, 44.627852224297961 ] } },
-{ "type": "Feature", "properties": { "section": "Договор о благоустройстве пляжа", "num": 10, "name": "Песочный", "area_ha": 0.21, "shoreline_m": 48.0, "swimzone_m": 44.5 }, "geometry": { "type": "Point", "coordinates": [ 33.479387999717567, 44.627744715145916 ] } },
+{ "type": "Feature", "properties": { "section": "Договор о благоустройстве пляжа", "num": 9, "name": "Солнечный", "area_ha": 0.22, "shoreline_m": 108.0, "swimzone_m": 108.0 }, "geometry": { "type": "Point", "coordinates": [ 33.482729455988171, 44.627804252051583 ] } },
+{ "type": "Feature", "properties": { "section": "Договор о благоустройстве пляжа", "num": 10, "name": "Песочный", "area_ha": 0.21, "shoreline_m": 48.0, "swimzone_m": 44.5 }, "geometry": { "type": "Point", "coordinates": [ 33.48291959938998, 44.627702760275682 ] } },
 { "type": "Feature", "properties": { "section": "Договор о благоустройстве пляжа", "num": 11, "name": "Парк Победы", "area_ha": 3.6, "shoreline_m": 457.0, "swimzone_m": 330.0 }, "geometry": { "type": "Point", "coordinates": [ 33.451834661145355, 44.633997031333635 ] } },
 { "type": "Feature", "properties": { "section": "Договор о благоустройстве пляжа", "num": 12, "name": "Омега", "area_ha": 3.71, "shoreline_m": 720.0, "swimzone_m": 620.0 }, "geometry": { "type": "Point", "coordinates": [ 33.444742290485792, 44.597378700650815 ] } },
 { "type": "Feature", "properties": { "section": "Договор о благоустройстве пляжа", "num": 13, "name": "Солдатский-1", "area_ha": 0.31, "shoreline_m": 50.0, "swimzone_m": 50.0 }, "geometry": { "type": "Point", "coordinates": [ 33.431314527544849, 44.596802743957475 ] } },
@@ -38,7 +38,7 @@
 { "type": "Feature", "properties": { "section": "Иные правоустанавливающие документы", "num": 8, "name": "СОЦ Горизонт", "area_ha": 1.4, "shoreline_m": 290.0, "swimzone_m": 200.0 }, "geometry": { "type": "Point", "coordinates": [ 33.539103474118129, 44.65240073043595 ] } },
 { "type": "Feature", "properties": { "section": "Иные правоустанавливающие документы", "num": 9, "name": "Таврида", "area_ha": 0.33, "shoreline_m": 140.0, "swimzone_m": 140.0 }, "geometry": { "type": "Point", "coordinates": [ 33.706753195091522, 44.374430400381925 ] } },
 { "type": "Feature", "properties": { "section": "Иные правоустанавливающие документы", "num": 10, "name": "ДОЛ Чайка", "area_ha": 0.43, "shoreline_m": 200.0, "swimzone_m": 200.0 }, "geometry": { "type": "Point", "coordinates": [ 33.681559708312577, 44.368345609179471 ] } },
-{ "type": "Feature", "properties": { "section": "Иные правоустанавливающие документы", "num": 11, "name": "Песочная бухта", "area_ha": 0.08, "shoreline_m": 120.0, "swimzone_m": 120.0 }, "geometry": { "type": "Point", "coordinates": [ 33.482667028855133, 44.628174751754109 ] } },
+{ "type": "Feature", "properties": { "section": "Иные правоустанавливающие документы", "num": 11, "name": "Песочная бухта", "area_ha": 0.08, "shoreline_m": 120.0, "swimzone_m": 120.0 }, "geometry": { "type": "Point", "coordinates": [ 33.482379243316849, 44.630743522048895 ] } },
 { "type": "Feature", "properties": { "section": "Иные правоустанавливающие документы", "num": 12, "name": "База отдыха подводников КЧФ РФ", "area_ha": 0.09, "shoreline_m": 44.0, "swimzone_m": 44.0 }, "geometry": { "type": "Point", "coordinates": [ 33.69999922961474, 44.371196982398551 ] } }
 ]
 }
