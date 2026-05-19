@@ -21,7 +21,7 @@
     --accent: #0e81c6;
     --accent-strong: #0b669c;
     --status-safe: #1f9d5a;
-    --status-caution: yellow;
+    --status-caution: rgba(225, 225, 104, 0.467);
     --status-danger: #db4a40;
     --shadow-soft: 0 10px 30px rgba(21, 48, 72, 0.08);
     --shadow-strong: 0 20px 42px rgba(8, 30, 48, 0.18);
@@ -528,8 +528,10 @@ body {
 }
 
 .badge-caution {
-    background: yellow;
-    color: #000000;
+    background: rgba(255, 215, 0, 0.15);
+    /* Классический желтый с прозрачностью 15% */
+    color: #664d00;
+    /* Очень темный, насыщенный горчично-коричневый для контраста */
 }
 
 .badge-danger {
@@ -1837,8 +1839,10 @@ body {
 }
 
 .operator-warning-panel {
-    background: yellow;
-    border: 1px solid yellow;
+    background: #fffbeb;
+    /* Очень мягкий, теплый светло-желтый (amber-50) */
+    border: 1px solid #fde68a;
+    /* Аккуратная рамка чуть темнее фона (amber-200) */
     border-radius: var(--radius-md);
     color: #1e293b;
     display: flex;
