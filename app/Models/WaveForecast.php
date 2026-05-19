@@ -16,6 +16,10 @@ class WaveForecast extends Model
         'wave_height',
         'wave_period',
         'wave_direction',
+        'air_temp',
+        'water_temp',
+        'model_run_at',
+        'model_run_hour',
     ];
 
     protected $casts = [
@@ -24,6 +28,10 @@ class WaveForecast extends Model
         'wave_height' => 'float',
         'wave_period' => 'float',
         'wave_direction' => 'float',
+        'air_temp' => 'float',
+        'water_temp' => 'float',
+        'model_run_at' => 'datetime',
+        'model_run_hour' => 'integer',
     ];
 
     public function beach(): BelongsTo
