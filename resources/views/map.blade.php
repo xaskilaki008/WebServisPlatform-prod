@@ -50,11 +50,6 @@
                 </section>
                 <aside class="left-column">
                     <div class="panel legend-panel">
-                        <div class="legend-text">
-                            Легенда статусов
-                            <p class="legend-meta">Флажок и полигон связаны единым цветом категории безопасности.</p>
-                        </div>
-                        
                         <img class="mobile-legend-image" src="{{ asset('./flag-colors.png') }}" alt="Цвета флажков">
 
                         <div class="desktop-legend-images">
