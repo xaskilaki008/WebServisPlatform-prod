@@ -236,13 +236,6 @@ body {
     overflow: visible;
 }
 
-.legend-text {
-    flex: 0.2;
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-}
-
 /* По умолчанию (на ПК) прячем мобильную картинку */
 .mobile-legend-image {
     display: none;
@@ -253,7 +246,6 @@ body {
     flex: 0.2;
     display: flex;
     align-items: center;
-    justify-content: flex-end;
     gap: 10px;
 }
 
@@ -281,15 +273,6 @@ body {
     line-height: 1.2;
 }
 
-.legend-meta {
-    margin: 0;
-    font-size: 54.5px;
-    /* Увеличиваем текст (был 13px) */
-    color: #0b669c;
-    /* Оставляем твой фирменный цвет */
-    line-height: 1.45;
-    /* Даем тексту "подышать" */
-}
 
 .legend-image {
     flex: 1;
