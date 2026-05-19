@@ -2070,10 +2070,12 @@ body {
 
 .operator-save-button {
     min-height: 44px;
-    background: yellow;
+    background: rgba(255, 193, 7, 0.2);
+    /* Светло-желтый (янтарный) полупрозрачный фон */
     border: none;
     border-radius: 8px;
-    color: #000000 !important;
+    color: #7a5900 !important;
+    /* Темно-горчичный цвет для отличной читаемости */
     cursor: pointer;
     font: inherit;
     font-weight: 800;
