@@ -1,0 +1,75 @@
+services:
+  app:
+    build:
+      context: .
+    restart: unless-stopped
+    env_file:
+      - .env
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - storage:/var/www/html/storage
+      - bootstrap_cache:/var/www/html/bootstrap/cache
+
+  nginx:
+    build:
+      context: .
+      target: web
+    restart: unless-stopped
+    depends_on:
+      - app
+    ports:
+      - "${APP_PORT:-8080}:80"
+    volumes:
+      - storage:/var/www/html/storage:ro
+
+  queue:
+    build:
+      context: .
+    restart: unless-stopped
+    command: php artisan queue:work --tries=3 --timeout=90
+    env_file:
+      - .env
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - storage:/var/www/html/storage
+      - bootstrap_cache:/var/www/html/bootstrap/cache
+
+  scheduler:
+    build:
+      context: .
+    restart: unless-stopped
+    command: php artisan schedule:work
+    env_file:
+      - .env
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - storage:/var/www/html/storage
+      - bootstrap_cache:/var/www/html/bootstrap/cache
+
+  db:
+    image: postgis/postgis:16-3.5
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${DB_DATABASE:-webservisplatform}
+      POSTGRES_USER: ${DB_USERNAME:-webservis}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-secret}
+    ports:
+      - "${DB_FORWARD_PORT:-5432}:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USERNAME:-webservis} -d ${DB_DATABASE:-webservisplatform}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  pgdata:
+  storage:
+  bootstrap_cache:
