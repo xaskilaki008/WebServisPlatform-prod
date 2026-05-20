@@ -27,10 +27,19 @@ class FetchDwdWaveData extends Command
         $this->info("Начинаем получение данных DWD EWAM (Европейская модель волнения)...");
 
         $wgrib2Path = env('WGRIB2_PATH', 'wgrib2');
-        $now = Carbon::now(config('app.timezone', 'UTC'));
-        $modelRunHour = $now->hour < 12 ? 0 : 12;
-        $modelRunDir = str_pad((string) $modelRunHour, 2, '0', STR_PAD_LEFT);
-        $modelRunAt = $now->copy()->startOfDay()->addHours($modelRunHour);
+        $dwdRun = $this->getDwdBaseUrlForCurrentServerTime();
+        $now = $dwdRun['server_now'];
+        $modelRunHour = $dwdRun['model_run_hour'];
+        $modelRunDir = $dwdRun['model_run_dir'];
+        $modelRunAt = $dwdRun['model_run_at'];
+        $baseDwdUrl = $dwdRun['base_url'];
+
+        $this->info("DWD EWAM: выбрана папка {$modelRunDir} ({$baseDwdUrl})");
+        Log::info('DWD EWAM: selected model run folder', [
+            'folder' => $modelRunDir,
+            'base_url' => $baseDwdUrl,
+            'server_time' => $now->toDateTimeString(),
+        ]);
         $beaches = Beach::all();
 
         if ($beaches->isEmpty()) {
@@ -44,7 +53,7 @@ class FetchDwdWaveData extends Command
             $this->info("Обработка параметра: {$dwdDir}...");
 
             // 1. Получаем список файлов (HTML-код каталога)
-            $indexUrl = "https://opendata.dwd.de/weather/maritime/wave_models/ewam/grib/{$modelRunDir}/{$dwdDir}/";
+            $indexUrl = "{$baseDwdUrl}{$dwdDir}/";
 
             try {
                 $indexResponse = Http::withoutVerifying()->get($indexUrl);
@@ -60,7 +69,14 @@ class FetchDwdWaveData extends Command
             // 2. Ищем самый свежий архив на нулевой час прогноза (000)
             $pattern = '/(EWAM_[A-Z0-9_]+_\d{8}' . $modelRunDir . '_000\.grib2\.bz2)/i';
             if (!preg_match_all($pattern, $indexResponse->body(), $matches)) {
-                $this->error(" -> Файлы по паттерну не найдены на сервере.");
+                $message = "DWD EWAM: в выбранной папке {$modelRunDir} нет подходящих файлов для параметра {$dwdDir}";
+                $this->warn(" -> {$message}: {$indexUrl}");
+                Log::warning($message, [
+                    'folder' => $modelRunDir,
+                    'parameter' => $dwdDir,
+                    'url' => $indexUrl,
+                    'pattern' => $pattern,
+                ]);
                 continue;
             }
 
@@ -152,5 +168,20 @@ class FetchDwdWaveData extends Command
         }
 
         $this->info("Сбор и обработка данных успешно завершены!");
+    }
+
+    private function getDwdBaseUrlForCurrentServerTime(): array
+    {
+        $serverNow = Carbon::now();
+        $modelRunHour = $serverNow->hour < 12 ? 0 : 12;
+        $modelRunDir = str_pad((string) $modelRunHour, 2, '0', STR_PAD_LEFT);
+
+        return [
+            'server_now' => $serverNow,
+            'model_run_hour' => $modelRunHour,
+            'model_run_dir' => $modelRunDir,
+            'model_run_at' => $serverNow->copy()->startOfDay()->addHours($modelRunHour),
+            'base_url' => "https://opendata.dwd.de/weather/maritime/wave_models/ewam/grib/{$modelRunDir}/",
+        ];
     }
 }
