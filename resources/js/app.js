@@ -69,6 +69,8 @@ const operatorAccessValue = document.getElementById('operator-access-value');
 const operatorWarningValue = document.getElementById('operator-warning-value');
 const operatorUpdateTime = document.getElementById('operator-update-time');
 const operatorStaleRow = document.getElementById('operator-stale-row');
+const operatorEmptyMessage = document.getElementById('operator-empty-message');
+const operatorLogTable = document.getElementById('operator-log-table');
 const openOperatorLink = document.getElementById('open-operator-link');
 const operatorContext = window.operatorContext || { isOperator: false, operatorBeachId: null };
 const detailTitleRow = document.createElement('div');
@@ -200,47 +202,110 @@ function formatDetailDate(value) {
     return value ? new Date(value).toLocaleString('ru-RU') : '-';
 }
 
+function getOperatorCategoryLabelFromStatus(status) {
+    if (status === null || status === undefined || status === '') return '-';
+    if (String(status) === 'hazard') return 'Опасно';
+    const numericStatus = Number(status);
+    if (Number.isNaN(numericStatus)) return '-';
+    if (numericStatus <= 1) return 'Безопасно';
+    if (numericStatus <= 3) return 'Осторожно';
+    return 'Опасно';
+}
+
+function logDwdDebug(beach = {}) {
+    if (!beach.dwd_debug) return;
+
+    const debug = beach.dwd_debug;
+    console.groupCollapsed(`[DWD] beach #${debug.beach_id ?? beach.id ?? '-'}`);
+    console.info('Source folder:', debug.source_folder);
+    console.info('Parsed at:', debug.parsed_at);
+    console.table([{
+        beach_id: debug.beach_id,
+        wave_height: debug.wave_height,
+        wave_period: debug.wave_period,
+        wave_direction: debug.wave_direction,
+        air_temp: debug.air_temp,
+        water_temp: debug.water_temp,
+        forecast_time: debug.forecast_time,
+        model_run_at: debug.model_run_at,
+    }]);
+    if (debug.air_temp === null && debug.water_temp === null) {
+        console.info('air_temp and water_temp are null because the current DWD parser does not extract temperature parameters yet.');
+    }
+    console.groupEnd();
+}
+
+function logDwdDebugSummary(summary) {
+    if (!Array.isArray(summary) || summary.length === 0) return;
+
+    console.groupCollapsed('[DWD] force fetch summary');
+    console.table(summary);
+    console.groupEnd();
+}
+
 function updateOperatorControls(beach = {}, status = null) {
-    const operatorStatus = status ?? beach.operator_status ?? null;
+    const latestOperatorLog = beach.latest_operator_log || null;
+    const operatorStatus = latestOperatorLog?.operator_status ?? status ?? beach.operator_status ?? null;
     const beachId = Number(beach.id);
-    const hasOperatorData = operatorStatus !== null && operatorStatus !== undefined && operatorStatus !== '';
-    const showOperatorColumn = hasOperatorData || (Boolean(operatorContext.isOperator) && Number(operatorContext.operatorBeachId) === beachId);
+    const hasOperatorData = Boolean(latestOperatorLog);
     const canEdit = Boolean(operatorContext.isOperator) && Number(operatorContext.operatorBeachId) === beachId;
 
     if (operatorColumnView) {
-        operatorColumnView.classList.toggle('hidden', !showOperatorColumn);
+        operatorColumnView.classList.remove('hidden');
+    }
+
+    if (operatorEmptyMessage) {
+        operatorEmptyMessage.classList.toggle('hidden', hasOperatorData);
+    }
+
+    if (operatorLogTable) {
+        operatorLogTable.classList.toggle('hidden', !hasOperatorData);
     }
 
     if (operatorStatusValue) {
-        operatorStatusValue.textContent = hasOperatorData ? getOperatorStatusText(operatorStatus) : 'Данные не внесены';
+        operatorStatusValue.textContent = hasOperatorData
+            ? (latestOperatorLog.operator_status_text || getOperatorStatusText(operatorStatus))
+            : '-';
     }
 
     if (operatorCategoryValue) {
-        operatorCategoryValue.textContent = beach.operator_category_label || getBeachCategoryLabel(beach);
+        operatorCategoryValue.textContent = hasOperatorData
+            ? getOperatorCategoryLabelFromStatus(operatorStatus)
+            : '-';
     }
 
     if (operatorDirectionValue) {
-        operatorDirectionValue.textContent = beach.operator_direction_text || '-';
+        operatorDirectionValue.textContent = hasOperatorData
+            ? (latestOperatorLog.operator_direction_text || '-')
+            : '-';
     }
 
     if (operatorPeriodValue) {
-        operatorPeriodValue.textContent = beach.operator_wave_period ? `${beach.operator_wave_period} сек` : '-';
+        operatorPeriodValue.textContent = hasOperatorData && latestOperatorLog.operator_wave_period
+            ? `${latestOperatorLog.operator_wave_period} сек`
+            : '-';
     }
 
     if (operatorAccessValue) {
-        operatorAccessValue.textContent = beach.operator_access_label || '-';
+        operatorAccessValue.textContent = hasOperatorData
+            ? (latestOperatorLog.operator_access_label || '-')
+            : '-';
     }
 
     if (operatorUpdateTime) {
-        operatorUpdateTime.textContent = formatDetailDate(beach.operator_updated_at);
+        operatorUpdateTime.textContent = hasOperatorData
+            ? formatDetailDate(latestOperatorLog.submitted_at)
+            : '-';
     }
 
     if (operatorWarningValue) {
-        operatorWarningValue.textContent = beach.operator_warning || '-';
+        operatorWarningValue.textContent = hasOperatorData
+            ? (latestOperatorLog.operator_warning || '-')
+            : '-';
     }
 
     if (operatorStaleRow) {
-        operatorStaleRow.classList.toggle('hidden', !beach.operator_data_is_stale);
+        operatorStaleRow.classList.toggle('hidden', !hasOperatorData || !latestOperatorLog.is_stale);
     }
 
     if (openOperatorLink) {
@@ -302,6 +367,7 @@ function updateDetailScreen(beach = {}) {
         .then(response => response.json())
         .then(data => {
             Object.assign(beach, data);
+            logDwdDebug(data);
             detailWaveLevel.textContent = data.effective_wave_level ?? data.wave_level ?? '-';
             detailCategory.textContent = getBeachCategoryLabel(data);
             detailCategory.className = 'category-badge ' + getCategoryBadgeClass(data);
@@ -310,9 +376,12 @@ function updateDetailScreen(beach = {}) {
             if (forecast && forecast.wave_height !== undefined) {
                 document.getElementById('detail-wave-height').innerText = forecast.wave_height + ' м';
                 document.getElementById('detail-wave-period').innerText = forecast.wave_period + ' сек';
+                detailWaveDirection.textContent = formatDetailValue(forecast.wave_direction, '°');
+                detailAirTemp.textContent = formatDetailValue(forecast.air_temp, '°C');
+                detailWaterTemp.textContent = formatDetailValue(forecast.water_temp, '°C');
 
                 // Выводим время обновления
-                const updateTime = forecast.forecast_time || forecast.updated_at;
+                const updateTime = forecast.parsed_at || forecast.forecast_time || forecast.updated_at;
                 document.getElementById('detail-update-time').innerText = updateTime
                     ? new Date(updateTime).toLocaleString('ru-RU')
                     : 'нет данных';
@@ -322,6 +391,9 @@ function updateDetailScreen(beach = {}) {
             } else {
                 document.getElementById('detail-wave-height').innerText = 'нет данных';
                 document.getElementById('detail-wave-period').innerText = 'нет данных';
+                detailWaveDirection.textContent = '-';
+                detailAirTemp.textContent = '-';
+                detailWaterTemp.textContent = '-';
                 document.getElementById('detail-update-time').innerText = 'Ожидается';
                 detailWaveText.innerText = getWaveLevelText(beach.wave_level);
             }
@@ -543,23 +615,20 @@ function buildPopupContent(beach, options = {}) {
     const categoryClass = getCategoryBadgeClass(beach);
     const categoryLabel = getBeachCategoryLabel(beach);
     const effectiveWaveLevel = beach.effective_wave_level ?? beach.wave_level;
-    const numberLine = options.hideNumber
-        ? ''
-        : `<b>Номер:</b> ${Math.abs(beach.number ?? 0) || '-'}<br>`;
     const popupNumberLine = options.hideNumber
         ? ''
-        : `<div class="popup-beach-number">Номер: ${Math.abs(beach.number ?? 0) || '-'}</div>`;
+        : `<div class="popup-beach-number">${Math.abs(beach.number ?? 0) || '-'}</div>`;
 
     return `
-        <div style="min-width: 160px;">
-            <b style="font-size: 14px;">${beach.name || 'Без названия'}</b><br>
-            <div style="margin: 5px 0 8px 0;">
-                <span class="category-badge ${categoryClass}" style="font-size: 10px; padding: 4px 8px;">
+        <div class="popup-beach-card">
+            ${popupNumberLine}
+            <b class="popup-beach-title">${beach.name || 'Без названия'}</b><br>
+            <div class="popup-category-wrap">
+                <span class="category-badge ${categoryClass}">
                     ${categoryLabel}
                 </span>
             </div>
-            <div style="font-size: 12px; line-height: 1.4;">
-                ${popupNumberLine}
+            <div class="popup-wave-summary">
                 <b>Волнение:</b> ${effectiveWaveLevel ?? '-'} (${getWaveLevelText(effectiveWaveLevel)})
             </div>
         </div>
@@ -1213,6 +1282,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const loginBtn = document.getElementById('secret-login-btn');
     const modal = document.getElementById('login-modal');
     const closeBtn = document.getElementById('close-modal-btn');
+    const loginForm = document.getElementById('login-form');
     
     const scrollDownBtn = document.getElementById('scroll-down-btn');
     const legendPanel = document.querySelector('.legend-panel');
@@ -1230,17 +1300,32 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     // 2. Логика модального окна входа (с проверкой, что элементы существуют)
     if (loginBtn) {
-        loginBtn.addEventListener('click', async () => {
-            const hash = prompt('Введите хэш');
-            if (!hash) return;
+        loginBtn.addEventListener('click', () => {
+            modal?.classList.remove('hidden');
+        });
+    }
 
+    if (closeBtn) {
+        closeBtn.addEventListener('click', () => {
+            modal?.classList.add('hidden');
+        });
+    }
+
+    if (loginForm) {
+        loginForm.addEventListener('submit', async (event) => {
+            event.preventDefault();
+
+            const formData = new FormData(loginForm);
             const response = await fetch('/api/operator/login', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                     'Accept': 'application/json',
                 },
-                body: JSON.stringify({ hash }),
+                body: JSON.stringify({
+                    login: formData.get('login'),
+                    password: formData.get('password'),
+                }),
             });
 
             if (response.ok) {
@@ -1248,8 +1333,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 return;
             }
 
-            alert('Доступ запрещен');
+            alert('Access denied');
         });
+    }
         document.getElementById('photo-prev')?.addEventListener('click', (e) => changePhoto(-1, e));
         document.getElementById('photo-next')?.addEventListener('click', (e) => changePhoto(1, e));
         document.getElementById('close-image-popup')?.addEventListener('click', closeImagePopup);
@@ -1260,7 +1346,6 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('image-popup')?.addEventListener('click', (e) => {
             if (e.target.id === 'image-popup') closeImagePopup();
         });
-    }
 
     if (operatorRefreshLists) {
         operatorRefreshLists.addEventListener('click', () => {
@@ -1377,7 +1462,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 fetch('/api/force-fetch', { method: 'POST' })
                     .then(res => res.json())
-                    .then(data => alert(data.message || data.error))
+                    .then(data => {
+                        logDwdDebugSummary(data.dwd_debug_summary);
+                        alert(data.message || data.error);
+                    })
                     .catch(err => {
                         console.error(err);
                         alert('Произошла ошибка при обращении к серверу.');

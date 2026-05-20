@@ -20,10 +20,12 @@
         </div>
     </div>
 
-    <div class="detail-content-grid">
-        <div class="detail-main-tables">
+    <div class="detail-data-grid">
+        <section class="detail-group-block detail-data-section">
+            <h3 class="detail-section-title">Автоматические гидроданные</h3>
+
             <div class="detail-tables-grid">
-                <div class="detail-group-block">
+                <div>
                     <div class="detail-row-table">
                         <div class="detail-lbl">Уровень волнения:</div>
                         <div class="detail-val" id="detail-wave-level">-</div>
@@ -36,13 +38,13 @@
                         <div class="detail-lbl">Направление волны:</div>
                         <div class="detail-val" id="detail-wave-direction">-</div>
                     </div>
-                </div>
-
-                <div class="detail-group-block">
                     <div class="detail-row-table">
                         <div class="detail-lbl">Описание моря:</div>
                         <div class="detail-val" id="detail-wave-text">Нет данных</div>
                     </div>
+                </div>
+
+                <div>
                     <div class="detail-row-table">
                         <div class="detail-lbl">Высота волны:</div>
                         <div class="detail-val" id="detail-wave-height">-</div>
@@ -61,54 +63,61 @@
                     </div>
                 </div>
             </div>
-        </div>
+        </section>
 
-        <div id="operator-column-view" class="detail-group-block operator-detail-block hidden">
-            <div class="detail-row-table">
-                <div class="detail-lbl">Оператор:</div>
-                <div class="detail-val" id="operator-status-value">-</div>
+        <section id="operator-column-view" class="detail-group-block detail-data-section operator-detail-block">
+            <h3 class="detail-section-title">Данные оператора</h3>
+
+            <div id="operator-empty-message" class="operator-empty-message">Данные оператора отсутствуют</div>
+
+            <div id="operator-log-table">
+                <div class="detail-row-table">
+                    <div class="detail-lbl">Статус:</div>
+                    <div class="detail-val" id="operator-status-value">-</div>
+                </div>
+                <div class="detail-row-table">
+                    <div class="detail-lbl">Категория:</div>
+                    <div class="detail-val" id="operator-category-value">-</div>
+                </div>
+                <div class="detail-row-table">
+                    <div class="detail-lbl">Направление:</div>
+                    <div class="detail-val" id="operator-direction-value">-</div>
+                </div>
+                <div class="detail-row-table">
+                    <div class="detail-lbl">Период:</div>
+                    <div class="detail-val" id="operator-period-value">-</div>
+                </div>
+                <div class="detail-row-table">
+                    <div class="detail-lbl">Предупреждение:</div>
+                    <div class="detail-val" id="operator-warning-value">-</div>
+                </div>
+                <div class="detail-row-table">
+                    <div class="detail-lbl">Доступность:</div>
+                    <div class="detail-val" id="operator-access-value">-</div>
+                </div>
+                <div class="detail-row-table">
+                    <div class="detail-lbl">Время отправки:</div>
+                    <div class="detail-val" id="operator-update-time">-</div>
+                </div>
+                <div class="detail-row-table hidden" id="operator-stale-row">
+                    <div class="detail-lbl">Предупреждение:</div>
+                    <div class="detail-val operator-stale-message">Данные оператора не обновлялись более 1 часа</div>
+                </div>
             </div>
-            <div class="detail-row-table">
-                <div class="detail-lbl">Категория:</div>
-                <div class="detail-val" id="operator-category-value">-</div>
-            </div>
-            <div class="detail-row-table">
-                <div class="detail-lbl">Направление:</div>
-                <div class="detail-val" id="operator-direction-value">-</div>
-            </div>
-            <div class="detail-row-table">
-                <div class="detail-lbl">Период:</div>
-                <div class="detail-val" id="operator-period-value">-</div>
-            </div>
-            <div class="detail-row-table">
-                <div class="detail-lbl">Предупреждение:</div>
-                <div class="detail-val" id="operator-warning-value">-</div>
-            </div>
-            <div class="detail-row-table hidden" id="operator-stale-row">
-                <div class="detail-lbl">Данные:</div>
-                <div class="detail-val">Данные от оператора не обновлялись более 1 часа. Показывается автоматический прогноз.</div>
-            </div>
+
             <div class="detail-row-table">
                 <div class="detail-lbl">Управление:</div>
                 <div class="detail-val">
                     <a id="open-operator-link" class="action-button primary small hidden" href="#">Изменить статус</a>
                 </div>
             </div>
-        </div>
+        </section>
     </div>
 
     <div class="detail-group-block detail-update-block">
         <div class="detail-row-table">
             <div class="detail-lbl">Обновлено DWD:</div>
             <div class="detail-val" id="detail-update-time">-</div>
-        </div>
-        <div class="detail-row-table">
-            <div class="detail-lbl">Обновлено оператором пляжа:</div>
-            <div class="detail-val" id="operator-update-time">-</div>
-        </div>
-        <div class="detail-row-table">
-            <div class="detail-lbl">Доступность:</div>
-            <div class="detail-val" id="operator-access-value">-</div>
         </div>
     </div>
 </article>

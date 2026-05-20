@@ -34,6 +34,11 @@
                 <div class="operator-flash">{{ session('status') }}</div>
             @endif
 
+            <div class="temp-admin-panel operator-admin-panel" aria-label="DWD parser controls">
+                <button id="toggle-parsing-btn" class="admin-danger-btn" type="button">Парсинг: вкл/выкл</button>
+                <button id="force-fetch-btn" class="admin-danger-btn" type="button">Загрузить DWD сейчас</button>
+            </div>
+
             <div class="operator-readonly">
                 <label>Название пляжа</label>
                 <div>{{ $beach->name }}</div>
@@ -127,6 +132,8 @@
         const timerButton = document.getElementById('operator-period-timer');
         const timerNote = document.getElementById('operator-timer-note');
         const periodSelect = document.getElementById('operator-wave-period');
+        const forceFetchButton = document.getElementById('force-fetch-btn');
+        const toggleParsingButton = document.getElementById('toggle-parsing-btn');
         let timerStart = null;
 
         function syncWarningField() {
@@ -142,6 +149,49 @@
 
         statusInputs.forEach(input => input.addEventListener('change', syncWarningField));
         directionInputs.forEach(input => input.addEventListener('change', syncAzimuthField));
+
+        async function runOperatorAction(button, url, pendingText) {
+            const initialText = button.textContent;
+            button.disabled = true;
+            button.textContent = pendingText;
+
+            try {
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: {
+                        'Accept': 'application/json',
+                    },
+                });
+                const data = await response.json().catch(() => ({}));
+
+                if (!response.ok) {
+                    throw new Error(data.error || data.message || 'Действие недоступно');
+                }
+
+                button.textContent = data.message || 'Готово';
+
+                if (data.dwd_debug_summary && console.groupCollapsed) {
+                    console.groupCollapsed('DWD debug summary');
+                    console.table(data.dwd_debug_summary);
+                    console.groupEnd();
+                }
+            } catch (error) {
+                button.textContent = error.message || 'Ошибка';
+            } finally {
+                setTimeout(() => {
+                    button.disabled = false;
+                    button.textContent = initialText;
+                }, 2500);
+            }
+        }
+
+        forceFetchButton?.addEventListener('click', () => {
+            runOperatorAction(forceFetchButton, '/api/force-fetch', 'Загрузка...');
+        });
+
+        toggleParsingButton?.addEventListener('click', () => {
+            runOperatorAction(toggleParsingButton, '/api/toggle-parsing', 'Переключение...');
+        });
 
         timerButton.addEventListener('click', () => {
             if (!timerStart) {

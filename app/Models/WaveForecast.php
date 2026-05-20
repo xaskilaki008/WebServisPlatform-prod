@@ -20,6 +20,7 @@ class WaveForecast extends Model
         'water_temp',
         'model_run_at',
         'model_run_hour',
+        'parsed_at',
     ];
 
     protected $casts = [
@@ -32,6 +33,7 @@ class WaveForecast extends Model
         'water_temp' => 'float',
         'model_run_at' => 'datetime',
         'model_run_hour' => 'integer',
+        'parsed_at' => 'datetime',
     ];
 
     public function beach(): BelongsTo

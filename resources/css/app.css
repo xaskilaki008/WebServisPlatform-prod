@@ -940,6 +940,29 @@ body {
     transform: translateY(-2px);
 }
 
+.operator-admin-panel {
+    position: static;
+    z-index: auto;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+    margin: 0 0 16px;
+}
+
+.operator-admin-panel .admin-danger-btn {
+    min-height: 42px;
+    padding: 10px 12px;
+    border-radius: 10px;
+    font-size: 12px;
+    font-weight: 800;
+}
+
+.operator-admin-panel .admin-danger-btn:disabled {
+    cursor: wait;
+    opacity: 0.75;
+    transform: none;
+}
+
 @media (max-width: 819px) {
     .popup-nav.left {
         left: 10px;
@@ -947,6 +970,10 @@ body {
 
     .popup-nav.right {
         right: 10px;
+    }
+
+    .operator-admin-panel {
+        grid-template-columns: 1fr;
     }
 }
 
@@ -1130,6 +1157,51 @@ body {
     justify-content: center;
     height: 100%;
     gap: 20px;
+}
+
+.leaflet-popup-content-wrapper {
+    position: relative;
+}
+
+.popup-beach-card {
+    min-width: 160px;
+    padding-top: 8px;
+}
+
+.popup-beach-number {
+    position: absolute;
+    top: 8px;
+    left: 8px;
+    min-width: 28px;
+    border-radius: 8px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-size: 12px;
+    font-weight: 800;
+    line-height: 1;
+    padding: 5px 7px;
+    text-align: center;
+}
+
+.popup-beach-title {
+    display: block;
+    font-size: 14px;
+    padding-left: 34px;
+}
+
+.popup-category-wrap {
+    margin: 5px 0 8px;
+}
+
+.popup-category-wrap .category-badge {
+    font-size: 10px;
+    padding: 4px 8px;
+}
+
+.popup-wave-summary {
+    font-size: 12px;
+    line-height: 1.4;
 }
 
 /* Твой настроенный дизайн контейнера */
@@ -1771,6 +1843,50 @@ body {
     box-shadow: var(--shadow-soft);
 }
 
+.detail-data-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(280px, 1fr));
+    gap: 16px;
+    align-items: start;
+}
+
+.detail-data-section {
+    background: var(--surface);
+    min-width: 0;
+}
+
+.detail-section-title {
+    background: var(--surface-soft);
+    border-bottom: 1px solid var(--border);
+    color: var(--text);
+    font-size: 15px;
+    font-weight: 800;
+    line-height: 1.25;
+    margin: 0;
+    padding: 12px 14px;
+}
+
+.detail-tables-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.operator-empty-message,
+.operator-stale-message {
+    color: var(--text);
+    font-size: 14px;
+    line-height: 1.35;
+}
+
+.operator-empty-message {
+    padding: 14px;
+}
+
+.operator-stale-message {
+    color: #92400e;
+    font-weight: 700;
+}
+
 .detail-row-table {
     display: grid;
     /* Теперь заголовок (слева) 160px | Значение (справа) забирает всё остальное */
@@ -2096,10 +2212,20 @@ body {
     background: #fffef0;
 }
 
-@media (min-width: 920px) {
-    .operator-detail-block {
-        float: right;
-        width: min(360px, 42%);
-        margin-left: 14px;
+@media (max-width: 920px) {
+    .detail-data-grid,
+    .detail-tables-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 560px) {
+    .detail-row-table {
+        grid-template-columns: 1fr;
+    }
+
+    .detail-lbl {
+        border-right: none;
+        border-bottom: 1px solid var(--border);
     }
 }

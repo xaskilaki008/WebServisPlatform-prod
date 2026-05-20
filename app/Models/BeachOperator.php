@@ -12,8 +12,19 @@ class BeachOperator extends Model
 
     protected $fillable = [
         'beach_id',
+        'login',
+        'password',
         'operator_hash',
         'name',
+        'last_name',
+        'first_name',
+        'middle_name',
+        'work_phone',
+    ];
+
+    protected $hidden = [
+        'password',
+        'operator_hash',
     ];
 
     public function beach(): BelongsTo

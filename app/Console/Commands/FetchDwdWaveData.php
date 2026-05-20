@@ -152,9 +152,10 @@ class FetchDwdWaveData extends Command
         if (!empty($parsedData)) {
             $this->info("Сохранение данных в БД...");
             $forecastTime = $modelRunAt->copy();
+            $parsedAt = now();
 
             foreach ($parsedData as $beachId => $data) {
-                WaveForecast::updateOrCreate(
+                $forecast = WaveForecast::updateOrCreate(
                     [
                         'beach_id' => $beachId,
                         'model_run_at' => $modelRunAt,
@@ -162,8 +163,23 @@ class FetchDwdWaveData extends Command
                     array_merge($data, [
                         'forecast_time' => $forecastTime,
                         'model_run_hour' => $modelRunHour,
+                        'parsed_at' => $parsedAt,
                     ])
                 );
+
+                Log::debug('DWD EWAM: parsed forecast saved', [
+                    'beach_id' => $forecast->beach_id,
+                    'source_folder' => $modelRunDir,
+                    'parsed_at' => $forecast->parsed_at?->toDateTimeString(),
+                    'model_run_at' => $forecast->model_run_at?->toDateTimeString(),
+                    'forecast_time' => $forecast->forecast_time?->toDateTimeString(),
+                    'wave_height' => $forecast->wave_height,
+                    'wave_period' => $forecast->wave_period,
+                    'wave_direction' => $forecast->wave_direction,
+                    // These values are currently not extracted from the DWD GRIB parameters used by this parser.
+                    'air_temp' => $forecast->air_temp,
+                    'water_temp' => $forecast->water_temp,
+                ]);
             }
         }
 

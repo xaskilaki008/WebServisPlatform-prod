@@ -16,10 +16,6 @@
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
 <body>
-<div class="temp-admin-panel">
-    <button id="toggle-parsing-btn" class="admin-danger-btn">Парсинг (Вкл/Выкл)</button>
-    <button id="force-fetch-btn" class="admin-danger-btn">Взять данные сейчас</button>
-</div>
 <div class="app-shell">
     <header class="topbar">
         <div class="topbar-inner">

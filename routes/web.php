@@ -70,6 +70,14 @@ Route::post('/operator/{id}', function (Request $request, int $id) {
         'beach_operator_id' => $operator->id,
         'beach_id' => $beach->id,
         'submitted_at' => now(),
+        'operator_status' => $validated['operator_status'],
+        'operator_warning' => $validated['operator_warning'] ?? null,
+        'operator_wave_direction' => $validated['operator_wave_direction'],
+        'operator_wave_azimuth' => $validated['operator_wave_direction'] === 'azimuth'
+            ? ($validated['operator_wave_azimuth'] ?? null)
+            : null,
+        'operator_wave_period' => $validated['operator_wave_period'],
+        'operator_access_status' => $validated['operator_access_status'],
     ]);
 
     return redirect("/operator/{$id}")->with('status', 'Данные сохранены и опубликованы');
