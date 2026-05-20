@@ -587,6 +587,38 @@ function requestMapResize() {
     });
 }
 
+function keepMapViewCenteredAfterResize(center, zoom) {
+    [0, 140, 260, 420].forEach(delay => {
+        window.setTimeout(() => {
+            map.invalidateSize();
+            map.setView(center, zoom, { animate: false });
+        }, delay);
+    });
+}
+
+function centerMapVertically() {
+    if (!mapElement) return;
+
+    const rect = mapElement.getBoundingClientRect();
+    const topbarHeight = topbar ? topbar.getBoundingClientRect().height : 0;
+    const availableHeight = Math.max(window.innerHeight - topbarHeight, 1);
+    const desiredMapCenter = topbarHeight + (availableHeight / 2);
+    const currentMapCenter = rect.top + (rect.height / 2);
+    const targetScrollTop = Math.max(0, window.scrollY + currentMapCenter - desiredMapCenter);
+
+    window.scrollTo({
+        top: targetScrollTop,
+        behavior: 'smooth',
+    });
+}
+
+function centerMapAfterResize() {
+    window.requestAnimationFrame(centerMapVertically);
+    [90, 260, 430].forEach(delay => {
+        window.setTimeout(centerMapVertically, delay);
+    });
+}
+
 function setActiveScreen(screenId) {
     screens.forEach(screen => {
         // Убирает класс 'active' у всех секций и вешает только на ту, чей ID мы передали
@@ -1073,6 +1105,9 @@ function openBeachPopup(marker, beach) {
 }
 
 function setMapExpanded(nextState) {
+    const currentCenter = map.getCenter();
+    const currentZoom = map.getZoom();
+
     isMapExpanded = nextState;
     mapScreen.classList.toggle('is-map-expanded', isMapExpanded);
     const label = isMapExpanded ? 'Свернуть карту' : 'Развернуть карту';
@@ -1083,7 +1118,8 @@ function setMapExpanded(nextState) {
     toggleMapSizeButton.setAttribute('aria-label', label);
     const image = toggleMapSizeButton.querySelector('img');
     if (image) image.src = icon;
-    requestMapResize();
+    keepMapViewCenteredAfterResize(currentCenter, currentZoom);
+    centerMapAfterResize();
 }
 
 detailHeaderActions.className = 'detail-header-actions';

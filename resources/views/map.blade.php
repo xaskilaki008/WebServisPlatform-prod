@@ -27,6 +27,11 @@
                 <button type="button" class="nav-button active" data-screen-target="map-screen">Карта</button>
                 <button type="button" class="nav-button" data-screen-target="list-screen">Список пляжей</button>
             </div>
+            @if(($isOperator ?? false) && $operatorBeachId)
+                <div class="topbar-actions">
+                    <a class="topbar-operator-link" href="/operator/{{ $operatorBeachId }}">Панель оператора</a>
+                </div>
+            @endif
         </div>
     </header>
 
@@ -153,3 +158,4 @@
 
 </body>
 </html>
+
