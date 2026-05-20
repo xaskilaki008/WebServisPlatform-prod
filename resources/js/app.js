@@ -1,4 +1,4 @@
-import './bootstrap';
+﻿import './bootstrap';
 // Пример функции, которая срабатывает при клике на пляж на карте
 function onBeachClick(beachId) {
     // 1. Сначала запрашиваем данные из БД
@@ -89,6 +89,10 @@ const clearSearchButton = document.getElementById('clear-search-button');
 const toggleMapSizeButton = document.getElementById('toggle-map-size-button');
 const fitMapButton = document.getElementById('fit-map-button');
 const sidebarPhoto = document.getElementById('sidebar-beach-photo');
+const routeState = {
+    map: 'beaches-map',
+    list: 'beach-list',
+};
 
 const cssVariables = getComputedStyle(document.documentElement);
 const polygonColors = {
@@ -110,11 +114,20 @@ let searchQuery = '';
 let isMapExpanded = false;
 let hidePopupNumberOnce = false;
 const urlParamsAtBoot = new URLSearchParams(window.location.search);
-const storedBeachParam = window.localStorage ? window.localStorage.getItem('lastBeachParam') : null;
-const initialBeachParam = urlParamsAtBoot.get('beach') || storedBeachParam;
+const initialBeachParam = urlParamsAtBoot.get('beach');
+const initialRouteIsList = urlParamsAtBoot.has(routeState.list);
+const initialRouteIsMap = urlParamsAtBoot.has(routeState.map);
 
 if (initialBeachParam && !initialBeachParam.endsWith('/map')) {
     screens.forEach(screen => screen.classList.toggle('active', screen.id === 'detail-screen'));
+}
+
+if (initialRouteIsList) {
+    screens.forEach(screen => screen.classList.toggle('active', screen.id === 'list-screen'));
+}
+
+if (initialRouteIsMap) {
+    screens.forEach(screen => screen.classList.toggle('active', screen.id === 'map-screen'));
 }
 // --- ЭКСПОРТ ФУНКЦИЙ ДЛЯ HTML ---
 window.setMainPhoto = setMainPhoto;
@@ -218,6 +231,9 @@ function logDwdDebug(beach = {}) {
     const debug = beach.dwd_debug;
     console.groupCollapsed(`[DWD] beach #${debug.beach_id ?? beach.id ?? '-'}`);
     console.info('Source folder:', debug.source_folder);
+    if (debug.source_files) {
+        console.table(debug.source_files);
+    }
     console.info('Parsed at:', debug.parsed_at);
     console.table([{
         beach_id: debug.beach_id,
@@ -600,6 +616,39 @@ function getActiveScreenId() {
     return activeScreen ? activeScreen.id : 'map-screen';
 }
 
+function setRouteQuery(state, historyMethod = 'pushState') {
+    const newUrl = new URL(window.location);
+    newUrl.search = '';
+
+    if (state.type === 'detail') {
+        newUrl.searchParams.set('beach', String(state.beachId));
+    }
+
+    if (state.type === 'beach-map') {
+        newUrl.searchParams.set('beach', `${state.beachId}/map`);
+    }
+
+    if (state.type === 'list') {
+        newUrl.search = `?${routeState.list}`;
+    }
+
+    if (state.type === 'map') {
+        newUrl.search = `?${routeState.map}`;
+    }
+
+    window.history[historyMethod]({ mode: state.type, beachId: state.beachId ?? null }, '', newUrl);
+}
+
+function setScreenRoute(screenId) {
+    if (screenId === 'list-screen') {
+        setRouteQuery({ type: 'list' });
+    }
+
+    if (screenId === 'map-screen') {
+        setRouteQuery({ type: 'map' });
+    }
+}
+
 function updateDetailBackButton() {
     detailReturnButton.textContent = detailReturnScreen === 'map-screen'
         ? '\u041f\u0435\u0440\u0435\u0439\u0442\u0438 \u043a \u043a\u0430\u0440\u0442\u0435 \u043f\u043b\u044f\u0436\u0435\u0439'
@@ -929,7 +978,7 @@ function renderBeachPolygons(geoJson) {
     refreshPolygonStyles();
 }
 
-function focusBeachOnMap(beach) {
+function focusBeachOnMap(beach, options = {}) {
     const beachId = Number(beach.id);
     const currentBeach = beaches.find(item => item.id === beachId) || beach;
     const marker = markersById.get(currentBeach.id);
@@ -970,13 +1019,16 @@ function focusBeachOnMap(beach) {
             }, 80);
         });
     }, 200);
-    const newUrl = new URL(window.location);
-    newUrl.searchParams.set('beach', beach.id + '/map');
-    window.localStorage?.setItem('lastBeachParam', beach.id + '/map');
-    window.history.pushState({ beachId: beach.id, mode: 'map' }, '', newUrl);
+    if (!options.skipUrl) {
+        if (options.urlMode === 'map') {
+            setRouteQuery({ type: 'map' });
+        } else {
+            setRouteQuery({ type: 'beach-map', beachId: beach.id });
+        }
+    }
 }
 
-function openBeachDetails(beach, sourceScreenId = null) {
+function openBeachDetails(beach, sourceScreenId = null, options = {}) {
     const originScreenId = sourceScreenId || getActiveScreenId();
     lastNonDetailScreen = originScreenId;
     detailReturnScreen = originScreenId === 'list-screen' ? 'map-screen' : 'list-screen';
@@ -985,10 +1037,9 @@ function openBeachDetails(beach, sourceScreenId = null) {
     setActiveScreen('detail-screen');
 
     // Устанавливаем URL для карточки деталей
-    const newUrl = new URL(window.location);
-    newUrl.searchParams.set('beach', beach.id);
-    window.localStorage?.setItem('lastBeachParam', String(beach.id));
-    window.history.pushState({ beachId: beach.id, mode: 'detail' }, '', newUrl);
+    if (!options.skipUrl) {
+        setRouteQuery({ type: 'detail', beachId: beach.id });
+    }
 }
 
 function addDetailsButtonToPopup(popup, beach) {
@@ -1063,6 +1114,7 @@ detailTitleRow.appendChild(detailGeoWrap);
 navButtons.forEach(button => {
     button.addEventListener('click', function () {
         setActiveScreen(button.dataset.screenTarget);
+        setScreenRoute(button.dataset.screenTarget);
     });
 });
 
@@ -1108,27 +1160,20 @@ mapElement.addEventListener('click', function (event) {
 
 detailBackButton.addEventListener('click', function () {
     setActiveScreen(lastNonDetailScreen);
-
-    // --- НОВАЯ ЛОГИКА: Очищаем URL ---
-    const newUrl = new URL(window.location);
-    newUrl.searchParams.delete('beach'); // Удаляем параметр
-    window.history.pushState({}, '', newUrl);
+    setScreenRoute(lastNonDetailScreen);
 });
 
 // То же самое для второй кнопки возврата, если она есть
 detailReturnButton.addEventListener('click', function () {
     setActiveScreen(detailReturnScreen);
-
-    const newUrl = new URL(window.location);
-    newUrl.searchParams.delete('beach');
-    window.history.pushState({}, '', newUrl);
+    setScreenRoute(detailReturnScreen);
 });
 
 function focusCurrentDetailBeachOnMap() {
     const beachId = Number(detailMapButton.dataset.id);
     const beach = beaches.find(item => item.id === beachId);
     if (!beach) return;
-    focusBeachOnMap(beach);
+    focusBeachOnMap(beach, { urlMode: 'map' });
 }
 
 detailMapButton.addEventListener('click', function () {
@@ -1189,7 +1234,7 @@ fetch('/api/beaches')
 
         if (beaches.length > 0) {
             const urlParams = new URLSearchParams(window.location.search);
-            const beachParam = urlParams.get('beach') || storedBeachParam;
+            const beachParam = urlParams.get('beach');
 
             if (beachParam) {
                 // Разделяем ID и режим (например, "32/map" -> ["32", "map"])
@@ -1200,13 +1245,19 @@ fetch('/api/beaches')
                 const targetBeach = beaches.find(b => String(b.id) === String(beachId));
                 if (targetBeach) {
                     if (isMapView) {
-                        focusBeachOnMap(targetBeach);
+                        focusBeachOnMap(targetBeach, { skipUrl: true });
                     } else {
-                        openBeachDetails(targetBeach);
+                        openBeachDetails(targetBeach, null, { skipUrl: true });
                     }
                 } else {
                     selectBeach(beaches[0]);
                 }
+            } else if (urlParams.has(routeState.list)) {
+                selectBeach(beaches[0]);
+                setActiveScreen('list-screen');
+            } else if (urlParams.has(routeState.map)) {
+                selectBeach(beaches[0]);
+                setActiveScreen('map-screen');
             } else {
                 selectBeach(beaches[0]);
             }
@@ -1500,9 +1551,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const beach = beaches.find(b => String(b.id) === String(beachId));
             if (beach) {
-                if (isMapView) focusBeachOnMap(beach);
-                else openBeachDetails(beach);
+                if (isMapView) focusBeachOnMap(beach, { skipUrl: true });
+                else openBeachDetails(beach, null, { skipUrl: true });
             }
+        } else if (urlParams.has(routeState.list)) {
+            setActiveScreen('list-screen');
+        } else if (urlParams.has(routeState.map)) {
+            setActiveScreen('map-screen');
         } else {
             setActiveScreen('map-screen');
         }
@@ -1511,3 +1566,5 @@ document.addEventListener('DOMContentLoaded', () => {
 updateStickyFilterOffset();
 updateScrollTopButtonVisibility();
 window.changePhoto = changePhoto;
+
+

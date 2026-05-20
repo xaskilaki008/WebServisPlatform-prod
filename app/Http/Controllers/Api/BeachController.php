@@ -89,6 +89,7 @@ class BeachController extends Controller
         if ($this->dwdDebugEnabled() && $forecast) {
             $payload['dwd_debug'] = [
                 'source_folder' => str_pad((string) $forecast->model_run_hour, 2, '0', STR_PAD_LEFT),
+                'source_files' => $forecast->source_files,
                 'parsed_at' => $forecast->parsed_at,
                 'beach_id' => $beach->id,
                 'wave_height' => $forecast->wave_height,

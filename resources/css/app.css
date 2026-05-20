@@ -1989,6 +1989,38 @@ body {
     margin-bottom: 14px;
 }
 
+.operator-header-actions {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+}
+
+.operator-icon-button {
+    width: 34px;
+    height: 34px;
+    align-items: center;
+    background: #e0f2fe;
+    border: 1px solid #bae6fd;
+    border-radius: 8px;
+    color: #075985;
+    cursor: pointer;
+    display: inline-flex;
+    justify-content: center;
+    padding: 0;
+    transition: background-color 0.2s ease, transform 0.2s ease;
+}
+
+.operator-icon-button:hover {
+    background: #bae6fd;
+    transform: translateY(-1px);
+}
+
+.operator-icon-button svg {
+    width: 18px;
+    height: 18px;
+    fill: currentColor;
+}
+
 .operator-header h1 {
     color: #1e293b;
     font-size: 20px;
@@ -2026,6 +2058,31 @@ body {
 .operator-error {
     background: #fee2e2;
     color: #991b1b;
+}
+
+.operator-password-modal {
+    max-width: 380px;
+}
+
+.operator-password-form {
+    display: grid;
+    gap: 12px;
+}
+
+.operator-password-message {
+    border-radius: 8px;
+    font-size: 13px;
+    padding: 9px 10px;
+}
+
+.operator-password-message.error {
+    background: #fee2e2;
+    color: #991b1b;
+}
+
+.operator-password-message.success {
+    background: #dcfce7;
+    color: #166534;
 }
 
 .operator-form {

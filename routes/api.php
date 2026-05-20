@@ -10,6 +10,7 @@ use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Str;
 
 Route::post('/operator/login', function (Request $request) {
     $validated = $request->validate([
@@ -31,6 +32,36 @@ Route::post('/operator/login', function (Request $request) {
             'beach_id' => $operator->beach_id,
         ])
         ->cookie('operator_hash', $operator->operator_hash, 60 * 24);
+});
+
+Route::post('/operator/password', function (Request $request) {
+    $operator = BeachOperator::query()
+        ->where('operator_hash', $request->cookie('operator_hash'))
+        ->first();
+
+    abort_unless($operator, 403);
+
+    $validated = $request->validate([
+        'current_password' => ['required', 'string'],
+        'password' => ['required', 'string', 'min:8', 'confirmed'],
+    ]);
+
+    if (!Hash::check($validated['current_password'], $operator->password)) {
+        return response()->json([
+            'message' => 'Current password is incorrect',
+        ], 422);
+    }
+
+    $newHash = Str::random(64);
+
+    $operator->update([
+        'password' => Hash::make($validated['password']),
+        'operator_hash' => $newHash,
+    ]);
+
+    return response()
+        ->json(['message' => 'Password changed'])
+        ->cookie('operator_hash', $newHash, 60 * 24);
 });
 
 Route::get('/beaches', function () {
@@ -125,9 +156,11 @@ Route::post('/force-fetch', function (Request $request) {
                     'wave_direction',
                     'air_temp',
                     'water_temp',
+                    'source_files',
                 ])
                 ->map(fn (WaveForecast $forecast) => [
                     'source_folder' => str_pad((string) $forecast->model_run_hour, 2, '0', STR_PAD_LEFT),
+                    'source_files' => $forecast->source_files,
                     'parsed_at' => $forecast->parsed_at,
                     'beach_id' => $forecast->beach_id,
                     'wave_height' => $forecast->wave_height,

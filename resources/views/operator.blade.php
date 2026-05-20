@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
@@ -27,7 +27,14 @@
                     <p class="operator-kicker">Пляж ID {{ $beach->id }}</p>
                     <h1>{{ $beach->name }}</h1>
                 </div>
-                <a class="operator-back-link" href="/">Карта</a>
+                <div class="operator-header-actions">
+                    <button id="operator-password-button" class="operator-icon-button" type="button" aria-label="Сменить пароль" title="Сменить пароль">
+                        <svg viewBox="0 0 24 24" aria-hidden="true">
+                            <path d="M7 14a5 5 0 1 1 4.58 2.98L9 19.56V22H6v-2.5H3.5V17H6l2.18-2.18A5 5 0 0 1 7 14Zm5-3a2 2 0 1 0 0-4 2 2 0 0 0 0 4Z"/>
+                        </svg>
+                    </button>
+                    <a class="operator-back-link" href="/">Карта</a>
+                </div>
             </header>
 
             @if(session('status'))
@@ -124,6 +131,31 @@
         </section>
     </main>
 
+    <div id="operator-password-modal" class="modal-overlay hidden">
+        <div class="modal-content operator-password-modal">
+            <button id="operator-password-close" class="close-btn" type="button">&times;</button>
+            <h2>Смена пароля</h2>
+            <p class="modal-subtitle">Введите текущий пароль и новый пароль оператора.</p>
+
+            <form id="operator-password-form" class="operator-password-form">
+                <div class="input-group">
+                    <label for="current-password">Текущий пароль</label>
+                    <input id="current-password" name="current_password" type="password" required autocomplete="current-password">
+                </div>
+                <div class="input-group">
+                    <label for="new-password">Новый пароль</label>
+                    <input id="new-password" name="password" type="password" minlength="8" required autocomplete="new-password">
+                </div>
+                <div class="input-group">
+                    <label for="new-password-confirmation">Подтвердите новый пароль</label>
+                    <input id="new-password-confirmation" name="password_confirmation" type="password" minlength="8" required autocomplete="new-password">
+                </div>
+                <div id="operator-password-message" class="operator-password-message hidden"></div>
+                <button id="operator-password-submit" type="submit" class="operator-save-button">Сменить пароль</button>
+            </form>
+        </div>
+    </div>
+
     <script>
         const statusInputs = document.querySelectorAll('input[name="operator_status"]');
         const warningField = document.getElementById('operator-warning-field');
@@ -134,6 +166,12 @@
         const periodSelect = document.getElementById('operator-wave-period');
         const forceFetchButton = document.getElementById('force-fetch-btn');
         const toggleParsingButton = document.getElementById('toggle-parsing-btn');
+        const passwordButton = document.getElementById('operator-password-button');
+        const passwordModal = document.getElementById('operator-password-modal');
+        const passwordClose = document.getElementById('operator-password-close');
+        const passwordForm = document.getElementById('operator-password-form');
+        const passwordMessage = document.getElementById('operator-password-message');
+        const passwordSubmit = document.getElementById('operator-password-submit');
         let timerStart = null;
 
         function syncWarningField() {
@@ -193,6 +231,76 @@
             runOperatorAction(toggleParsingButton, '/api/toggle-parsing', 'Переключение...');
         });
 
+        function showPasswordMessage(message, type = 'error') {
+            passwordMessage.textContent = message;
+            passwordMessage.classList.remove('hidden', 'success', 'error');
+            passwordMessage.classList.add(type);
+        }
+
+        function closePasswordModal() {
+            passwordModal?.classList.add('hidden');
+            passwordForm?.reset();
+            passwordMessage?.classList.add('hidden');
+        }
+
+        passwordButton?.addEventListener('click', () => {
+            passwordModal?.classList.remove('hidden');
+            document.getElementById('current-password')?.focus();
+        });
+
+        passwordClose?.addEventListener('click', closePasswordModal);
+
+        passwordModal?.addEventListener('click', (event) => {
+            if (event.target === passwordModal) {
+                closePasswordModal();
+            }
+        });
+
+        passwordForm?.addEventListener('submit', async (event) => {
+            event.preventDefault();
+
+            const formData = new FormData(passwordForm);
+            const newPassword = formData.get('password');
+            const confirmation = formData.get('password_confirmation');
+
+            if (newPassword !== confirmation) {
+                showPasswordMessage('Подтверждение нового пароля не совпадает.');
+                return;
+            }
+
+            passwordSubmit.disabled = true;
+            passwordSubmit.textContent = 'Сохранение...';
+            passwordMessage.classList.add('hidden');
+
+            try {
+                const response = await fetch('/api/operator/password', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        current_password: formData.get('current_password'),
+                        password: newPassword,
+                        password_confirmation: confirmation,
+                    }),
+                });
+                const data = await response.json().catch(() => ({}));
+
+                if (!response.ok) {
+                    throw new Error(data.message || 'Не удалось сменить пароль.');
+                }
+
+                showPasswordMessage(data.message || 'Пароль изменён.', 'success');
+                passwordForm.reset();
+            } catch (error) {
+                showPasswordMessage(error.message || 'Не удалось сменить пароль.');
+            } finally {
+                passwordSubmit.disabled = false;
+                passwordSubmit.textContent = 'Сменить пароль';
+            }
+        });
+
         timerButton.addEventListener('click', () => {
             if (!timerStart) {
                 timerStart = Date.now();
@@ -214,3 +322,4 @@
     </script>
 </body>
 </html>
+

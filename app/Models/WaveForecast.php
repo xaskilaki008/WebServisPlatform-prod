@@ -21,6 +21,7 @@ class WaveForecast extends Model
         'model_run_at',
         'model_run_hour',
         'parsed_at',
+        'source_files',
     ];
 
     protected $casts = [
@@ -34,6 +35,7 @@ class WaveForecast extends Model
         'model_run_at' => 'datetime',
         'model_run_hour' => 'integer',
         'parsed_at' => 'datetime',
+        'source_files' => 'array',
     ];
 
     public function beach(): BelongsTo

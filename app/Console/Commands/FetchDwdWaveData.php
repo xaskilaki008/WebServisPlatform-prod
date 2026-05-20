@@ -48,6 +48,7 @@ class FetchDwdWaveData extends Command
         }
 
         $parsedData = [];
+        $sourceFiles = [];
 
         foreach ($this->parameters as $dwdDir => $dbColumn) {
             $this->info("Обработка параметра: {$dwdDir}...");
@@ -82,6 +83,7 @@ class FetchDwdWaveData extends Command
 
             // Забираем последний файл из массива (он же самый свежий по дате)
             $latestFileName = end($matches[0]);
+            $sourceFiles[$dwdDir] = $latestFileName;
             $fileUrl = $indexUrl . $latestFileName;
 
             $gribFileName = "latest_{$dwdDir}.grib2";
@@ -164,12 +166,14 @@ class FetchDwdWaveData extends Command
                         'forecast_time' => $forecastTime,
                         'model_run_hour' => $modelRunHour,
                         'parsed_at' => $parsedAt,
+                        'source_files' => $sourceFiles,
                     ])
                 );
 
                 Log::debug('DWD EWAM: parsed forecast saved', [
                     'beach_id' => $forecast->beach_id,
                     'source_folder' => $modelRunDir,
+                    'source_files' => $forecast->source_files,
                     'parsed_at' => $forecast->parsed_at?->toDateTimeString(),
                     'model_run_at' => $forecast->model_run_at?->toDateTimeString(),
                     'forecast_time' => $forecast->forecast_time?->toDateTimeString(),
