@@ -1,6 +1,6 @@
-# Docker Deploy На Ubuntu VPS
+# Docker Deploy на Ubuntu VPS
 
-Инструкция рассчитана на чистый Ubuntu-сервер. Домен и HTTPS можно подключить после проверки запуска по IP и порту.
+Инструкция рассчитана на чистый Ubuntu-сервер. Сначала проверьте запуск по IP и порту, потом подключайте домен и HTTPS.
 
 ## 1. Установить Docker
 
@@ -15,7 +15,7 @@ sudo apt update
 sudo apt install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
 ```
 
-Проверьте:
+Проверка:
 
 ```bash
 docker --version
@@ -23,8 +23,6 @@ docker compose version
 ```
 
 ## 2. Загрузить проект
-
-Лучший вариант - Git:
 
 ```bash
 sudo mkdir -p /var/www
@@ -34,7 +32,7 @@ git clone <URL_ВАШЕГО_РЕПОЗИТОРИЯ> WebServisPlatform
 cd WebServisPlatform
 ```
 
-Если Git пока нет, можно загрузить архив проекта и распаковать его в `/var/www/WebServisPlatform`.
+Если Git пока нет, загрузите архив проекта и распакуйте его в `/var/www/WebServisPlatform`.
 
 ## 3. Настроить `.env`
 
@@ -84,28 +82,7 @@ docker compose exec app php artisan view:cache
 http://ВАШ_IP:8080
 ```
 
-## 6. Полезные команды
-
-Посмотреть контейнеры:
-
-```bash
-docker compose ps
-```
-
-Логи:
-
-```bash
-docker compose logs -f app
-docker compose logs -f nginx
-```
-
-Остановить:
-
-```bash
-docker compose down
-```
-
-Пересобрать после обновления кода:
+## 6. Обновление проекта
 
 ```bash
 git pull
@@ -116,22 +93,31 @@ docker compose exec app php artisan route:cache
 docker compose exec app php artisan view:cache
 ```
 
-## 7. DWD И wgrib2
+## 7. Полезные команды
 
-В проекте есть команда:
+```bash
+docker compose ps
+docker compose logs -f app
+docker compose logs -f nginx
+docker compose down
+```
+
+## 8. DWD и wgrib2
+
+Команда DWD:
 
 ```bash
 docker compose exec app php artisan wave:fetch
 ```
 
-Она требует `wgrib2`. Сейчас Dockerfile не устанавливает `wgrib2` автоматически, потому что официальный пакет доступен не во всех Ubuntu/Debian репозиториях. Если DWD-парсер нужен на сервере, нужно:
+Она требует бинарник `wgrib2`. В `.env.docker.example` указано:
 
-- собрать или установить `wgrib2` внутри app-образа;
-- или смонтировать готовый бинарник в контейнер;
-- затем прописать путь в `.env` через `WGRIB2_PATH`.
+```env
+WGRIB2_PATH=wgrib2
+```
 
-Без `wgrib2` сайт и обычная Laravel-часть запускаются, но `wave:fetch` не сможет извлекать данные из GRIB-файлов.
+Dockerfile пока не устанавливает `wgrib2` автоматически, потому что готовый пакет доступен не во всех Debian/Ubuntu репозиториях. Если парсер нужен на сервере, добавьте бинарник `wgrib2` в app-образ или смонтируйте его внутрь контейнера и пропишите путь в `WGRIB2_PATH`.
 
-## 8. HTTPS
+## 9. HTTPS
 
-Для продакшена лучше поставить внешний reverse proxy с HTTPS, например Nginx на сервере или Traefik/Caddy. На первом этапе проще проверить приложение по `http://IP:8080`, а потом подключить домен и сертификат.
+Для продакшена лучше поставить внешний reverse proxy с HTTPS, например Nginx на сервере, Caddy или Traefik. На первом этапе проще проверить приложение по `http://IP:8080`.

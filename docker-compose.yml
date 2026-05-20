@@ -2,6 +2,7 @@ services:
   app:
     build:
       context: .
+      target: app
     restart: unless-stopped
     env_file:
       - .env
@@ -27,6 +28,7 @@ services:
   queue:
     build:
       context: .
+      target: app
     restart: unless-stopped
     command: php artisan queue:work --tries=3 --timeout=90
     env_file:
@@ -41,6 +43,7 @@ services:
   scheduler:
     build:
       context: .
+      target: app
     restart: unless-stopped
     command: php artisan schedule:work
     env_file:

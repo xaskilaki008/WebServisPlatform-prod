@@ -10,5 +10,4 @@ bootstrap/cache/*.php
 .env
 .phpunit.result.cache
 npm-debug.log
-Dockerfile
 docker-compose.override.yml
