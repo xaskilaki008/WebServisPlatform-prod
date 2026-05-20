@@ -622,12 +622,13 @@ function centerMapAfterResize() {
 function syncSecretLoginButtonPosition() {
     const loginButton = document.getElementById('secret-login-btn');
     const legendPanel = document.querySelector('.legend-panel');
+    const horizontalOffset = 150;
     if (!loginButton) return;
 
     const useFallbackPosition = () => {
         loginButton.style.top = 'auto';
         loginButton.style.left = 'auto';
-        loginButton.style.right = '20px';
+        loginButton.style.right = `${20 + horizontalOffset}px`;
         loginButton.style.bottom = '20px';
     };
 
@@ -648,7 +649,7 @@ function syncSecretLoginButtonPosition() {
     }
 
     const top = rect.bottom + 12;
-    const left = rect.left;
+    const left = Math.max(12, rect.left - horizontalOffset);
     if (top + loginButton.offsetHeight > window.innerHeight - 12) {
         useFallbackPosition();
         return;
@@ -1695,5 +1696,4 @@ document.addEventListener('DOMContentLoaded', () => {
 updateStickyFilterOffset();
 updateScrollTopButtonVisibility();
 window.changePhoto = changePhoto;
-
 

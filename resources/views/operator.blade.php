@@ -29,9 +29,7 @@
                 </div>
                 <div class="operator-header-actions">
                     <button id="operator-password-button" class="operator-icon-button" type="button" aria-label="Сменить пароль" title="Сменить пароль">
-                        <svg viewBox="0 0 24 24" aria-hidden="true">
-                            <path d="M7 14a5 5 0 1 1 4.58 2.98L9 19.56V22H6v-2.5H3.5V17H6l2.18-2.18A5 5 0 0 1 7 14Zm5-3a2 2 0 1 0 0-4 2 2 0 0 0 0 4Z"/>
-                        </svg>
+                        <img src="{{ asset('значки и иконки/user-cog.svg') }}" alt="">
                     </button>
                     <a class="operator-back-link" href="/">Карта</a>
                 </div>
@@ -134,6 +132,7 @@
     <div id="operator-password-modal" class="modal-overlay hidden">
         <div class="modal-content operator-password-modal">
             <button id="operator-password-close" class="close-btn" type="button">&times;</button>
+            <button id="operator-modal-logout-button" class="operator-modal-logout-button" type="button">Log-out</button>
             <h2>Смена пароля</h2>
             <p class="modal-subtitle">Введите текущий пароль и новый пароль оператора.</p>
 
@@ -156,6 +155,18 @@
         </div>
     </div>
 
+    <div id="operator-logout-confirm-modal" class="modal-overlay hidden">
+        <div class="modal-content">
+            <button id="operator-logout-confirm-close" class="close-btn" type="button">&times;</button>
+            <h2>Подтвердите выход</h2>
+            <p class="modal-subtitle">Вы уверены, что хотите выйти из режима оператора?</p>
+            <div class="modal-actions">
+                <button id="operator-logout-confirm-button" class="primary-btn danger" type="button">Выйти</button>
+                <button id="operator-logout-cancel-button" class="secondary-btn" type="button">Отмена</button>
+            </div>
+        </div>
+    </div>
+
     <script>
         const statusInputs = document.querySelectorAll('input[name="operator_status"]');
         const warningField = document.getElementById('operator-warning-field');
@@ -172,6 +183,11 @@
         const passwordForm = document.getElementById('operator-password-form');
         const passwordMessage = document.getElementById('operator-password-message');
         const passwordSubmit = document.getElementById('operator-password-submit');
+        const operatorLogoutButton = document.getElementById('operator-modal-logout-button');
+        const operatorLogoutConfirmModal = document.getElementById('operator-logout-confirm-modal');
+        const operatorLogoutConfirmClose = document.getElementById('operator-logout-confirm-close');
+        const operatorLogoutConfirmButton = document.getElementById('operator-logout-confirm-button');
+        const operatorLogoutCancelButton = document.getElementById('operator-logout-cancel-button');
         let timerStart = null;
 
         function syncWarningField() {
@@ -256,6 +272,44 @@
             }
         });
 
+        function closeOperatorLogoutConfirmModal() {
+            operatorLogoutConfirmModal?.classList.add('hidden');
+        }
+
+        operatorLogoutButton?.addEventListener('click', () => {
+            operatorLogoutConfirmModal?.classList.remove('hidden');
+        });
+
+        operatorLogoutConfirmClose?.addEventListener('click', closeOperatorLogoutConfirmModal);
+        operatorLogoutCancelButton?.addEventListener('click', closeOperatorLogoutConfirmModal);
+        operatorLogoutConfirmModal?.addEventListener('click', (event) => {
+            if (event.target === operatorLogoutConfirmModal) {
+                closeOperatorLogoutConfirmModal();
+            }
+        });
+
+        operatorLogoutConfirmButton?.addEventListener('click', async () => {
+            operatorLogoutConfirmButton.disabled = true;
+
+            try {
+                const response = await fetch('/api/operator/logout', {
+                    method: 'POST',
+                    headers: {
+                        'Accept': 'application/json',
+                    },
+                });
+
+                if (!response.ok) {
+                    throw new Error('Logout failed');
+                }
+
+                window.location.href = '/';
+            } catch (error) {
+                alert('Не удалось выйти из режима оператора.');
+                operatorLogoutConfirmButton.disabled = false;
+            }
+        });
+
         passwordForm?.addEventListener('submit', async (event) => {
             event.preventDefault();
 
@@ -322,4 +376,3 @@
     </script>
 </body>
 </html>
-

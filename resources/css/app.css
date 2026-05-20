@@ -269,6 +269,10 @@ background-color: #edf3f8;
     overflow: visible;
 }
 
+.panel.legend-panel {
+    padding-top: 0;
+}
+
 .legend-panel-hint {
     margin: 0;
     color: #173042;
@@ -1490,6 +1494,10 @@ background-color: #edf3f8;
     #map-screen.is-map-expanded #map {
         height: 650px !important;
     }
+    .scroll-top-button {
+        position: fixed;
+        right: 14px;
+    }
 }
 
 @media (min-width: 1120px) {
@@ -1629,6 +1637,10 @@ background-color: #edf3f8;
         border-radius: var(--radius-md);
         background: var(--surface-soft);
     }
+    .scroll-top-button {
+        position: fixed;
+        right: 64px;
+    }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -1641,7 +1653,7 @@ background-color: #edf3f8;
 /* --- Скрытая кнопка --- */
 .ghost-btn {
     position: fixed;
-    right: 20px;
+    right: 220px;
     bottom: 20px;
     /* Размещаем в правом нижнем углу */
     background: transparent;
@@ -2106,10 +2118,34 @@ background-color: #edf3f8;
     transform: translateY(-1px);
 }
 
-.operator-icon-button svg {
+.operator-icon-button svg,
+.operator-icon-button img {
     width: 18px;
     height: 18px;
+    display: block;
+}
+
+.operator-icon-button svg {
     fill: currentColor;
+}
+
+.operator-modal-logout-button {
+    width: 100%;
+    min-height: 40px;
+    margin: 0 0 14px;
+    border: 1px solid #fecaca;
+    border-radius: 8px;
+    background: #fef2f2;
+    color: #b91c1c;
+    cursor: pointer;
+    font: inherit;
+    font-weight: 700;
+    transition: background 0.2s, border-color 0.2s;
+}
+
+.operator-modal-logout-button:hover {
+    background: #fee2e2;
+    border-color: #fca5a5;
 }
 
 .operator-header h1 {
