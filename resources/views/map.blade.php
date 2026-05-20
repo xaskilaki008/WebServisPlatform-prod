@@ -51,6 +51,7 @@
                 </section>
                 <aside class="left-column">
                     <div class="panel legend-panel">
+                        <p class="legend-panel-hint">Нажмите чтобы выбрать категорию из списка</p>
                         <img class="mobile-legend-image" src="{{ asset('./flag-colors.png') }}" alt="Цвета флажков">
 
                         <div class="desktop-legend-images">
@@ -108,11 +109,11 @@
     </main>
 </div>
 <!-- Скрытая кнопка для вызова окна авторизации -->
+@unless($isOperator ?? false)
 <button id="secret-login-btn" class="ghost-btn" aria-label="Вход для сотрудников">
-    <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
-        <path d="M8 1a2 2 0 0 1 2 2v4H6V3a2 2 0 0 1 2-2zm3 6V3a3 3 0 0 0-6 0v4a2 2 0 0 0-2 2v5a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2z"/>
-    </svg>
+    <img src="{{ asset('значки и иконки/user-cog.svg') }}" alt="">
 </button>
+@endunless
 
 <!-- Модальное окно авторизации (изначально скрыто) -->
 <div id="login-modal" class="modal-overlay hidden">
@@ -134,6 +135,20 @@
             </div>
             <button type="submit" class="primary-btn">Войти</button>
         </form>
+        @if($isOperator ?? false)
+            <button type="button" id="operator-logout-button" class="logout-button">Log-out</button>
+        @endif
+    </div>
+</div>
+<div id="logout-confirm-modal" class="modal-overlay hidden">
+    <div class="modal-content">
+        <button id="close-logout-confirm-btn" class="close-btn" type="button">&times;</button>
+        <h2>Подтвердите выход</h2>
+        <p class="modal-subtitle">Вы уверены, что хотите выйти из режима оператора?</p>
+        <div class="modal-actions">
+            <button type="button" id="confirm-logout-button" class="primary-btn danger">Выйти</button>
+            <button type="button" id="cancel-logout-button" class="secondary-btn">Отмена</button>
+        </div>
     </div>
 </div>
 <button id="scroll-down-btn" class="scroll-down-mobile hidden" aria-label="Прокрутить вниз">↓</button>
@@ -158,4 +173,3 @@
 
 </body>
 </html>
-

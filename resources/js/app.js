@@ -619,6 +619,47 @@ function centerMapAfterResize() {
     });
 }
 
+function syncSecretLoginButtonPosition() {
+    const loginButton = document.getElementById('secret-login-btn');
+    const legendPanel = document.querySelector('.legend-panel');
+    if (!loginButton) return;
+
+    const useFallbackPosition = () => {
+        loginButton.style.top = 'auto';
+        loginButton.style.left = 'auto';
+        loginButton.style.right = '20px';
+        loginButton.style.bottom = '20px';
+    };
+
+    if (!legendPanel || mapScreen?.classList.contains('is-map-expanded')) {
+        useFallbackPosition();
+        return;
+    }
+
+    const rect = legendPanel.getBoundingClientRect();
+    const isVisible = rect.width > 0
+        && rect.height > 0
+        && rect.bottom > 0
+        && rect.top < window.innerHeight;
+
+    if (!isVisible) {
+        useFallbackPosition();
+        return;
+    }
+
+    const top = rect.bottom + 12;
+    const left = rect.left;
+    if (top + loginButton.offsetHeight > window.innerHeight - 12) {
+        useFallbackPosition();
+        return;
+    }
+
+    loginButton.style.top = `${Math.round(top)}px`;
+    loginButton.style.left = `${Math.round(left)}px`;
+    loginButton.style.right = 'auto';
+    loginButton.style.bottom = 'auto';
+}
+
 function setActiveScreen(screenId) {
     screens.forEach(screen => {
         // Убирает класс 'active' у всех секций и вешает только на ту, чей ID мы передали
@@ -635,6 +676,7 @@ function setActiveScreen(screenId) {
 
     if (screenId === 'map-screen') {
         requestMapResize();
+        syncSecretLoginButtonPosition();
     }
 
     if (screenId === 'list-screen') {
@@ -1120,6 +1162,7 @@ function setMapExpanded(nextState) {
     if (image) image.src = icon;
     keepMapViewCenteredAfterResize(currentCenter, currentZoom);
     centerMapAfterResize();
+    syncSecretLoginButtonPosition();
 }
 
 detailHeaderActions.className = 'detail-header-actions';
@@ -1248,6 +1291,7 @@ fitMapButton.addEventListener('click', function () {
 mapScreen.addEventListener('transitionend', function (event) {
     if (event.target === mapElement || event.target === mapScreen) {
         map.invalidateSize();
+        syncSecretLoginButtonPosition();
     }
 });
 
@@ -1370,6 +1414,11 @@ document.addEventListener('DOMContentLoaded', () => {
     const modal = document.getElementById('login-modal');
     const closeBtn = document.getElementById('close-modal-btn');
     const loginForm = document.getElementById('login-form');
+    const logoutBtn = document.getElementById('operator-logout-button');
+    const logoutConfirmModal = document.getElementById('logout-confirm-modal');
+    const confirmLogoutBtn = document.getElementById('confirm-logout-button');
+    const cancelLogoutBtn = document.getElementById('cancel-logout-button');
+    const closeLogoutConfirmBtn = document.getElementById('close-logout-confirm-btn');
     
     const scrollDownBtn = document.getElementById('scroll-down-btn');
     const legendPanel = document.querySelector('.legend-panel');
@@ -1397,6 +1446,46 @@ document.addEventListener('DOMContentLoaded', () => {
             modal?.classList.add('hidden');
         });
     }
+
+    modal?.addEventListener('click', (event) => {
+        if (event.target === modal) {
+            modal.classList.add('hidden');
+        }
+    });
+
+    const closeLogoutConfirmModal = () => {
+        logoutConfirmModal?.classList.add('hidden');
+    };
+
+    logoutBtn?.addEventListener('click', () => {
+        logoutConfirmModal?.classList.remove('hidden');
+    });
+
+    cancelLogoutBtn?.addEventListener('click', closeLogoutConfirmModal);
+    closeLogoutConfirmBtn?.addEventListener('click', closeLogoutConfirmModal);
+    logoutConfirmModal?.addEventListener('click', (event) => {
+        if (event.target === logoutConfirmModal) closeLogoutConfirmModal();
+    });
+
+    confirmLogoutBtn?.addEventListener('click', async () => {
+        confirmLogoutBtn.disabled = true;
+        try {
+            const response = await fetch('/api/operator/logout', {
+                method: 'POST',
+                headers: {
+                    'Accept': 'application/json',
+                },
+            });
+
+            if (!response.ok) throw new Error('Logout failed');
+            window.location.href = '/';
+        } catch (error) {
+            console.error(error);
+            alert('Не удалось выйти из режима оператора.');
+        } finally {
+            confirmLogoutBtn.disabled = false;
+        }
+    });
 
     if (loginForm) {
         loginForm.addEventListener('submit', async (event) => {
@@ -1439,6 +1528,10 @@ document.addEventListener('DOMContentLoaded', () => {
             window.location.reload();
         });
     }
+
+    syncSecretLoginButtonPosition();
+    window.addEventListener('resize', syncSecretLoginButtonPosition);
+    window.addEventListener('scroll', syncSecretLoginButtonPosition);
 
     // 3. Логика кнопки скролла вниз
     if (scrollDownBtn) {

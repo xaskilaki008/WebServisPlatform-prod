@@ -9,6 +9,7 @@ use Illuminate\Support\Facades\Http;
 use App\Models\Beach;
 use App\Models\WaveForecast;
 use Carbon\Carbon;
+use Symfony\Component\Process\Process;
 
 class FetchDwdWaveData extends Command
 {
@@ -128,8 +129,21 @@ class FetchDwdWaveData extends Command
                     continue;
                 }
 
-                $command = "cd /d \"{$storageDir}\" && \"{$wgrib2Path}\" \"{$gribFileName}\" -lon {$beach->fetch_longitude} {$beach->fetch_latitude}";
-                $output = shell_exec($command);
+                $process = new Process([
+                    $wgrib2Path,
+                    $gribFileName,
+                    '-lon',
+                    (string) $beach->fetch_longitude,
+                    (string) $beach->fetch_latitude,
+                ], $storageDir);
+                $process->run();
+
+                if (!$process->isSuccessful()) {
+                    $this->warn(" -> wgrib2 error for '{$beach->name}': " . trim($process->getErrorOutput()));
+                    continue;
+                }
+
+                $output = $process->getOutput();
 
                 // --- ВОТ ЭТОТ БЛОК БЫЛ УТЕРЯН (Вытаскиваем число из ответа и кладем в массив) ---
                 if ($output && preg_match('/val=([0-9\.\-]+)/', $output, $valMatches)) {

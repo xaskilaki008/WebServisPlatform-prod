@@ -34,6 +34,12 @@ Route::post('/operator/login', function (Request $request) {
         ->cookie('operator_hash', $operator->operator_hash, 60 * 24);
 });
 
+Route::post('/operator/logout', function () {
+    return response()
+        ->json(['success' => true])
+        ->withoutCookie('operator_hash');
+});
+
 Route::post('/operator/password', function (Request $request) {
     $operator = BeachOperator::query()
         ->where('operator_hash', $request->cookie('operator_hash'))
