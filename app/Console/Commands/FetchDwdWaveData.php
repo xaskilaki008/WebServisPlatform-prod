@@ -9,6 +9,7 @@ use Illuminate\Support\Facades\Http;
 use App\Models\Beach;
 use App\Models\WaveForecast;
 use Carbon\Carbon;
+use Symfony\Component\Process\ExecutableFinder;
 use Symfony\Component\Process\Process;
 
 class FetchDwdWaveData extends Command
@@ -28,36 +29,52 @@ class FetchDwdWaveData extends Command
         $this->info("Начинаем получение данных DWD EWAM (Европейская модель волнения)...");
 
         $wgrib2Path = env('WGRIB2_PATH', 'wgrib2');
-        $dwdRun = $this->getDwdBaseUrlForCurrentServerTime();
+        try {
+            $dwdRun = $this->getLatestAvailableDwdRun();
+        } catch (\RuntimeException $e) {
+            Log::error('DWD EWAM: model run discovery failed', [
+                'error' => $e->getMessage(),
+            ]);
+            $this->error($e->getMessage());
+            return self::FAILURE;
+        }
         $now = $dwdRun['server_now'];
         $modelRunHour = $dwdRun['model_run_hour'];
         $modelRunDir = $dwdRun['model_run_dir'];
         $modelRunAt = $dwdRun['model_run_at'];
         $baseDwdUrl = $dwdRun['base_url'];
+        $selectedFiles = $dwdRun['files'];
         $savedCount = 0;
         $wgribErrors = 0;
 
         $this->info("DWD EWAM: выбрана папка {$modelRunDir} ({$baseDwdUrl})");
+        $this->info("DWD EWAM: фактический model_run_at {$modelRunAt->toDateTimeString()} UTC");
         $this->info("DWD EWAM: wgrib2 path {$wgrib2Path}");
         Log::info('DWD EWAM: selected model run folder', [
             'folder' => $modelRunDir,
             'base_url' => $baseDwdUrl,
             'server_time' => $now->toDateTimeString(),
+            'model_run_at' => $modelRunAt->toDateTimeString(),
+            'selected_files' => $selectedFiles,
             'wgrib2_path' => $wgrib2Path,
         ]);
 
-        $wgribVersion = new Process([$wgrib2Path, '-version']);
-        $wgribVersion->run();
-        if (!$wgribVersion->isSuccessful()) {
-            Log::error('DWD EWAM: wgrib2 is not executable', [
+        if (!$this->wgrib2Exists($wgrib2Path)) {
+            Log::error('DWD EWAM: wgrib2 binary was not found', [
                 'wgrib2_path' => $wgrib2Path,
-                'exit_code' => $wgribVersion->getExitCode(),
-                'stdout' => trim($wgribVersion->getOutput()),
-                'stderr' => trim($wgribVersion->getErrorOutput()),
             ]);
-            $this->error("wgrib2 is not executable at {$wgrib2Path}. Check WGRIB2_PATH.");
+            $this->error("wgrib2 binary was not found at {$wgrib2Path}. Check WGRIB2_PATH.");
             return self::FAILURE;
         }
+
+        $wgribVersion = new Process([$wgrib2Path, '-version']);
+        $wgribVersion->run();
+        Log::info('DWD EWAM: wgrib2 version check', [
+            'wgrib2_path' => $wgrib2Path,
+            'exit_code' => $wgribVersion->getExitCode(),
+            'stdout' => trim($wgribVersion->getOutput()),
+            'stderr' => trim($wgribVersion->getErrorOutput()),
+        ]);
 
         $beaches = Beach::all();
 
@@ -72,51 +89,20 @@ class FetchDwdWaveData extends Command
         foreach ($this->parameters as $dwdDir => $dbColumn) {
             $this->info("Обработка параметра: {$dwdDir}...");
 
-            // 1. Получаем список файлов (HTML-код каталога)
             $indexUrl = "{$baseDwdUrl}{$dwdDir}/";
-            Log::info('DWD EWAM: fetching parameter index', [
-                'parameter' => $dwdDir,
-                'url' => $indexUrl,
-            ]);
-
-            try {
-                $indexResponse = Http::withoutVerifying()->get($indexUrl);
-                if ($indexResponse->failed()) {
-                    $this->error(" -> Ошибка доступа к каталогу DWD: {$indexUrl}");
-                    Log::error('DWD EWAM: parameter index request failed', [
-                        'parameter' => $dwdDir,
-                        'url' => $indexUrl,
-                        'status' => $indexResponse->status(),
-                        'body_sample' => substr($indexResponse->body(), 0, 500),
-                    ]);
-                    continue;
-                }
-            } catch (\Exception $e) {
-                $this->error(" -> Сетевая ошибка: " . $e->getMessage());
-                Log::error('DWD EWAM: parameter index request exception', [
-                    'parameter' => $dwdDir,
-                    'url' => $indexUrl,
-                    'error' => $e->getMessage(),
-                ]);
-                continue;
-            }
-
-            // 2. Ищем самый свежий архив на нулевой час прогноза (000)
-            $pattern = '/(EWAM_[A-Z0-9_]+_\d{8}' . $modelRunDir . '_000\.grib2\.bz2)/i';
-            if (!preg_match_all($pattern, $indexResponse->body(), $matches)) {
-                $message = "DWD EWAM: в выбранной папке {$modelRunDir} нет подходящих файлов для параметра {$dwdDir}";
+            $latestFileName = $selectedFiles[$dwdDir] ?? null;
+            if (!$latestFileName) {
+                $message = "DWD EWAM: нет выбранного файла для параметра {$dwdDir}";
                 $this->warn(" -> {$message}: {$indexUrl}");
                 Log::warning($message, [
                     'folder' => $modelRunDir,
                     'parameter' => $dwdDir,
                     'url' => $indexUrl,
-                    'pattern' => $pattern,
+                    'selected_files' => $selectedFiles,
                 ]);
                 continue;
             }
 
-            // Забираем последний файл из массива (он же самый свежий по дате)
-            $latestFileName = end($matches[0]);
             $sourceFiles[$dwdDir] = $latestFileName;
             $fileUrl = $indexUrl . $latestFileName;
             Log::info('DWD EWAM: selected source file', [
@@ -279,18 +265,113 @@ class FetchDwdWaveData extends Command
         return self::SUCCESS;
     }
 
-    private function getDwdBaseUrlForCurrentServerTime(): array
+    private function getLatestAvailableDwdRun(): array
     {
         $serverNow = Carbon::now();
-        $modelRunHour = $serverNow->hour < 12 ? 0 : 12;
-        $modelRunDir = str_pad((string) $modelRunHour, 2, '0', STR_PAD_LEFT);
+        $candidates = [];
 
-        return [
-            'server_now' => $serverNow,
-            'model_run_hour' => $modelRunHour,
-            'model_run_dir' => $modelRunDir,
-            'model_run_at' => $serverNow->copy()->startOfDay()->addHours($modelRunHour),
-            'base_url' => "https://opendata.dwd.de/weather/maritime/wave_models/ewam/grib/{$modelRunDir}/",
-        ];
+        foreach ([12, 0] as $runHour) {
+            $runDir = str_pad((string) $runHour, 2, '0', STR_PAD_LEFT);
+            $baseUrl = "https://opendata.dwd.de/weather/maritime/wave_models/ewam/grib/{$runDir}/";
+            $files = [];
+            $runTimes = [];
+
+            foreach (array_keys($this->parameters) as $dwdDir) {
+                $indexUrl = "{$baseUrl}{$dwdDir}/";
+                Log::info('DWD EWAM: fetching parameter index', [
+                    'parameter' => $dwdDir,
+                    'url' => $indexUrl,
+                ]);
+
+                try {
+                    $indexResponse = Http::withoutVerifying()->get($indexUrl);
+                    if ($indexResponse->failed()) {
+                        Log::error('DWD EWAM: parameter index request failed', [
+                            'parameter' => $dwdDir,
+                            'url' => $indexUrl,
+                            'status' => $indexResponse->status(),
+                            'body_sample' => substr($indexResponse->body(), 0, 500),
+                        ]);
+                        continue 2;
+                    }
+                } catch (\Exception $e) {
+                    Log::error('DWD EWAM: parameter index request exception', [
+                        'parameter' => $dwdDir,
+                        'url' => $indexUrl,
+                        'error' => $e->getMessage(),
+                    ]);
+                    continue 2;
+                }
+
+                $pattern = '/(EWAM_[A-Z0-9_]+_(\d{8})' . $runDir . '_000\.grib2\.bz2)/i';
+                if (!preg_match_all($pattern, $indexResponse->body(), $matches, PREG_SET_ORDER)) {
+                    Log::warning('DWD EWAM: no files for candidate run folder', [
+                        'folder' => $runDir,
+                        'parameter' => $dwdDir,
+                        'url' => $indexUrl,
+                        'pattern' => $pattern,
+                    ]);
+                    continue 2;
+                }
+
+                $latestMatch = end($matches);
+                $files[$dwdDir] = $latestMatch[1];
+                $runTimes[$dwdDir] = Carbon::createFromFormat('Ymd H', "{$latestMatch[2]} {$runDir}", 'UTC');
+            }
+
+            $uniqueRunTimes = collect($runTimes)
+                ->map(fn (Carbon $runTime) => $runTime->toDateTimeString())
+                ->unique()
+                ->values();
+
+            if ($uniqueRunTimes->count() !== 1) {
+                Log::warning('DWD EWAM: parameter files do not belong to the same model run', [
+                    'folder' => $runDir,
+                    'files' => $files,
+                    'run_times' => collect($runTimes)->map->toDateTimeString()->all(),
+                ]);
+                continue;
+            }
+
+            $modelRunAt = reset($runTimes);
+            if ($modelRunAt->greaterThan($serverNow)) {
+                Log::warning('DWD EWAM: skipping future model run', [
+                    'folder' => $runDir,
+                    'server_time' => $serverNow->toDateTimeString(),
+                    'model_run_at' => $modelRunAt->toDateTimeString(),
+                    'files' => $files,
+                ]);
+                continue;
+            }
+
+            $candidates[] = [
+                'server_now' => $serverNow,
+                'model_run_hour' => (int) $modelRunAt->hour,
+                'model_run_dir' => $runDir,
+                'model_run_at' => $modelRunAt,
+                'base_url' => $baseUrl,
+                'files' => $files,
+            ];
+        }
+
+        if (empty($candidates)) {
+            throw new \RuntimeException('DWD EWAM: no complete model run found in 00 or 12 folders.');
+        }
+
+        usort(
+            $candidates,
+            fn (array $left, array $right) => $right['model_run_at']->timestamp <=> $left['model_run_at']->timestamp
+        );
+
+        return $candidates[0];
+    }
+
+    private function wgrib2Exists(string $wgrib2Path): bool
+    {
+        if (str_contains($wgrib2Path, '/') || str_contains($wgrib2Path, '\\')) {
+            return is_file($wgrib2Path);
+        }
+
+        return (bool) (new ExecutableFinder())->find($wgrib2Path);
     }
 }
