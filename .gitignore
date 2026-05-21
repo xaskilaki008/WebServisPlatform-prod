@@ -17,6 +17,7 @@ Thumbs.db
 # Dependencies
 /node_modules
 /vendor
+/.npm-cache
 
 # Build and runtime artifacts
 /public/build
@@ -36,6 +37,7 @@ Thumbs.db
 
 # Local/private documents
 /public/document-vkr
+/docs/logs
 
 # Homestead
 Homestead.json
