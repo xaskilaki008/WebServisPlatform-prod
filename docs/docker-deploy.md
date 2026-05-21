@@ -108,7 +108,10 @@ docker compose exec app php artisan route:list
 
 ## DWD / wgrib2 checks
 
-The Docker image installs `wgrib2` in the `app` image and expects:
+The Docker image builds `wgrib2` from the official NOAA source archive and
+copies it into the `app` image. The first build can take longer than usual and
+requires outbound HTTPS access from the VPS during `docker compose up -d --build`.
+Laravel expects:
 
 ```env
 WGRIB2_PATH=/usr/bin/wgrib2
