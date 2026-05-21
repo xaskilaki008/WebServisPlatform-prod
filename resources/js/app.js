@@ -1515,12 +1515,6 @@ document.addEventListener('DOMContentLoaded', () => {
             alert('Access denied');
         });
     }
-        document.getElementById('photo-prev')?.addEventListener('click', (e) => changePhoto(-1, e));
-        document.getElementById('photo-next')?.addEventListener('click', (e) => changePhoto(1, e));
-        document.getElementById('close-image-popup')?.addEventListener('click', closeImagePopup);
-        document.getElementById('popup-prev')?.addEventListener('click', (e) => changePhoto(-1, e));
-        document.getElementById('popup-next')?.addEventListener('click', (e) => changePhoto(1, e));
-
         // Закрытие по клику на фон
         document.getElementById('image-popup')?.addEventListener('click', (e) => {
             if (e.target.id === 'image-popup') closeImagePopup();
@@ -1580,15 +1574,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
         // 2. Закрытие по крестику
         closePopupBtn.addEventListener('click', () => {
-            imageOverlay.classList.add('hidden');
-            setTimeout(() => popupLargePhoto.src = '', 300); // Очищаем src после анимации
+            closeImagePopup();
         });
 
         // 3. Закрытие при клике мимо картинки (на темный фон)
         imageOverlay.addEventListener('click', (e) => {
             if (e.target === imageOverlay) {
-                imageOverlay.classList.add('hidden');
-                setTimeout(() => popupLargePhoto.src = '', 300);
+                closeImagePopup();
             }
         });
     }

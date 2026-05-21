@@ -34,18 +34,36 @@ class FetchDwdWaveData extends Command
         $modelRunDir = $dwdRun['model_run_dir'];
         $modelRunAt = $dwdRun['model_run_at'];
         $baseDwdUrl = $dwdRun['base_url'];
+        $savedCount = 0;
+        $wgribErrors = 0;
 
         $this->info("DWD EWAM: выбрана папка {$modelRunDir} ({$baseDwdUrl})");
+        $this->info("DWD EWAM: wgrib2 path {$wgrib2Path}");
         Log::info('DWD EWAM: selected model run folder', [
             'folder' => $modelRunDir,
             'base_url' => $baseDwdUrl,
             'server_time' => $now->toDateTimeString(),
+            'wgrib2_path' => $wgrib2Path,
         ]);
+
+        $wgribVersion = new Process([$wgrib2Path, '-version']);
+        $wgribVersion->run();
+        if (!$wgribVersion->isSuccessful()) {
+            Log::error('DWD EWAM: wgrib2 is not executable', [
+                'wgrib2_path' => $wgrib2Path,
+                'exit_code' => $wgribVersion->getExitCode(),
+                'stdout' => trim($wgribVersion->getOutput()),
+                'stderr' => trim($wgribVersion->getErrorOutput()),
+            ]);
+            $this->error("wgrib2 is not executable at {$wgrib2Path}. Check WGRIB2_PATH.");
+            return self::FAILURE;
+        }
+
         $beaches = Beach::all();
 
         if ($beaches->isEmpty()) {
             $this->error("В базе нет пляжей с координатами!");
-            return;
+            return self::FAILURE;
         }
 
         $parsedData = [];
@@ -56,15 +74,30 @@ class FetchDwdWaveData extends Command
 
             // 1. Получаем список файлов (HTML-код каталога)
             $indexUrl = "{$baseDwdUrl}{$dwdDir}/";
+            Log::info('DWD EWAM: fetching parameter index', [
+                'parameter' => $dwdDir,
+                'url' => $indexUrl,
+            ]);
 
             try {
                 $indexResponse = Http::withoutVerifying()->get($indexUrl);
                 if ($indexResponse->failed()) {
                     $this->error(" -> Ошибка доступа к каталогу DWD: {$indexUrl}");
+                    Log::error('DWD EWAM: parameter index request failed', [
+                        'parameter' => $dwdDir,
+                        'url' => $indexUrl,
+                        'status' => $indexResponse->status(),
+                        'body_sample' => substr($indexResponse->body(), 0, 500),
+                    ]);
                     continue;
                 }
             } catch (\Exception $e) {
                 $this->error(" -> Сетевая ошибка: " . $e->getMessage());
+                Log::error('DWD EWAM: parameter index request exception', [
+                    'parameter' => $dwdDir,
+                    'url' => $indexUrl,
+                    'error' => $e->getMessage(),
+                ]);
                 continue;
             }
 
@@ -86,6 +119,11 @@ class FetchDwdWaveData extends Command
             $latestFileName = end($matches[0]);
             $sourceFiles[$dwdDir] = $latestFileName;
             $fileUrl = $indexUrl . $latestFileName;
+            Log::info('DWD EWAM: selected source file', [
+                'parameter' => $dwdDir,
+                'url' => $fileUrl,
+                'file' => $latestFileName,
+            ]);
 
             $gribFileName = "latest_{$dwdDir}.grib2";
             $filePath = storage_path("app/{$gribFileName}");
@@ -106,6 +144,12 @@ class FetchDwdWaveData extends Command
                 $gribContent = bzdecompress($fileResponse->body());
                 if (!$gribContent) {
                     $this->error(" -> Ошибка: битый архив.");
+                    Log::error('DWD EWAM: bz2 decompression failed', [
+                        'parameter' => $dwdDir,
+                        'url' => $fileUrl,
+                        'status' => $fileResponse->status(),
+                        'body_size' => strlen($fileResponse->body()),
+                    ]);
                     continue;
                 }
 
@@ -113,6 +157,11 @@ class FetchDwdWaveData extends Command
                 file_put_contents($filePath, $gribContent);
             } catch (\Exception $e) {
                 $this->error(" -> Исключение при скачивании/распаковке: " . $e->getMessage());
+                Log::error('DWD EWAM: source download/decompression exception', [
+                    'parameter' => $dwdDir,
+                    'url' => $fileUrl,
+                    'error' => $e->getMessage(),
+                ]);
                 continue;
             }
 
@@ -139,7 +188,21 @@ class FetchDwdWaveData extends Command
                 $process->run();
 
                 if (!$process->isSuccessful()) {
+                    $wgribErrors++;
                     $this->warn(" -> wgrib2 error for '{$beach->name}': " . trim($process->getErrorOutput()));
+                    Log::warning('DWD EWAM: wgrib2 failed for beach', [
+                        'beach_id' => $beach->id,
+                        'beach_name' => $beach->name,
+                        'parameter' => $dwdDir,
+                        'wgrib2_path' => $wgrib2Path,
+                        'working_directory' => $storageDir,
+                        'file' => $gribFileName,
+                        'longitude' => $beach->fetch_longitude,
+                        'latitude' => $beach->fetch_latitude,
+                        'exit_code' => $process->getExitCode(),
+                        'stdout' => trim($process->getOutput()),
+                        'stderr' => trim($process->getErrorOutput()),
+                    ]);
                     continue;
                 }
 
@@ -198,10 +261,22 @@ class FetchDwdWaveData extends Command
                     'air_temp' => $forecast->air_temp,
                     'water_temp' => $forecast->water_temp,
                 ]);
+                $savedCount++;
             }
         }
 
+        Log::info('DWD EWAM: fetch completed', [
+            'base_url' => $baseDwdUrl,
+            'wgrib2_path' => $wgrib2Path,
+            'model_run_at' => $modelRunAt->toDateTimeString(),
+            'saved_forecasts' => $savedCount,
+            'wgrib_errors' => $wgribErrors,
+            'parsed_beaches' => count($parsedData),
+            'source_files' => $sourceFiles,
+        ]);
+        $this->info("DWD EWAM: saved forecasts {$savedCount}, wgrib2 errors {$wgribErrors}.");
         $this->info("Сбор и обработка данных успешно завершены!");
+        return self::SUCCESS;
     }
 
     private function getDwdBaseUrlForCurrentServerTime(): array
