@@ -33,7 +33,7 @@ RUN apt-get update \
         make \
     && curl -fsSL "$WGRIB2_URL" -o wgrib2.tgz \
     && tar -xzf wgrib2.tgz \
-    && make -C grib2 \
+    && make -C grib2 FC=gfortran \
     && install -m 0755 grib2/wgrib2/wgrib2 /usr/local/bin/wgrib2 \
     && /usr/local/bin/wgrib2 -version
 
