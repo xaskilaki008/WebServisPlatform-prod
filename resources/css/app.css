@@ -373,9 +373,9 @@ background-color: #edf3f8;
 .map-control-button {
     padding: 8px 10px;
     min-height: 40px;
-    background: rgba(255, 255, 255, 0.95);
+    background: rgba(255, 255, 255, 0.5);/* 50% прозрачности (или 50% белого) */
     color: var(--text);
-    border: 1px solid rgba(210, 222, 234, 0.95);
+    border: 1px solid rgba(210, 222, 234, 0.459);
     box-shadow: 0 6px 14px rgba(13, 40, 61, 0.16);
     font-size: 13px;
     font-weight: 650;
@@ -1589,12 +1589,23 @@ background-color: #edf3f8;
 
     .map-toolbar {
         right: 8px;
-        left: 56px;
+        left: auto;
+        align-items: flex-end;
+    }
+
+    .map-toolbar-group {
+        align-items: flex-end;
     }
 
     .map-control-button {
         min-height: 42px;
         padding: 8px 10px;
+    }
+
+    #fit-map-button {
+        max-width: calc(100vw - 96px);
+        white-space: normal;
+        text-align: center;
     }
 
     #map {
@@ -2373,6 +2384,13 @@ background-color: #edf3f8;
     right: 12px;
     bottom: 12px;
     z-index: 920;
+    width: 48px;
+    height: 48px;
+    min-height: 48px;
+    padding: 0;
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
 }
 
 .map-expand-button {
@@ -2387,6 +2405,7 @@ background-color: #edf3f8;
 
 .map-expand-button img {
     width: 100%;
+    opacity: 0.5;
     height: 100%;
     object-fit: contain;
     display: block;

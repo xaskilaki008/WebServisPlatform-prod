@@ -601,13 +601,14 @@ function centerMapVertically() {
 
     const rect = mapElement.getBoundingClientRect();
     const topbarHeight = topbar ? topbar.getBoundingClientRect().height : 0;
+    const viewportGap = 10;
     const availableHeight = Math.max(window.innerHeight - topbarHeight, 1);
-    const desiredMapCenter = topbarHeight + (availableHeight / 2);
-    const currentMapCenter = rect.top + (rect.height / 2);
-    const targetScrollTop = Math.max(0, window.scrollY + currentMapCenter - desiredMapCenter);
+    const targetScrollTop = rect.height > availableHeight
+        ? window.scrollY + rect.top - topbarHeight - viewportGap
+        : window.scrollY + rect.top + (rect.height / 2) - topbarHeight - (availableHeight / 2);
 
     window.scrollTo({
-        top: targetScrollTop,
+        top: Math.max(0, targetScrollTop),
         behavior: 'smooth',
     });
 }
@@ -1286,6 +1287,7 @@ toggleMapSizeButton.addEventListener('click', function () {
 });
 
 fitMapButton.addEventListener('click', function () {
+    map.invalidateSize();
     fitMapToAvailableData();
 });
 
@@ -1696,4 +1698,3 @@ document.addEventListener('DOMContentLoaded', () => {
 updateStickyFilterOffset();
 updateScrollTopButtonVisibility();
 window.changePhoto = changePhoto;
-
