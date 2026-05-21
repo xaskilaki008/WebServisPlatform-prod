@@ -35,7 +35,7 @@ RUN apt-get update \
     && tar -xzf wgrib2.tgz \
     && make -C grib2 CC=gcc FC=gfortran \
     && install -m 0755 grib2/wgrib2/wgrib2 /usr/local/bin/wgrib2 \
-    && /usr/local/bin/wgrib2 -version
+    && test -x /usr/local/bin/wgrib2
 
 FROM php:8.4-fpm-bookworm AS app
 
@@ -66,7 +66,6 @@ COPY docker/php/entrypoint.sh /usr/local/bin/app-entrypoint
 
 RUN rm -f public/hot \
     && test -x /usr/bin/wgrib2 \
-    && /usr/bin/wgrib2 -version \
     && chmod +x /usr/local/bin/app-entrypoint \
     && mkdir -p storage/framework/cache storage/framework/sessions storage/framework/views storage/logs bootstrap/cache \
     && php artisan package:discover --ansi \

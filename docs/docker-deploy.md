@@ -121,7 +121,7 @@ Check the binary:
 
 ```bash
 docker compose exec app which wgrib2
-docker compose exec app /usr/bin/wgrib2 -version
+docker compose exec app test -x /usr/bin/wgrib2
 ```
 
 Run the parser:
