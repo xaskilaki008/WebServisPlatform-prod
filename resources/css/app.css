@@ -2309,6 +2309,12 @@ background-color: #edf3f8;
     padding: 8px 10px;
 }
 
+.operator-readonly .operator-forecast-summary {
+    display: grid;
+    gap: 4px;
+    line-height: 1.35;
+}
+
 .operator-status-option small {
     color: #475569;
     font-size: 10px;
