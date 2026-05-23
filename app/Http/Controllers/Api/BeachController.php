@@ -46,31 +46,45 @@ class BeachController extends Controller
         ] : null;
 
         $latestOperatorLog = $this->latestCompleteOperatorLog((int) $id);
+        $latestAnyOperatorLog = $this->latestCompleteOperatorLog((int) $id, false);
         $operatorLogPayload = $latestOperatorLog
             ? $this->operatorLogPayload($latestOperatorLog)
             : null;
+        $operatorDataIsFresh = $latestOperatorLog !== null;
+        $operatorDataIsStale = $latestAnyOperatorLog !== null && $latestOperatorLog === null;
+        $operatorExpiresAt = $latestOperatorLog?->expires_at ?? $latestAnyOperatorLog?->expires_at;
+        $operatorStatus = $latestOperatorLog?->operator_status;
+        $operatorCategoryKey = $operatorStatus !== null ? $this->operatorCategoryKey($operatorStatus) : null;
 
         $payload = [
             'id' => $beach->id,
             'name' => $beach->name,
             'wave_level' => $beach->wave_level,
-            'operator_status' => $beach->operator_status,
-            'operator_warning' => $beach->operator_warning,
-            'operator_wave_direction' => $beach->operator_wave_direction,
-            'operator_wave_azimuth' => $beach->operator_wave_azimuth,
-            'operator_wave_period' => $beach->operator_wave_period,
-            'operator_access_status' => $beach->operator_access_status,
-            'operator_updated_at' => $beach->operator_updated_at,
-            'operator_category_key' => $beach->operator_category_key,
-            'operator_category_label' => $beach->operator_category_label,
-            'operator_status_text' => $beach->operator_status_text,
-            'operator_direction_text' => $beach->operator_direction_text,
-            'operator_access_label' => $beach->operator_access_label,
-            'operator_data_is_fresh' => $beach->operator_data_is_fresh,
-            'operator_data_is_stale' => $beach->operator_data_is_stale,
-            'effective_wave_level' => $beach->effective_wave_level,
-            'category_key' => $beach->category_key,
-            'category_label' => $beach->category_label,
+            'operator_status' => $latestOperatorLog?->operator_status,
+            'operator_warning' => $latestOperatorLog?->operator_warning,
+            'operator_wave_direction' => $latestOperatorLog?->operator_wave_direction,
+            'operator_wave_azimuth' => $latestOperatorLog?->operator_wave_azimuth,
+            'operator_wave_period' => $latestOperatorLog?->operator_wave_period,
+            'operator_access_status' => $latestOperatorLog?->operator_access_status,
+            'operator_updated_at' => $latestOperatorLog?->submitted_at,
+            'operator_expires_at' => $operatorExpiresAt,
+            'expires_at' => $operatorExpiresAt,
+            'operator_category_key' => $operatorCategoryKey,
+            'operator_category_label' => $operatorCategoryKey ? $this->operatorCategoryLabel($operatorCategoryKey) : null,
+            'operator_status_text' => $latestOperatorLog ? $this->operatorStatusText($latestOperatorLog->operator_status) : null,
+            'operator_direction_text' => $latestOperatorLog ? $this->operatorDirectionText($latestOperatorLog) : null,
+            'operator_access_label' => $latestOperatorLog ? $this->operatorAccessLabel($latestOperatorLog->operator_access_status) : null,
+            'operator_data_is_fresh' => $operatorDataIsFresh,
+            'operator_data_is_stale' => $operatorDataIsStale,
+            'operator_first_name' => $latestOperatorLog?->operator?->first_name,
+            'operator_work_phone' => $latestOperatorLog?->operator?->work_phone,
+            'effective_wave_level' => $latestOperatorLog?->operator_status ?? $beach->wave_level,
+            'category_key' => $latestOperatorLog
+                ? $this->operatorCategoryKey($latestOperatorLog->operator_status)
+                : $beach->category_key,
+            'category_label' => $latestOperatorLog
+                ? $this->operatorCategoryLabel($this->operatorCategoryKey($latestOperatorLog->operator_status))
+                : $beach->category_label,
 
             // Твой JS сам разбирается, если данные лежат прямо в корне:
             // const forecast = data.latest_forecast || data;
@@ -114,14 +128,23 @@ class BeachController extends Controller
         return $now->copy()->startOfDay()->addHours($modelRunHour);
     }
 
-    private function latestCompleteOperatorLog(int $beachId): ?BeachOperatorLog
+    private function latestCompleteOperatorLog(int $beachId, bool $activeOnly = true): ?BeachOperatorLog
     {
-        return BeachOperatorLog::query()
+        $query = BeachOperatorLog::query()
+            ->with('operator')
             ->where('beach_id', $beachId)
             ->whereNotNull('operator_status')
             ->whereNotNull('operator_wave_direction')
             ->whereNotNull('operator_wave_period')
-            ->whereNotNull('operator_access_status')
+            ->whereNotNull('operator_access_status');
+
+        if ($activeOnly) {
+            $query
+                ->whereNotNull('expires_at')
+                ->where('expires_at', '>=', now());
+        }
+
+        return $query
             ->orderByDesc('submitted_at')
             ->orderByDesc('updated_at')
             ->orderByDesc('created_at')
@@ -135,6 +158,7 @@ class BeachController extends Controller
             'beach_operator_id' => $log->beach_operator_id,
             'beach_id' => $log->beach_id,
             'submitted_at' => $log->submitted_at,
+            'expires_at' => $log->expires_at,
             'created_at' => $log->created_at,
             'updated_at' => $log->updated_at,
             'operator_status' => $log->operator_status,
@@ -146,8 +170,34 @@ class BeachController extends Controller
             'operator_wave_period' => $log->operator_wave_period,
             'operator_access_status' => $log->operator_access_status,
             'operator_access_label' => $this->operatorAccessLabel($log->operator_access_status),
-            'is_stale' => $log->submitted_at !== null && $log->submitted_at->lt(now()->subHour()),
+            'is_stale' => $log->expires_at === null || $log->expires_at->lt(now()),
+            'operator_first_name' => $log->operator?->first_name,
+            'operator_work_phone' => $log->operator?->work_phone,
         ];
+    }
+
+    private function operatorCategoryKey(int|string|null $status): string
+    {
+        if ($status === 'hazard') {
+            return 'danger';
+        }
+
+        $level = (int) $status;
+
+        return match (true) {
+            $level <= 1 => 'safe',
+            $level <= 3 => 'caution',
+            default => 'danger',
+        };
+    }
+
+    private function operatorCategoryLabel(string $key): string
+    {
+        return match ($key) {
+            'safe' => 'РљСѓРїР°РЅРёРµ РґРѕРїСѓСЃС‚РёРјРѕ',
+            'caution' => 'РќСѓР¶РЅР° РѕСЃС‚РѕСЂРѕР¶РЅРѕСЃС‚СЊ',
+            default => 'РљСѓРїР°РЅРёРµ Р·Р°РїСЂРµС‰РµРЅРѕ',
+        };
     }
 
     private function operatorStatusText(?string $status): string

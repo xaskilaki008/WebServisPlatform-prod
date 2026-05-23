@@ -71,6 +71,11 @@ const operatorUpdateTime = document.getElementById('operator-update-time');
 const operatorStaleRow = document.getElementById('operator-stale-row');
 const operatorEmptyMessage = document.getElementById('operator-empty-message');
 const operatorLogTable = document.getElementById('operator-log-table');
+const operatorContactBlock = document.getElementById('operator-contact-block');
+const operatorContactNameRow = document.getElementById('operator-contact-name-row');
+const operatorContactName = document.getElementById('operator-contact-name');
+const operatorContactPhoneRow = document.getElementById('operator-contact-phone-row');
+const operatorContactPhone = document.getElementById('operator-contact-phone');
 const openOperatorLink = document.getElementById('open-operator-link');
 const operatorContext = window.operatorContext || { isOperator: false, operatorBeachId: null };
 const detailTitleRow = document.createElement('div');
@@ -262,8 +267,11 @@ function logDwdDebugSummary(summary) {
 function updateOperatorControls(beach = {}, status = null) {
     const latestOperatorLog = beach.latest_operator_log || null;
     const operatorStatus = latestOperatorLog?.operator_status ?? status ?? beach.operator_status ?? null;
+    const operatorFirstName = latestOperatorLog?.operator_first_name ?? beach.operator_first_name ?? null;
+    const operatorWorkPhone = latestOperatorLog?.operator_work_phone ?? beach.operator_work_phone ?? null;
     const beachId = Number(beach.id);
     const hasOperatorData = Boolean(latestOperatorLog);
+    const hasOperatorContact = hasOperatorData && Boolean(operatorFirstName || operatorWorkPhone);
     const canEdit = Boolean(operatorContext.isOperator) && Number(operatorContext.operatorBeachId) === beachId;
 
     if (operatorColumnView) {
@@ -271,6 +279,9 @@ function updateOperatorControls(beach = {}, status = null) {
     }
 
     if (operatorEmptyMessage) {
+        operatorEmptyMessage.textContent = beach.operator_data_is_stale
+            ? 'Актуальные операторские данные отсутствуют или устарели'
+            : 'Данные оператора отсутствуют';
         operatorEmptyMessage.classList.toggle('hidden', hasOperatorData);
     }
 
@@ -322,6 +333,20 @@ function updateOperatorControls(beach = {}, status = null) {
 
     if (operatorStaleRow) {
         operatorStaleRow.classList.toggle('hidden', !hasOperatorData || !latestOperatorLog.is_stale);
+    }
+
+    if (operatorContactBlock) {
+        operatorContactBlock.classList.toggle('hidden', !hasOperatorContact);
+    }
+
+    if (operatorContactNameRow && operatorContactName) {
+        operatorContactNameRow.classList.toggle('hidden', !operatorFirstName);
+        operatorContactName.textContent = operatorFirstName || '-';
+    }
+
+    if (operatorContactPhoneRow && operatorContactPhone) {
+        operatorContactPhoneRow.classList.toggle('hidden', !operatorWorkPhone);
+        operatorContactPhone.textContent = operatorWorkPhone || '-';
     }
 
     if (openOperatorLink) {

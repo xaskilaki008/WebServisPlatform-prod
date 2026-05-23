@@ -1,9 +1,9 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Мониторинг пляжей Севастополя</title>
+    <title>Флаг-пляж – Морское волнение.</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css">
     <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
     <script src="https://unpkg.com/@turf/turf@6/turf.min.js"></script>
@@ -20,8 +20,11 @@
     <header class="topbar">
         <div class="topbar-inner">
             <div class="topbar-title-wrap">
-                <h1 class="topbar-title">Мониторинг пляжей Севастополя</h1>
+                <p class="topbar-title">Мониторинг морского волнения у пляжей Севастополя</p>
                 <p class="topbar-subtitle">Будьте в курсе доступности пляжей любимого моря</p>
+            </div>
+            <div class="topbar-logo-wrap">
+                <img class="topbar-logo" src="{{ asset('супер-пупер логотип сайта.png') }}" alt="Логотип сайта">
             </div>
             <div class="topbar-nav">
                 <button type="button" class="nav-button active" data-screen-target="map-screen">Карта</button>

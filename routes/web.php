@@ -51,7 +51,17 @@ Route::post('/operator/{id}', function (Request $request, int $id) {
         'operator_wave_azimuth' => ['nullable', 'required_if:operator_wave_direction,azimuth', 'integer', 'between:0,360'],
         'operator_wave_period' => ['required', 'integer', 'between:2,12'],
         'operator_access_status' => ['required', 'in:open,limited,closed'],
+        'operator_validity' => ['required', 'in:30m,1h,3h,24h,until_disabled'],
     ]);
+
+    $submittedAt = now();
+    $expiresAt = match ($validated['operator_validity']) {
+        '30m' => $submittedAt->copy()->addMinutes(30),
+        '3h' => $submittedAt->copy()->addHours(3),
+        '24h' => $submittedAt->copy()->addDay(),
+        'until_disabled' => $submittedAt->copy()->addMonth(),
+        default => $submittedAt->copy()->addHour(),
+    };
 
     $beach = Beach::query()->findOrFail($id);
     $beach->update([
@@ -63,13 +73,15 @@ Route::post('/operator/{id}', function (Request $request, int $id) {
             : null,
         'operator_wave_period' => $validated['operator_wave_period'],
         'operator_access_status' => $validated['operator_access_status'],
-        'operator_updated_at' => now(),
+        'operator_updated_at' => $submittedAt,
+        'operator_expires_at' => $expiresAt,
     ]);
 
     BeachOperatorLog::query()->create([
         'beach_operator_id' => $operator->id,
         'beach_id' => $beach->id,
-        'submitted_at' => now(),
+        'submitted_at' => $submittedAt,
+        'expires_at' => $expiresAt,
         'operator_status' => $validated['operator_status'],
         'operator_warning' => $validated['operator_warning'] ?? null,
         'operator_wave_direction' => $validated['operator_wave_direction'],

@@ -120,6 +120,18 @@
                     </select>
                 </fieldset>
 
+                <fieldset class="operator-fieldset">
+                    <legend>Срок актуальности</legend>
+                    <select name="operator_validity">
+                        <option value="30m" @selected(old('operator_validity') === '30m')>30 минут</option>
+                        <option value="1h" @selected(old('operator_validity', '1h') === '1h')>1 час</option>
+                        <option value="3h" @selected(old('operator_validity') === '3h')>3 часа</option>
+                        <option value="24h" @selected(old('operator_validity') === '24h')>24 часа</option>
+                        <option value="until_disabled" @selected(old('operator_validity') === 'until_disabled')>до отключения</option>
+                    </select>
+                    <div class="operator-help">Вариант “до отключения” автоматически устареет через 1 месяц.</div>
+                </fieldset>
+
                 @if($errors->any())
                     <div class="operator-error">{{ $errors->first() }}</div>
                 @endif

@@ -101,7 +101,19 @@
                 </div>
                 <div class="detail-row-table hidden" id="operator-stale-row">
                     <div class="detail-lbl">Предупреждение:</div>
-                    <div class="detail-val operator-stale-message">Данные оператора не обновлялись более 1 часа</div>
+                    <div class="detail-val operator-stale-message">Актуальные операторские данные отсутствуют или устарели</div>
+                </div>
+            </div>
+
+            <div id="operator-contact-block" class="operator-contact-block hidden">
+                <h4 class="operator-contact-title">Контакты оператора</h4>
+                <div id="operator-contact-name-row" class="operator-contact-row hidden">
+                    <span>Имя</span>
+                    <strong id="operator-contact-name">-</strong>
+                </div>
+                <div id="operator-contact-phone-row" class="operator-contact-row hidden">
+                    <span>Рабочий телефон</span>
+                    <strong id="operator-contact-phone">-</strong>
                 </div>
             </div>
 

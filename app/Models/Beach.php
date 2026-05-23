@@ -23,6 +23,7 @@ class Beach extends Model
         'operator_wave_period',
         'operator_access_status',
         'operator_updated_at',
+        'operator_expires_at',
         'fetch_longitude',
         'fetch_latitude',
     ];
@@ -39,6 +40,7 @@ class Beach extends Model
         'operator_wave_period' => 'integer',
         'operator_access_status' => 'string',
         'operator_updated_at' => 'datetime',
+        'operator_expires_at' => 'datetime',
     ];
 
     // 2. Указываем, какие виртуальные поля должны добавляться в JSON для фронтенда
@@ -97,7 +99,7 @@ class Beach extends Model
 
     public function getOperatorCategoryKeyAttribute(): ?string
     {
-        if ($this->operator_status === null) {
+        if (! $this->operator_data_is_fresh || $this->operator_status === null) {
             return null;
         }
 
@@ -116,6 +118,10 @@ class Beach extends Model
 
     public function getOperatorStatusTextAttribute(): ?string
     {
+        if (! $this->operator_data_is_fresh) {
+            return null;
+        }
+
         return match ((string) $this->operator_status) {
             '0' => 'Зеркальный штиль',
             '1' => 'Легкая рябь',
@@ -130,6 +136,10 @@ class Beach extends Model
 
     public function getOperatorDirectionTextAttribute(): ?string
     {
+        if (! $this->operator_data_is_fresh) {
+            return null;
+        }
+
         return match ($this->operator_wave_direction) {
             'direct' => 'Прямо на пляж',
             'left' => 'Слева на пляж',
@@ -144,6 +154,10 @@ class Beach extends Model
 
     public function getOperatorAccessLabelAttribute(): ?string
     {
+        if (! $this->operator_data_is_fresh) {
+            return null;
+        }
+
         return match ($this->operator_access_status) {
             'open' => 'Пляж открыт для всех',
             'limited' => 'Пляж ограниченно открыт',
@@ -154,8 +168,8 @@ class Beach extends Model
 
     public function getOperatorDataIsFreshAttribute(): bool
     {
-        return $this->operator_updated_at !== null
-            && $this->operator_updated_at->greaterThanOrEqualTo(now()->subHour());
+        return $this->operator_expires_at !== null
+            && $this->operator_expires_at->greaterThanOrEqualTo(now());
     }
 
     public function getOperatorDataIsStaleAttribute(): bool
