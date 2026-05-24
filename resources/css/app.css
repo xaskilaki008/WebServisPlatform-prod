@@ -1565,6 +1565,19 @@ background-color: #edf3f8;
         align-items: stretch;
     }
 
+    .topbar-title-wrap {
+        flex: 0 1 auto;
+    }
+
+    .topbar-logo-wrap {
+        justify-content: center;
+    }
+
+    .topbar-logo {
+        height: 42px;
+        max-width: 120px;
+    }
+
     .topbar-actions {
         justify-content: stretch;
     }
