@@ -128,8 +128,16 @@
 
     <div class="detail-group-block detail-update-block">
         <div class="detail-row-table">
-            <div class="detail-lbl">Обновлено DWD:</div>
-            <div class="detail-val" id="detail-update-time">-</div>
+            <div class="detail-lbl">Прогноз DWD на:</div>
+            <div class="detail-val" id="detail-forecast-time">-</div>
+        </div>
+        <div class="detail-row-table">
+            <div class="detail-lbl">Запуск модели DWD:</div>
+            <div class="detail-val" id="detail-model-run-time">-</div>
+        </div>
+        <div class="detail-row-table">
+            <div class="detail-lbl">Обработано сервером:</div>
+            <div class="detail-val" id="detail-parsed-time">-</div>
         </div>
     </div>
 </article>

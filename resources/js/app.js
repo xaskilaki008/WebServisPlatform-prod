@@ -59,6 +59,9 @@ const detailCategory = document.getElementById('detail-category');
 const detailWaveDirection = document.getElementById('detail-wave-direction');
 const detailAirTemp = document.getElementById('detail-air-temp');
 const detailWaterTemp = document.getElementById('detail-water-temp');
+const detailForecastTime = document.getElementById('detail-forecast-time');
+const detailModelRunTime = document.getElementById('detail-model-run-time');
+const detailParsedTime = document.getElementById('detail-parsed-time');
 const detailBackButton = document.getElementById('detail-back-button');
 const operatorColumnView = document.getElementById('operator-column-view');
 const operatorStatusValue = document.getElementById('operator-status-value');
@@ -421,11 +424,17 @@ function updateDetailScreen(beach = {}) {
                 detailAirTemp.textContent = formatDetailValue(forecast.air_temp, '°C');
                 detailWaterTemp.textContent = formatDetailValue(forecast.water_temp, '°C');
 
-                // Выводим время обновления
-                const updateTime = forecast.parsed_at || forecast.forecast_time || forecast.updated_at;
-                document.getElementById('detail-update-time').innerText = updateTime
-                    ? new Date(updateTime).toLocaleString('ru-RU')
-                    : 'нет данных';
+                if (detailForecastTime) {
+                    detailForecastTime.textContent = formatDetailDate(forecast.forecast_time);
+                }
+
+                if (detailModelRunTime) {
+                    detailModelRunTime.textContent = formatDetailDate(forecast.model_run_at);
+                }
+
+                if (detailParsedTime) {
+                    detailParsedTime.textContent = formatDetailDate(forecast.parsed_at);
+                }
 
                 // Оставляем реальное описание моря, а не текст ошибки
                 detailWaveText.innerText = getWaveLevelText(beach.wave_level);
@@ -435,14 +444,18 @@ function updateDetailScreen(beach = {}) {
                 detailWaveDirection.textContent = '-';
                 detailAirTemp.textContent = '-';
                 detailWaterTemp.textContent = '-';
-                document.getElementById('detail-update-time').innerText = 'Ожидается';
+                if (detailForecastTime) detailForecastTime.textContent = 'Ожидается';
+                if (detailModelRunTime) detailModelRunTime.textContent = '-';
+                if (detailParsedTime) detailParsedTime.textContent = '-';
                 detailWaveText.innerText = getWaveLevelText(beach.wave_level);
             }
             updateOperatorControls(beach, data.operator_status ?? beach.operator_status ?? null);
         })
         .catch(err => {
             console.error('Ошибка загрузки волн:', err);
-            document.getElementById('detail-update-time').innerText = 'Ошибка загрузки';
+            if (detailForecastTime) detailForecastTime.textContent = 'Ошибка загрузки';
+            if (detailModelRunTime) detailModelRunTime.textContent = '-';
+            if (detailParsedTime) detailParsedTime.textContent = '-';
         });
 
         // Запрос фотографий

@@ -54,9 +54,9 @@
                     <span>Направление: {{ $forecast?->wave_direction !== null ? $forecast->wave_direction . '°' : 'нет данных' }}</span>
                     <span>Температура воздуха: {{ $forecast?->air_temp !== null ? $forecast->air_temp . '°C' : 'нет данных' }}</span>
                     <span>Температура воды: {{ $forecast?->water_temp !== null ? $forecast->water_temp . '°C' : 'нет данных' }}</span>
-                    <span>Время прогноза: {{ $forecast?->forecast_time ? $forecast->forecast_time->format('d.m.Y H:i') : 'нет данных' }}</span>
+                    <span>Прогноз DWD на: {{ $forecast?->forecast_time ? $forecast->forecast_time->format('d.m.Y H:i') : 'нет данных' }}</span>
                     <span>Расчёт модели: {{ $forecast?->model_run_at ? $forecast->model_run_at->format('d.m.Y H:i') : 'нет данных' }}</span>
-                    <span>Обновлено: {{ $forecast?->parsed_at ? $forecast->parsed_at->format('d.m.Y H:i') : 'нет данных' }}</span>
+                    <span>Обработано сервером: {{ $forecast?->parsed_at ? $forecast->parsed_at->format('d.m.Y H:i') : 'нет данных' }}</span>
                 </div>
             </div>
 
