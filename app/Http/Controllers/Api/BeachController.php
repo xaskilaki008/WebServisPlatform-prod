@@ -6,25 +6,23 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\Beach;
 use App\Models\BeachOperatorLog;
+use App\Services\BeachInteractionService;
+use App\Services\VisitorResolver;
 use App\Services\WaveForecastSelector;
 use Illuminate\Support\Facades\File;
-use Illuminate\Support\Facades\Cache;
 
 class BeachController extends Controller
 {
-    public function getInfo(WaveForecastSelector $forecastSelector, $id)
+    public function getInfo(
+        WaveForecastSelector $forecastSelector,
+        VisitorResolver $visitorResolver,
+        BeachInteractionService $interactionService,
+        $id
+    )
     {
         $beach = Beach::findOrFail($id);
-
-        $targetUtc = now('UTC');
-        $cacheVersion = Cache::get('wave_forecast_cache_version', 'v1');
-        $cacheKey = 'beach_' . $id . '_wave_forecast_' . $cacheVersion . '_' . $targetUtc->copy()->startOfHour()->format('Y-m-d-H');
-        $cacheTtl = max(60, min(3600, now('UTC')->diffInSeconds($targetUtc->copy()->addHour()->startOfHour())));
-        $forecast = Cache::remember(
-            $cacheKey,
-            $cacheTtl,
-            fn () => $forecastSelector->forBeach((int) $id, $targetUtc)
-        );
+        $visitor = $visitorResolver->current(request());
+        $forecast = $forecastSelector->forBeach((int) $id, now('UTC'));
 
         $latestForecast = $forecast ? [
             'wave_height' => $forecast->wave_height,
@@ -93,6 +91,9 @@ class BeachController extends Controller
             'forecast_hour' => $forecast ? $forecast->forecast_hour : null,
             'latest_forecast' => $latestForecast,
             'latest_operator_log' => $operatorLogPayload,
+            'reaction_stats' => $interactionService->reactionStats((int) $id),
+            'is_favorite' => $interactionService->isFavorite($visitor, (int) $id),
+            ...$interactionService->reactionAvailability($visitor, (int) $id),
         ];
 
         if ($this->dwdDebugEnabled() && $forecast) {

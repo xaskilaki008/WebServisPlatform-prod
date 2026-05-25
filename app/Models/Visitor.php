@@ -11,6 +11,7 @@ class Visitor extends Model
     use HasFactory;
 
     protected $fillable = [
+        'visitor_hash',
         'nickname',
         'email',
         'password',
@@ -30,5 +31,10 @@ class Visitor extends Model
     public function reactions(): HasMany
     {
         return $this->hasMany(Reaction::class);
+    }
+
+    public function favoriteBeaches(): HasMany
+    {
+        return $this->hasMany(FavoriteBeach::class);
     }
 }

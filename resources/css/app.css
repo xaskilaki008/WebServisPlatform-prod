@@ -997,7 +997,7 @@ background-color: #edf3f8;
 .operator-admin-panel {
     position: static;
     z-index: auto;
-    display: grid;
+    display: none !important;
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 10px;
     margin: 0 0 16px;
@@ -1015,6 +1015,145 @@ background-color: #edf3f8;
     cursor: wait;
     opacity: 0.75;
     transform: none;
+}
+
+.favorites-panel,
+.detail-feedback-block,
+.admin-card {
+    background: var(--surface, #ffffff);
+    border: 1px solid rgba(25, 49, 83, 0.12);
+    border-radius: 8px;
+    padding: 16px;
+}
+
+.favorites-list {
+    display: grid;
+    gap: 8px;
+}
+
+.favorite-list-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    width: 100%;
+    border: 1px solid rgba(25, 49, 83, 0.12);
+    border-radius: 8px;
+    background: #fff;
+    padding: 10px 12px;
+    cursor: pointer;
+    text-align: left;
+}
+
+.favorite-list-item small {
+    color: #5d6b80;
+}
+
+.detail-feedback-header,
+.reaction-panel,
+.reaction-actions,
+.reaction-stats,
+.admin-header,
+.admin-actions,
+.admin-status-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.detail-feedback-header,
+.admin-header,
+.admin-status-row {
+    justify-content: space-between;
+}
+
+.reaction-panel {
+    flex-wrap: wrap;
+    justify-content: space-between;
+}
+
+.reaction-stats {
+    color: #4d5f75;
+    font-size: 14px;
+}
+
+.reaction-message {
+    min-height: 20px;
+    color: #7a4b00;
+    font-size: 13px;
+}
+
+.favorite-button {
+    border: 1px solid rgba(25, 49, 83, 0.18);
+    border-radius: 8px;
+    background: #fff;
+    color: #24364b;
+    cursor: pointer;
+    font-weight: 700;
+    padding: 9px 12px;
+}
+
+.favorite-button.active {
+    border-color: #d7a700;
+    background: #fff7d6;
+}
+
+.admin-page {
+    min-height: 100vh;
+    background: #f5f7fb;
+    color: #1e2f45;
+}
+
+.admin-shell {
+    max-width: 1040px;
+    margin: 0 auto;
+    padding: 32px 16px;
+}
+
+.admin-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 16px;
+}
+
+.admin-section {
+    border: 1px solid rgba(25, 49, 83, 0.12);
+    border-radius: 8px;
+    padding: 14px;
+}
+
+.admin-form {
+    display: grid;
+    gap: 14px;
+}
+
+.admin-form label {
+    display: grid;
+    gap: 6px;
+}
+
+.admin-form input {
+    border: 1px solid rgba(25, 49, 83, 0.18);
+    border-radius: 8px;
+    padding: 10px 12px;
+}
+
+.admin-flash {
+    border-radius: 8px;
+    background: #e8f5ec;
+    color: #235b32;
+    margin: 12px 0;
+    padding: 10px 12px;
+}
+
+.admin-flash.error {
+    background: #fdecec;
+    color: #8a2424;
+}
+
+.admin-note {
+    color: #5d6b80;
+    font-size: 14px;
 }
 
 @media (max-width: 819px) {

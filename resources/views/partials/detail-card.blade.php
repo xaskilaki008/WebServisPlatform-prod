@@ -126,6 +126,28 @@
         </section>
     </div>
 
+    <section class="detail-group-block detail-feedback-block">
+        <div class="detail-feedback-header">
+            <h3 class="detail-section-title">Оценка посетителей</h3>
+            <button type="button" id="favorite-toggle-button" class="favorite-button" disabled>☆ Добавить в избранное</button>
+        </div>
+
+        <div class="reaction-panel">
+            <div>
+                <strong>Данные соответствуют реальности?</strong>
+                <div id="reaction-message" class="reaction-message"></div>
+            </div>
+            <div class="reaction-actions">
+                <button type="button" class="action-button secondary small" id="reaction-positive-button" data-reaction-type="positive">Да</button>
+                <button type="button" class="action-button secondary small" id="reaction-negative-button" data-reaction-type="negative">Нет</button>
+            </div>
+            <div class="reaction-stats">
+                <span>Подтвердили: <strong id="reaction-positive-count">0</strong></span>
+                <span>Не совпадает: <strong id="reaction-negative-count">0</strong></span>
+            </div>
+        </div>
+    </section>
+
     <div class="detail-group-block detail-update-block">
         <div class="detail-row-table">
             <div class="detail-lbl">Прогноз DWD на:</div>

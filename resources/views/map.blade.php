@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>Флаг-пляж – Морское волнение.</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css">
     <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
@@ -94,6 +95,12 @@
                     <button type="button" class="filter-chip" data-category="safe">Купание допустимо</button>
                     <button type="button" class="filter-chip" data-category="caution">Нужна осторожность</button>
                     <button type="button" class="filter-chip" data-category="danger">Купание не рекомендуется</button>
+                </div>
+            </div>
+            <div class="favorites-panel">
+                <h3 class="filter-title">Избранные пляжи</h3>
+                <div id="favorites-list" class="favorites-list">
+                    <div class="empty-state compact">Избранные пляжи пока не добавлены.</div>
                 </div>
             </div>
             <div id="beaches-list" class="list-wrap"></div>

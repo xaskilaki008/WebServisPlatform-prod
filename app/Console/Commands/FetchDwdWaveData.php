@@ -4,6 +4,7 @@ namespace App\Console\Commands;
 
 use App\Models\Beach;
 use App\Models\WaveForecast;
+use App\Services\WaveFetchService;
 use App\Services\WaveForecastSelector;
 use Carbon\Carbon;
 use Illuminate\Console\Command;
@@ -27,7 +28,7 @@ class FetchDwdWaveData extends Command
         'mwd' => 'wave_direction',
     ];
 
-    public function handle(WaveForecastSelector $forecastSelector): int
+    public function handle(WaveForecastSelector $forecastSelector, WaveFetchService $waveFetchService): int
     {
         $this->info('Starting DWD EWAM data fetch...');
 
@@ -40,6 +41,7 @@ class FetchDwdWaveData extends Command
                 'error' => $e->getMessage(),
             ]);
             $this->error($e->getMessage());
+            $waveFetchService->markFailed($e->getMessage());
 
             return self::FAILURE;
         }
@@ -71,6 +73,7 @@ class FetchDwdWaveData extends Command
                 'wgrib2_path' => $wgrib2Path,
             ]);
             $this->error("wgrib2 binary was not found at {$wgrib2Path}. Check WGRIB2_PATH.");
+            $waveFetchService->markFailed('wgrib2 binary was not found.');
 
             return self::FAILURE;
         }
@@ -88,6 +91,7 @@ class FetchDwdWaveData extends Command
 
         if ($beaches->isEmpty()) {
             $this->error('No beaches with coordinates found in database.');
+            $waveFetchService->markFailed('No beaches with coordinates found in database.');
 
             return self::FAILURE;
         }
@@ -129,6 +133,7 @@ class FetchDwdWaveData extends Command
 
                     if (!function_exists('bzdecompress')) {
                         $this->error('PHP BZIP2 extension is not enabled.');
+                        $waveFetchService->markFailed('PHP BZIP2 extension is not enabled.');
 
                         return self::FAILURE;
                     }
@@ -253,6 +258,7 @@ class FetchDwdWaveData extends Command
         ]);
         $this->info("DWD EWAM: saved forecasts {$savedCount}, updated beach levels {$updatedLevels}, wgrib2 errors {$wgribErrors}.");
         $this->info('DWD EWAM data fetch completed.');
+        $waveFetchService->markCompleted();
 
         return self::SUCCESS;
     }

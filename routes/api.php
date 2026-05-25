@@ -1,13 +1,11 @@
 <?php
 
 use App\Http\Controllers\Api\BeachController;
+use App\Http\Controllers\Api\BeachInteractionController;
 use App\Models\Beach;
 use App\Models\BeachOperator;
-use App\Models\WaveForecast;
 use App\Services\WaveForecastSelector;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Artisan;
-use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Route;
@@ -123,6 +121,9 @@ Route::patch('/beaches/wave-level', function (Request $request) {
 });
 
 Route::get('/beach-info/{id}', [BeachController::class, 'getInfo']);
+Route::post('/beaches/{beach}/reaction', [BeachInteractionController::class, 'reaction']);
+Route::get('/favorites', [BeachInteractionController::class, 'favorites']);
+Route::post('/beaches/{beach}/favorite-toggle', [BeachInteractionController::class, 'favoriteToggle']);
 
 Route::get('/beach-info-legacy/{id}', function (WaveForecastSelector $forecastSelector, $id) {
     $beach = Beach::query()->find($id);
@@ -134,74 +135,4 @@ Route::get('/beach-info-legacy/{id}', function (WaveForecastSelector $forecastSe
     $beach->setRelation('latestForecast', $forecastSelector->forBeach((int) $id, now('UTC')));
 
     return response()->json($beach);
-});
-
-Route::post('/force-fetch', function (Request $request) {
-    abort_unless(
-        BeachOperator::query()
-            ->where('operator_hash', $request->cookie('operator_hash'))
-            ->exists(),
-        403
-    );
-
-    try {
-        Artisan::call('wave:fetch');
-
-        $payload = ['message' => 'DWD data updated'];
-
-        if ((bool) config('app.debug') || app()->environment(['local', 'development'])) {
-            $payload['dwd_debug_summary'] = WaveForecast::query()
-                ->whereNotNull('parsed_at')
-                ->latest('parsed_at')
-                ->limit(10)
-                ->get([
-                    'beach_id',
-                    'model_run_hour',
-                    'parsed_at',
-                    'forecast_time',
-                    'model_run_at',
-                    'forecast_hour',
-                    'wave_height',
-                    'wave_period',
-                    'wave_direction',
-                    'air_temp',
-                    'water_temp',
-                    'source_files',
-                ])
-                ->map(fn (WaveForecast $forecast) => [
-                    'source_folder' => str_pad((string) $forecast->model_run_hour, 2, '0', STR_PAD_LEFT),
-                    'source_files' => $forecast->source_files,
-                    'parsed_at' => $forecast->parsed_at,
-                    'beach_id' => $forecast->beach_id,
-                    'wave_height' => $forecast->wave_height,
-                    'wave_period' => $forecast->wave_period,
-                    'wave_direction' => $forecast->wave_direction,
-                    'air_temp' => $forecast->air_temp,
-                    'water_temp' => $forecast->water_temp,
-                    'forecast_time' => $forecast->forecast_time,
-                    'model_run_at' => $forecast->model_run_at,
-                    'forecast_hour' => $forecast->forecast_hour,
-                ]);
-        }
-
-        return response()->json($payload);
-    } catch (Exception $e) {
-        return response()->json(['error' => 'Error: ' . $e->getMessage()], 500);
-    }
-});
-
-Route::post('/toggle-parsing', function (Request $request) {
-    abort_unless(
-        BeachOperator::query()
-            ->where('operator_hash', $request->cookie('operator_hash'))
-            ->exists(),
-        403
-    );
-
-    $newStatus = !Cache::get('parsing_enabled', true);
-    Cache::put('parsing_enabled', $newStatus);
-
-    return response()->json([
-        'message' => $newStatus ? 'Parsing enabled' : 'Parsing disabled',
-    ]);
 });

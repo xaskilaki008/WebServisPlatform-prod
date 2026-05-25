@@ -1,7 +1,9 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\AdminController;
 use App\Http\Controllers\Api\BeachController;
+use App\Http\Controllers\Api\BeachInteractionController;
 use App\Models\Beach;
 use App\Models\BeachOperator;
 use App\Models\BeachOperatorLog;
@@ -100,5 +102,16 @@ Route::post('/operator/{id}', function (Request $request, int $id) {
 });
 
 // АПИ для фронтенда (Backend)
+Route::get('/admin/login', [AdminController::class, 'loginForm']);
+Route::post('/admin/login', [AdminController::class, 'login']);
+Route::post('/admin/logout', [AdminController::class, 'logout']);
+Route::get('/admin', [AdminController::class, 'index']);
+Route::post('/admin/toggle-parsing', [AdminController::class, 'toggleParsing']);
+Route::post('/admin/force-fetch', [AdminController::class, 'forceFetch']);
+Route::get('/admin/force-fetch/status', [AdminController::class, 'forceFetchStatus']);
+
 Route::get('/api/beach-info/{id}', [BeachController::class, 'getInfo']);
 Route::get('/api/beach-photo/{id}', [BeachController::class, 'getPhoto']);
+Route::post('/api/beaches/{beach}/reaction', [BeachInteractionController::class, 'reaction']);
+Route::get('/api/favorites', [BeachInteractionController::class, 'favorites']);
+Route::post('/api/beaches/{beach}/favorite-toggle', [BeachInteractionController::class, 'favoriteToggle']);

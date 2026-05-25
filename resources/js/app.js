@@ -2,7 +2,7 @@
 // Пример функции, которая срабатывает при клике на пляж на карте
 function onBeachClick(beachId) {
     // 1. Сначала запрашиваем данные из БД
-    fetch(`/api/beach-info/${beachId}`)
+    apiFetch(`/api/beach-info/${beachId}`)
         .then(response => response.json())
         .then(beach => {
             const forecast = beach.latest_forecast;
@@ -22,7 +22,7 @@ function onBeachClick(beachId) {
         });
 
     // 3. Запрашиваем фото (твой существующий маршрут)
-    fetch(`/api/beach-photo/${beachId}`)
+    apiFetch(`/api/beach-photo/${beachId}`)
         .then(response => response.json())
         .then(data => {
             if (data.photo_url) {
@@ -97,6 +97,14 @@ const clearSearchButton = document.getElementById('clear-search-button');
 const toggleMapSizeButton = document.getElementById('toggle-map-size-button');
 const fitMapButton = document.getElementById('fit-map-button');
 const sidebarPhoto = document.getElementById('sidebar-beach-photo');
+const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content || '';
+const favoriteToggleButton = document.getElementById('favorite-toggle-button');
+const reactionPositiveButton = document.getElementById('reaction-positive-button');
+const reactionNegativeButton = document.getElementById('reaction-negative-button');
+const reactionMessage = document.getElementById('reaction-message');
+const reactionPositiveCount = document.getElementById('reaction-positive-count');
+const reactionNegativeCount = document.getElementById('reaction-negative-count');
+const favoritesList = document.getElementById('favorites-list');
 const routeState = {
     map: 'beaches-map',
     list: 'beach-list',
@@ -136,6 +144,23 @@ if (initialRouteIsList) {
 
 if (initialRouteIsMap) {
     screens.forEach(screen => screen.classList.toggle('active', screen.id === 'map-screen'));
+}
+
+function apiFetch(url, options = {}) {
+    const headers = {
+        Accept: 'application/json',
+        ...(options.headers || {}),
+    };
+
+    if (csrfToken) {
+        headers['X-CSRF-TOKEN'] = csrfToken;
+    }
+
+    return fetch(url, {
+        credentials: 'same-origin',
+        ...options,
+        headers,
+    });
 }
 // --- ЭКСПОРТ ФУНКЦИЙ ДЛЯ HTML ---
 window.setMainPhoto = setMainPhoto;
@@ -362,6 +387,98 @@ function updateOperatorControls(beach = {}, status = null) {
     }
 }
 
+function updateReactionControls(data = {}) {
+    const stats = data.reaction_stats || {};
+    if (reactionPositiveCount) reactionPositiveCount.textContent = String(stats.positive ?? 0);
+    if (reactionNegativeCount) reactionNegativeCount.textContent = String(stats.negative ?? 0);
+
+    const canReact = data.can_react !== false;
+    [reactionPositiveButton, reactionNegativeButton].forEach(button => {
+        if (button) button.disabled = !canReact;
+    });
+
+    if (reactionMessage) {
+        const retrySeconds = Number(data.reaction_retry_after_seconds || 0);
+        reactionMessage.textContent = canReact
+            ? ''
+            : `Повторная реакция будет доступна через ${Math.ceil(retrySeconds / 60)} мин.`;
+    }
+}
+
+function updateFavoriteControl(data = {}) {
+    if (!favoriteToggleButton) return;
+
+    const isFavorite = Boolean(data.is_favorite);
+    favoriteToggleButton.disabled = false;
+    favoriteToggleButton.textContent = isFavorite ? '★ В избранном' : '☆ Добавить в избранное';
+    favoriteToggleButton.classList.toggle('active', isFavorite);
+}
+
+function renderFavorites(items = []) {
+    if (!favoritesList) return;
+
+    if (!items.length) {
+        favoritesList.innerHTML = '<div class="empty-state compact">Избранные пляжи пока не добавлены.</div>';
+        return;
+    }
+
+    favoritesList.innerHTML = items.map(beach => `
+        <button type="button" class="favorite-list-item" data-favorite-id="${beach.id}">
+            <span>${beach.name || 'Без названия'}</span>
+            <small>${beach.category_label || getBeachCategoryLabel(beach)}</small>
+        </button>
+    `).join('');
+}
+
+function loadFavorites() {
+    if (!favoritesList) return;
+
+    apiFetch('/api/favorites')
+        .then(response => response.json())
+        .then(data => renderFavorites(data.favorites || []))
+        .catch(() => renderFavorites([]));
+}
+
+function submitReaction(type) {
+    const beachId = Number(detailMapButton.dataset.id);
+    if (!beachId) return;
+
+    [reactionPositiveButton, reactionNegativeButton].forEach(button => {
+        if (button) button.disabled = true;
+    });
+
+    apiFetch(`/api/beaches/${beachId}/reaction`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ reaction_type: type }),
+    })
+        .then(response => response.json())
+        .then(data => {
+            updateReactionControls(data);
+            if (reactionMessage) reactionMessage.textContent = data.message || '';
+        })
+        .catch(() => {
+            if (reactionMessage) reactionMessage.textContent = 'Не удалось сохранить реакцию.';
+        });
+}
+
+function toggleFavorite() {
+    const beachId = Number(detailMapButton.dataset.id);
+    if (!beachId || !favoriteToggleButton) return;
+
+    favoriteToggleButton.disabled = true;
+
+    apiFetch(`/api/beaches/${beachId}/favorite-toggle`, { method: 'POST' })
+        .then(response => response.json())
+        .then(data => {
+            updateFavoriteControl(data);
+            loadFavorites();
+        })
+        .catch(() => {
+            favoriteToggleButton.disabled = false;
+        });
+}
+
 function renderLoadingState() {
     beachesList.innerHTML = `
         <div class="skeleton skeleton-card"></div>
@@ -395,6 +512,9 @@ function updateDetailScreen(beach = {}) {
     // Эта строка вешает класс подсветки (зеленый/желтый/красный)
     detailCategory.className = 'category-badge ' + getCategoryBadgeClass(beach);
     detailMapButton.dataset.id = beach.id ?? '';
+    updateReactionControls({ reaction_stats: {}, can_react: false });
+    updateFavoriteControl({ is_favorite: false });
+    if (favoriteToggleButton) favoriteToggleButton.disabled = true;
 
     const hasCoords = beach.latitude !== undefined && beach.longitude !== undefined;
     detailCoordinates.textContent = hasCoords ? `${beach.latitude}, ${beach.longitude}` : '-';
@@ -407,7 +527,7 @@ function updateDetailScreen(beach = {}) {
 
     if (beach.id) {
     // Запрос данных о волнах
-    fetch(`/api/beach-info/${cleanId}`)
+    apiFetch(`/api/beach-info/${cleanId}`)
         .then(response => response.json())
         .then(data => {
             Object.assign(beach, data);
@@ -450,6 +570,8 @@ function updateDetailScreen(beach = {}) {
                 detailWaveText.innerText = getWaveLevelText(beach.wave_level);
             }
             updateOperatorControls(beach, data.operator_status ?? beach.operator_status ?? null);
+            updateReactionControls(data);
+            updateFavoriteControl(data);
         })
         .catch(err => {
             console.error('Ошибка загрузки волн:', err);
@@ -459,7 +581,7 @@ function updateDetailScreen(beach = {}) {
         });
 
         // Запрос фотографий
-        fetch(`/api/beach-photo/${beach.id}`)
+        apiFetch(`/api/beach-photo/${beach.id}`)
             .then(res => res.json())
             .then(data => {
                 currentPhotos = data.photo_urls || [];
@@ -1320,6 +1442,28 @@ detailCoordinates.addEventListener('click', function () {
     tempInput.remove();
 });
 
+if (reactionPositiveButton) {
+    reactionPositiveButton.addEventListener('click', () => submitReaction('positive'));
+}
+
+if (reactionNegativeButton) {
+    reactionNegativeButton.addEventListener('click', () => submitReaction('negative'));
+}
+
+if (favoriteToggleButton) {
+    favoriteToggleButton.addEventListener('click', toggleFavorite);
+}
+
+if (favoritesList) {
+    favoritesList.addEventListener('click', event => {
+        const button = event.target.closest('[data-favorite-id]');
+        if (!button) return;
+
+        const beach = beaches.find(item => String(item.id) === String(button.dataset.favoriteId));
+        if (beach) openBeachDetails(beach, 'list-screen');
+    });
+}
+
 toggleMapSizeButton.addEventListener('click', function () {
     setMapExpanded(!isMapExpanded);
 });
@@ -1342,7 +1486,7 @@ L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
 
 renderLoadingState();
 
-fetch('/api/beaches')
+apiFetch('/api/beaches')
     .then(response => response.json())
     // НАЙДИТЕ ЭТОТ БЛОК В КОНЦЕ ФАЙЛА:
     .then(data => {
@@ -1352,6 +1496,7 @@ fetch('/api/beaches')
         if (beachesPolygonLayer) refreshPolygonStyles();
         renderMapMarkers();
         renderBeachesList();
+        loadFavorites();
 
         if (beaches.length > 0) {
             const urlParams = new URLSearchParams(window.location.search);
