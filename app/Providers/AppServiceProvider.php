@@ -19,7 +19,6 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        // Регистрируем наблюдателя для модели WaveForecast
-        \App\Models\WaveForecast::observe(\App\Observers\WaveForecastObserver::class);
+        //
     }
 }

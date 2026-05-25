@@ -5,6 +5,7 @@ use App\Http\Controllers\Api\BeachController;
 use App\Models\Beach;
 use App\Models\BeachOperator;
 use App\Models\BeachOperatorLog;
+use App\Services\WaveForecastSelector;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Schema;
 
@@ -22,7 +23,7 @@ Route::get('/', function (Request $request) {
     ]);
 });
 
-Route::get('/operator/{id}', function (Request $request, int $id) {
+Route::get('/operator/{id}', function (Request $request, WaveForecastSelector $forecastSelector, int $id) {
     $operator = BeachOperator::query()
         ->where('operator_hash', $request->cookie('operator_hash'))
         ->where('beach_id', $id)
@@ -30,9 +31,12 @@ Route::get('/operator/{id}', function (Request $request, int $id) {
 
     abort_unless($operator, 403, 'Доступ запрещен');
 
+    $beach = Beach::query()->findOrFail($id);
+    $beach->setRelation('latestForecast', $forecastSelector->forBeach($id, now('UTC')));
+
     return view('operator', [
         'operator' => $operator,
-        'beach' => Beach::query()->with('latestForecast')->findOrFail($id),
+        'beach' => $beach,
     ]);
 });
 

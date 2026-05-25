@@ -4,6 +4,7 @@ use App\Http\Controllers\Api\BeachController;
 use App\Models\Beach;
 use App\Models\BeachOperator;
 use App\Models\WaveForecast;
+use App\Services\WaveForecastSelector;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Cache;
@@ -123,12 +124,14 @@ Route::patch('/beaches/wave-level', function (Request $request) {
 
 Route::get('/beach-info/{id}', [BeachController::class, 'getInfo']);
 
-Route::get('/beach-info-legacy/{id}', function ($id) {
-    $beach = Beach::with('latestForecast')->find($id);
+Route::get('/beach-info-legacy/{id}', function (WaveForecastSelector $forecastSelector, $id) {
+    $beach = Beach::query()->find($id);
 
     if (!$beach) {
         return response()->json(['error' => 'Beach not found'], 404);
     }
+
+    $beach->setRelation('latestForecast', $forecastSelector->forBeach((int) $id, now('UTC')));
 
     return response()->json($beach);
 });
@@ -157,6 +160,7 @@ Route::post('/force-fetch', function (Request $request) {
                     'parsed_at',
                     'forecast_time',
                     'model_run_at',
+                    'forecast_hour',
                     'wave_height',
                     'wave_period',
                     'wave_direction',
@@ -176,6 +180,7 @@ Route::post('/force-fetch', function (Request $request) {
                     'water_temp' => $forecast->water_temp,
                     'forecast_time' => $forecast->forecast_time,
                     'model_run_at' => $forecast->model_run_at,
+                    'forecast_hour' => $forecast->forecast_hour,
                 ]);
         }
 

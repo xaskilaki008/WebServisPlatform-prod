@@ -6,32 +6,25 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\Beach;
 use App\Models\BeachOperatorLog;
-use App\Models\WaveForecast;
-use Carbon\Carbon;
+use App\Services\WaveForecastSelector;
 use Illuminate\Support\Facades\File;
+use Illuminate\Support\Facades\Cache;
 
 class BeachController extends Controller
 {
-    public function getInfo($id)
+    public function getInfo(WaveForecastSelector $forecastSelector, $id)
     {
         $beach = Beach::findOrFail($id);
 
-        $currentModelRunAt = $this->currentDwdModelRunAt();
-
-        $forecast = WaveForecast::query()
-            ->where('beach_id', $id)
-            ->where('model_run_at', '<=', $currentModelRunAt)
-            ->orderBy('model_run_at', 'desc')
-            ->orderBy('forecast_time', 'desc')
-            ->first();
-
-        if (!$forecast) {
-            $forecast = WaveForecast::query()
-                ->where('beach_id', $id)
-                ->orderBy('model_run_at', 'desc')
-                ->orderBy('forecast_time', 'desc')
-                ->first();
-        }
+        $targetUtc = now('UTC');
+        $cacheVersion = Cache::get('wave_forecast_cache_version', 'v1');
+        $cacheKey = 'beach_' . $id . '_wave_forecast_' . $cacheVersion . '_' . $targetUtc->copy()->startOfHour()->format('Y-m-d-H');
+        $cacheTtl = max(60, min(3600, now('UTC')->diffInSeconds($targetUtc->copy()->addHour()->startOfHour())));
+        $forecast = Cache::remember(
+            $cacheKey,
+            $cacheTtl,
+            fn () => $forecastSelector->forBeach((int) $id, $targetUtc)
+        );
 
         $latestForecast = $forecast ? [
             'wave_height' => $forecast->wave_height,
@@ -42,6 +35,7 @@ class BeachController extends Controller
             'forecast_time' => $forecast->forecast_time,
             'model_run_at' => $forecast->model_run_at,
             'model_run_hour' => $forecast->model_run_hour,
+            'forecast_hour' => $forecast->forecast_hour,
             'parsed_at' => $forecast->parsed_at,
         ] : null;
 
@@ -96,6 +90,7 @@ class BeachController extends Controller
             'forecast_time' => $forecast ? $forecast->forecast_time : null,
             'model_run_at' => $forecast ? $forecast->model_run_at : null,
             'model_run_hour' => $forecast ? $forecast->model_run_hour : null,
+            'forecast_hour' => $forecast ? $forecast->forecast_hour : null,
             'latest_forecast' => $latestForecast,
             'latest_operator_log' => $operatorLogPayload,
         ];
@@ -114,18 +109,11 @@ class BeachController extends Controller
                 'water_temp' => $forecast->water_temp,
                 'forecast_time' => $forecast->forecast_time,
                 'model_run_at' => $forecast->model_run_at,
+                'forecast_hour' => $forecast->forecast_hour,
             ];
         }
 
         return response()->json($payload);
-    }
-
-    private function currentDwdModelRunAt(): Carbon
-    {
-        $now = Carbon::now();
-        $modelRunHour = $now->hour < 12 ? 0 : 12;
-
-        return $now->copy()->startOfDay()->addHours($modelRunHour);
     }
 
     private function latestCompleteOperatorLog(int $beachId, bool $activeOnly = true): ?BeachOperatorLog

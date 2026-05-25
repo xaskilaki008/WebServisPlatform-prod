@@ -13,6 +13,7 @@ class WaveForecast extends Model
     protected $fillable = [
         'beach_id',
         'forecast_time',
+        'forecast_hour',
         'wave_height',
         'wave_period',
         'wave_direction',
@@ -27,6 +28,7 @@ class WaveForecast extends Model
     protected $casts = [
         'beach_id' => 'integer',
         'forecast_time' => 'datetime',
+        'forecast_hour' => 'integer',
         'wave_height' => 'float',
         'wave_period' => 'float',
         'wave_direction' => 'float',
