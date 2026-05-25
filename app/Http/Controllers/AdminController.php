@@ -107,6 +107,15 @@ class AdminController extends Controller
         return response()->json($waveFetchService->status());
     }
 
+    public function resetFetchLock(Request $request, AdminAuthService $auth, WaveFetchService $waveFetchService)
+    {
+        $this->authorizeAdmin($request, $auth);
+
+        $result = $waveFetchService->resetStaleLock();
+
+        return redirect('/admin')->with('status', $result['message']);
+    }
+
     private function authorizeAdmin(Request $request, AdminAuthService $auth): void
     {
         abort_unless($auth->admin($request), 403);

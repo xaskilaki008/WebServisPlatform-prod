@@ -45,12 +45,25 @@
                                 {{ $fetchStatus['running'] ? 'Загрузка выполняется' : 'Загрузить DWD сейчас' }}
                             </button>
                         </form>
+                        @if($fetchStatus['can_reset'])
+                            <form method="POST" action="/admin/force-fetch/reset-lock">
+                                @csrf
+                                <button type="submit" class="action-button secondary">
+                                    Сбросить зависший запуск
+                                </button>
+                            </form>
+                        @endif
                     </div>
                 </section>
 
                 <section class="admin-section">
                     <h2>Последняя операция</h2>
                     <div class="admin-status-row"><span>Статус</span><strong>{{ $fetchStatus['status'] }}</strong></div>
+                    @if($fetchStatus['stale'])
+                        <div class="admin-flash error">Загрузка выглядит зависшей. Можно сбросить lock и запустить DWD заново.</div>
+                    @elseif($fetchStatus['running'])
+                        <div class="admin-flash">Загрузка DWD сейчас выполняется.</div>
+                    @endif
                     <div class="admin-status-row"><span>Старт</span><strong>{{ $fetchStatus['started_at'] ?? '-' }}</strong></div>
                     <div class="admin-status-row"><span>Завершение</span><strong>{{ $fetchStatus['finished_at'] ?? '-' }}</strong></div>
                     @if($fetchStatus['error'])

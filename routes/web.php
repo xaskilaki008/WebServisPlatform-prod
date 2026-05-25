@@ -108,6 +108,7 @@ Route::post('/admin/logout', [AdminController::class, 'logout']);
 Route::get('/admin', [AdminController::class, 'index']);
 Route::post('/admin/toggle-parsing', [AdminController::class, 'toggleParsing']);
 Route::post('/admin/force-fetch', [AdminController::class, 'forceFetch']);
+Route::post('/admin/force-fetch/reset-lock', [AdminController::class, 'resetFetchLock']);
 Route::get('/admin/force-fetch/status', [AdminController::class, 'forceFetchStatus']);
 
 Route::get('/api/beach-info/{id}', [BeachController::class, 'getInfo']);

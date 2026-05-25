@@ -41,7 +41,7 @@ class FetchDwdWaveData extends Command
                 'error' => $e->getMessage(),
             ]);
             $this->error($e->getMessage());
-            $waveFetchService->markFailed($e->getMessage());
+            $this->safeMarkFailed($waveFetchService, $e->getMessage());
 
             return self::FAILURE;
         }
@@ -73,7 +73,7 @@ class FetchDwdWaveData extends Command
                 'wgrib2_path' => $wgrib2Path,
             ]);
             $this->error("wgrib2 binary was not found at {$wgrib2Path}. Check WGRIB2_PATH.");
-            $waveFetchService->markFailed('wgrib2 binary was not found.');
+            $this->safeMarkFailed($waveFetchService, 'wgrib2 binary was not found.');
 
             return self::FAILURE;
         }
@@ -91,7 +91,7 @@ class FetchDwdWaveData extends Command
 
         if ($beaches->isEmpty()) {
             $this->error('No beaches with coordinates found in database.');
-            $waveFetchService->markFailed('No beaches with coordinates found in database.');
+            $this->safeMarkFailed($waveFetchService, 'No beaches with coordinates found in database.');
 
             return self::FAILURE;
         }
@@ -133,7 +133,7 @@ class FetchDwdWaveData extends Command
 
                     if (!function_exists('bzdecompress')) {
                         $this->error('PHP BZIP2 extension is not enabled.');
-                        $waveFetchService->markFailed('PHP BZIP2 extension is not enabled.');
+                        $this->safeMarkFailed($waveFetchService, 'PHP BZIP2 extension is not enabled.');
 
                         return self::FAILURE;
                     }
@@ -258,7 +258,7 @@ class FetchDwdWaveData extends Command
         ]);
         $this->info("DWD EWAM: saved forecasts {$savedCount}, updated beach levels {$updatedLevels}, wgrib2 errors {$wgribErrors}.");
         $this->info('DWD EWAM data fetch completed.');
-        $waveFetchService->markCompleted();
+        $this->safeMarkCompleted($waveFetchService);
 
         return self::SUCCESS;
     }
@@ -286,6 +286,7 @@ class FetchDwdWaveData extends Command
     {
         $serverNow = now('UTC');
         $candidates = [];
+        $requestErrors = [];
 
         foreach ([12, 0] as $runHour) {
             $runDir = str_pad((string) $runHour, 2, '0', STR_PAD_LEFT);
@@ -304,6 +305,7 @@ class FetchDwdWaveData extends Command
                     $indexResponse = Http::withoutVerifying()->get($indexUrl);
 
                     if ($indexResponse->failed()) {
+                        $requestErrors[] = "HTTP {$indexResponse->status()} for {$indexUrl}";
                         Log::error('DWD EWAM: parameter index request failed', [
                             'parameter' => $dwdDir,
                             'url' => $indexUrl,
@@ -313,6 +315,7 @@ class FetchDwdWaveData extends Command
                         continue 2;
                     }
                 } catch (\Exception $e) {
+                    $requestErrors[] = "{$indexUrl}: {$e->getMessage()}";
                     Log::error('DWD EWAM: parameter index request exception', [
                         'parameter' => $dwdDir,
                         'url' => $indexUrl,
@@ -410,6 +413,13 @@ class FetchDwdWaveData extends Command
         }
 
         if (empty($candidates)) {
+            if (!empty($requestErrors)) {
+                throw new \RuntimeException(
+                    'Нет доступа к DWD opendata.dwd.de: не удалось получить индекс файлов EWAM. Последняя ошибка: '
+                    . end($requestErrors)
+                );
+            }
+
             throw new \RuntimeException('DWD EWAM: no complete model run found in 00 or 12 folders.');
         }
 
@@ -419,6 +429,29 @@ class FetchDwdWaveData extends Command
         );
 
         return $candidates[0];
+    }
+
+    private function safeMarkCompleted(WaveFetchService $waveFetchService): void
+    {
+        try {
+            $waveFetchService->markCompleted();
+        } catch (\Throwable $e) {
+            Log::error('DWD EWAM: failed to write success status', [
+                'error' => $e->getMessage(),
+            ]);
+        }
+    }
+
+    private function safeMarkFailed(WaveFetchService $waveFetchService, string $message): void
+    {
+        try {
+            $waveFetchService->markFailed($message);
+        } catch (\Throwable $e) {
+            Log::error('DWD EWAM: failed to write failure status', [
+                'status_message' => $message,
+                'error' => $e->getMessage(),
+            ]);
+        }
     }
 
     private function wgrib2Exists(string $wgrib2Path): bool
