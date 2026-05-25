@@ -47,7 +47,6 @@ class BeachInteractionService
 
         $latestReaction = Reaction::query()
             ->where('visitor_id', $visitor->id)
-            ->where('beach_id', $beachId)
             ->latest('created_at')
             ->first();
 
@@ -92,7 +91,7 @@ class BeachInteractionService
         if (!$availability['can_react']) {
             return [
                 'success' => false,
-                'message' => 'Вы уже оставляли реакцию недавно. Попробуйте позже.',
+                'message' => 'Вы уже поставили реакцию. Следующую можно отправить позже.',
                 ...$availability,
             ];
         }

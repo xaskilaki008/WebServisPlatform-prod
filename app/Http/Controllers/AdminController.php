@@ -6,6 +6,7 @@ use App\Models\FavoriteBeach;
 use App\Models\Reaction;
 use App\Models\WaveForecast;
 use App\Services\AdminAuthService;
+use App\Services\BrowserLoginThrottle;
 use App\Services\WaveFetchService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
@@ -21,18 +22,31 @@ class AdminController extends Controller
         return view('admin.login');
     }
 
-    public function login(Request $request, AdminAuthService $auth)
+    public function login(Request $request, AdminAuthService $auth, BrowserLoginThrottle $throttle)
     {
         $validated = $request->validate([
             'login' => ['required', 'string'],
             'password' => ['required', 'string'],
         ]);
 
-        if (!$auth->attempt($request, $validated['login'], $validated['password'])) {
+        $throttleStatus = $throttle->status($request, 'admin');
+        if ($throttleStatus['blocked']) {
             return back()
-                ->withErrors(['login' => 'Неверный логин или пароль.'])
+                ->withErrors(['login' => $this->blockedMessage($throttleStatus['retry_after_seconds'])])
                 ->withInput(['login' => $validated['login']]);
         }
+
+        if (!$auth->attempt($request, $validated['login'], $validated['password'])) {
+            $throttleStatus = $throttle->registerFailure($request, 'admin');
+
+            return back()
+                ->withErrors(['login' => $throttleStatus['blocked']
+                    ? $this->blockedMessage($throttleStatus['retry_after_seconds'])
+                    : 'Неверный логин или пароль.'])
+                ->withInput(['login' => $validated['login']]);
+        }
+
+        $throttle->clear($request, 'admin');
 
         return redirect('/admin');
     }
@@ -96,5 +110,10 @@ class AdminController extends Controller
     private function authorizeAdmin(Request $request, AdminAuthService $auth): void
     {
         abort_unless($auth->admin($request), 403);
+    }
+
+    private function blockedMessage(int $retryAfterSeconds): string
+    {
+        return "Слишком много попыток входа. Попробуйте через {$retryAfterSeconds} сек.";
     }
 }

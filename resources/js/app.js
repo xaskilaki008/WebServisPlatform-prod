@@ -105,6 +105,7 @@ const reactionMessage = document.getElementById('reaction-message');
 const reactionPositiveCount = document.getElementById('reaction-positive-count');
 const reactionNegativeCount = document.getElementById('reaction-negative-count');
 const favoritesList = document.getElementById('favorites-list');
+let reactionNoticeTimer = null;
 const routeState = {
     map: 'beaches-map',
     list: 'beach-list',
@@ -401,8 +402,22 @@ function updateReactionControls(data = {}) {
         const retrySeconds = Number(data.reaction_retry_after_seconds || 0);
         reactionMessage.textContent = canReact
             ? ''
-            : `Повторная реакция будет доступна через ${Math.ceil(retrySeconds / 60)} мин.`;
+            : `Следующую реакцию можно будет отправить через ${Math.ceil(retrySeconds / 60)} мин.`;
     }
+}
+
+function showReactionNotice(message, timeout = 2000) {
+    if (!reactionMessage) return;
+
+    if (reactionNoticeTimer) {
+        clearTimeout(reactionNoticeTimer);
+    }
+
+    reactionMessage.textContent = message || '';
+    reactionNoticeTimer = setTimeout(() => {
+        reactionMessage.textContent = '';
+        reactionNoticeTimer = null;
+    }, timeout);
 }
 
 function updateFavoriteControl(data = {}) {
@@ -443,7 +458,10 @@ function submitReaction(type) {
     const beachId = Number(detailMapButton.dataset.id);
     if (!beachId) return;
 
-    [reactionPositiveButton, reactionNegativeButton].forEach(button => {
+    const reactionButtons = [reactionPositiveButton, reactionNegativeButton].filter(Boolean);
+    const previousDisabledState = reactionButtons.map(button => button.disabled);
+
+    reactionButtons.forEach(button => {
         if (button) button.disabled = true;
     });
 
@@ -452,13 +470,30 @@ function submitReaction(type) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ reaction_type: type }),
     })
-        .then(response => response.json())
-        .then(data => {
-            updateReactionControls(data);
-            if (reactionMessage) reactionMessage.textContent = data.message || '';
+        .then(response => response.json().then(data => ({ response, data })))
+        .then(({ response, data }) => {
+            if (!response.ok && !data) {
+                throw new Error('Reaction request failed');
+            }
+
+            if (data.can_react === false) {
+                updateReactionControls(data);
+            } else {
+                reactionButtons.forEach(button => {
+                    button.disabled = false;
+                });
+                updateReactionControls(data);
+            }
+
+            showReactionNotice(data.message || (data.success === false
+                ? 'Вы уже поставили реакцию. Следующую можно отправить позже.'
+                : 'Реакция сохранена.'));
         })
         .catch(() => {
-            if (reactionMessage) reactionMessage.textContent = 'Не удалось сохранить реакцию.';
+            reactionButtons.forEach((button, index) => {
+                button.disabled = previousDisabledState[index];
+            });
+            showReactionNotice('Не удалось сохранить реакцию.');
         });
 }
 
@@ -1695,7 +1730,15 @@ document.addEventListener('DOMContentLoaded', () => {
                 return;
             }
 
-            alert('Access denied');
+            let message = 'Неверный логин или пароль.';
+            try {
+                const data = await response.json();
+                message = data.message || message;
+            } catch (error) {
+                // Keep the default message when the server response is not JSON.
+            }
+
+            alert(message);
         });
     }
         // Закрытие по клику на фон

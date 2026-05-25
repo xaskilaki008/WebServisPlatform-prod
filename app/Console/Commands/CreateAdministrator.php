@@ -14,9 +14,16 @@ class CreateAdministrator extends Command
     {
         $login = $this->argument('login') ?: $this->ask('Admin login');
         $password = $this->secret('Admin password');
+        $passwordConfirmation = $this->secret('Confirm admin password');
 
-        if (!$login || !$password) {
+        if (!$login || !$password || !$passwordConfirmation) {
             $this->error('Login and password are required.');
+
+            return self::FAILURE;
+        }
+
+        if ($password !== $passwordConfirmation) {
+            $this->error('Passwords do not match.');
 
             return self::FAILURE;
         }
