@@ -1156,6 +1156,24 @@ background-color: #edf3f8;
     font-size: 14px;
 }
 
+.admin-log {
+    background: #101828;
+    border-radius: 8px;
+    color: #d7e3f4;
+    font-size: 12px;
+    line-height: 1.5;
+    margin: 0;
+    max-height: 360px;
+    overflow: auto;
+    padding: 12px;
+    white-space: pre-wrap;
+}
+
+.admin-diagnostic-list {
+    display: grid;
+    gap: 8px;
+}
+
 @media (max-width: 819px) {
     .popup-nav.left {
         left: 10px;

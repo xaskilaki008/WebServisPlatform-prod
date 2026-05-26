@@ -4,12 +4,12 @@ namespace App\Console\Commands;
 
 use App\Models\Beach;
 use App\Models\WaveForecast;
+use App\Services\DwdHttpClient;
 use App\Services\WaveFetchService;
 use App\Services\WaveForecastSelector;
 use Carbon\Carbon;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Cache;
-use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use Symfony\Component\Process\ExecutableFinder;
 use Symfony\Component\Process\Process;
@@ -22,26 +22,35 @@ class FetchDwdWaveData extends Command
     private const FORECAST_HOUR_LIMIT = 24;
     private const MODEL_TIMEZONE = 'Europe/Berlin';
 
+    private DwdHttpClient $dwdHttpClient;
+
     private array $parameters = [
         'swh' => 'wave_height',
         'tm10' => 'wave_period',
         'mwd' => 'wave_direction',
     ];
 
-    public function handle(WaveForecastSelector $forecastSelector, WaveFetchService $waveFetchService): int
+    private ?WaveFetchService $waveFetchService = null;
+
+    public function handle(WaveForecastSelector $forecastSelector, WaveFetchService $waveFetchService, DwdHttpClient $dwdHttpClient): int
     {
+        $this->waveFetchService = $waveFetchService;
+        $this->dwdHttpClient = $dwdHttpClient;
+        $this->markStage('started', 'Старт команды wave:fetch.');
         $this->info('Starting DWD EWAM data fetch...');
+        $this->markStage('http_options', 'DWD HTTP: ' . $this->dwdHttpClient->connectionSummary() . '.');
 
         $wgrib2Path = env('WGRIB2_PATH', 'wgrib2');
 
         try {
+            $this->markStage('checking_dwd_index', 'Проверка индекса DWD EWAM.');
             $dwdRun = $this->getLatestAvailableDwdRun();
         } catch (\RuntimeException $e) {
             Log::error('DWD EWAM: model run discovery failed', [
                 'error' => $e->getMessage(),
             ]);
             $this->error($e->getMessage());
-            $this->safeMarkFailed($waveFetchService, $e->getMessage());
+            $this->safeMarkFailed($waveFetchService, $e->getMessage(), 'dwd_index_failed');
 
             return self::FAILURE;
         }
@@ -54,6 +63,7 @@ class FetchDwdWaveData extends Command
         $savedCount = 0;
         $wgribErrors = 0;
 
+        $this->markStage('model_run_selected', "Выбрана папка DWD {$modelRunDir}, model_run_at {$modelRunAt->toDateTimeString()} UTC.");
         $this->info("DWD EWAM: selected folder {$modelRunDir} ({$baseDwdUrl})");
         $this->info("DWD EWAM: model_run_at {$modelRunAt->toDateTimeString()} UTC");
         $this->info("DWD EWAM: forecast hours 0-" . self::FORECAST_HOUR_LIMIT);
@@ -73,11 +83,12 @@ class FetchDwdWaveData extends Command
                 'wgrib2_path' => $wgrib2Path,
             ]);
             $this->error("wgrib2 binary was not found at {$wgrib2Path}. Check WGRIB2_PATH.");
-            $this->safeMarkFailed($waveFetchService, 'wgrib2 binary was not found.');
+            $this->safeMarkFailed($waveFetchService, 'wgrib2 binary was not found.', 'wgrib2_missing');
 
             return self::FAILURE;
         }
 
+        $this->markStage('checking_wgrib2', "Проверка wgrib2: {$wgrib2Path}.");
         $wgribVersion = new Process([$wgrib2Path, '-version']);
         $wgribVersion->run();
         Log::info('DWD EWAM: wgrib2 version check', [
@@ -91,7 +102,7 @@ class FetchDwdWaveData extends Command
 
         if ($beaches->isEmpty()) {
             $this->error('No beaches with coordinates found in database.');
-            $this->safeMarkFailed($waveFetchService, 'No beaches with coordinates found in database.');
+            $this->safeMarkFailed($waveFetchService, 'No beaches with coordinates found in database.', 'no_beaches');
 
             return self::FAILURE;
         }
@@ -116,11 +127,13 @@ class FetchDwdWaveData extends Command
                 $fileUrl = "{$baseDwdUrl}{$dwdDir}/{$latestFileName}";
                 $gribFileName = "latest_{$dwdDir}_{$forecastHour}.grib2";
                 $filePath = storage_path("app/{$gribFileName}");
+                $tmpFilePath = "{$filePath}.tmp";
 
+                $this->markStage('downloading', "Скачивание {$latestFileName}.");
                 $this->line(" -> Downloading {$latestFileName}...");
 
                 try {
-                    $fileResponse = Http::withoutVerifying()->timeout(120)->get($fileUrl);
+                    $fileResponse = $this->dwdHttpClient->get($fileUrl, 120);
 
                     if ($fileResponse->failed()) {
                         Log::error('DWD EWAM: source download failed', [
@@ -133,11 +146,12 @@ class FetchDwdWaveData extends Command
 
                     if (!function_exists('bzdecompress')) {
                         $this->error('PHP BZIP2 extension is not enabled.');
-                        $this->safeMarkFailed($waveFetchService, 'PHP BZIP2 extension is not enabled.');
+                        $this->safeMarkFailed($waveFetchService, 'PHP BZIP2 extension is not enabled.', 'bzip2_missing');
 
                         return self::FAILURE;
                     }
 
+                    $this->markStage('decompressing', "Распаковка {$latestFileName}.");
                     $gribContent = bzdecompress($fileResponse->body());
 
                     if (!$gribContent) {
@@ -150,8 +164,21 @@ class FetchDwdWaveData extends Command
                         continue;
                     }
 
-                    file_put_contents($filePath, $gribContent);
+                    if (file_exists($tmpFilePath)) {
+                        unlink($tmpFilePath);
+                    }
+
+                    if (file_exists($filePath)) {
+                        unlink($filePath);
+                    }
+
+                    file_put_contents($tmpFilePath, $gribContent);
+                    rename($tmpFilePath, $filePath);
                 } catch (\Exception $e) {
+                    if (file_exists($tmpFilePath)) {
+                        unlink($tmpFilePath);
+                    }
+
                     Log::error('DWD EWAM: source download/decompression exception', [
                         'parameter' => $dwdDir,
                         'url' => $fileUrl,
@@ -160,6 +187,7 @@ class FetchDwdWaveData extends Command
                     continue;
                 }
 
+                $this->markStage('processing_beaches', "Обработка пляжей для {$latestFileName}.");
                 foreach ($beaches as $beach) {
                     if (empty($beach->fetch_longitude) || empty($beach->fetch_latitude)) {
                         continue;
@@ -201,10 +229,15 @@ class FetchDwdWaveData extends Command
                 if (file_exists($filePath)) {
                     unlink($filePath);
                 }
+
+                if (file_exists($tmpFilePath)) {
+                    unlink($tmpFilePath);
+                }
             }
         }
 
         if (!empty($parsedData)) {
+            $this->markStage('saving', 'Сохранение разобранных прогнозов в БД.');
             $this->info('Saving parsed data...');
             $parsedAt = now('UTC');
 
@@ -244,7 +277,13 @@ class FetchDwdWaveData extends Command
         }
 
         $updatedLevels = $forecastSelector->refreshBeachWaveLevels(now('UTC'));
-        Cache::put('wave_forecast_cache_version', now('UTC')->timestamp);
+        try {
+            Cache::put('wave_forecast_cache_version', now('UTC')->timestamp);
+        } catch (\Throwable $e) {
+            Log::error('DWD EWAM: failed to update forecast cache version', [
+                'error' => $e->getMessage(),
+            ]);
+        }
 
         Log::info('DWD EWAM: fetch completed', [
             'base_url' => $baseDwdUrl,
@@ -258,6 +297,7 @@ class FetchDwdWaveData extends Command
         ]);
         $this->info("DWD EWAM: saved forecasts {$savedCount}, updated beach levels {$updatedLevels}, wgrib2 errors {$wgribErrors}.");
         $this->info('DWD EWAM data fetch completed.');
+        $this->markStage('completed', "Готово: сохранено {$savedCount}, обновлено уровней {$updatedLevels}, ошибок wgrib2 {$wgribErrors}.");
         $this->safeMarkCompleted($waveFetchService);
 
         return self::SUCCESS;
@@ -290,19 +330,21 @@ class FetchDwdWaveData extends Command
 
         foreach ([12, 0] as $runHour) {
             $runDir = str_pad((string) $runHour, 2, '0', STR_PAD_LEFT);
-            $baseUrl = "https://opendata.dwd.de/weather/maritime/wave_models/ewam/grib/{$runDir}/";
+            $baseUrl = $this->dwdHttpClient->baseUrlForRun($runDir);
             $filesByHour = [];
             $runTimes = [];
 
             foreach (array_keys($this->parameters) as $dwdDir) {
                 $indexUrl = "{$baseUrl}{$dwdDir}/";
+                $this->markStage('checking_dwd_index', "Проверка индекса {$indexUrl}.");
                 Log::info('DWD EWAM: fetching parameter index', [
                     'parameter' => $dwdDir,
                     'url' => $indexUrl,
+                    'connection' => $this->dwdHttpClient->connectionSummary(),
                 ]);
 
                 try {
-                    $indexResponse = Http::withoutVerifying()->get($indexUrl);
+                    $indexResponse = $this->dwdHttpClient->get($indexUrl);
 
                     if ($indexResponse->failed()) {
                         $requestErrors[] = "HTTP {$indexResponse->status()} for {$indexUrl}";
@@ -402,6 +444,7 @@ class FetchDwdWaveData extends Command
             }
 
             ksort($completeFilesByHour);
+            $this->markStage('candidate_found', "Найден полный кандидат DWD {$runDir}, часов прогноза: " . count($completeFilesByHour) . '.');
 
             $candidates[] = [
                 'model_run_hour' => $runHour,
@@ -416,7 +459,7 @@ class FetchDwdWaveData extends Command
             if (!empty($requestErrors)) {
                 throw new \RuntimeException(
                     'Нет доступа к DWD opendata.dwd.de: не удалось получить индекс файлов EWAM. Последняя ошибка: '
-                    . end($requestErrors)
+                    . implode(' | ', array_slice($requestErrors, -6))
                 );
             }
 
@@ -442,13 +485,26 @@ class FetchDwdWaveData extends Command
         }
     }
 
-    private function safeMarkFailed(WaveFetchService $waveFetchService, string $message): void
+    private function safeMarkFailed(WaveFetchService $waveFetchService, string $message, string $stage = 'failed'): void
     {
         try {
-            $waveFetchService->markFailed($message);
+            $waveFetchService->markFailed($message, $stage);
         } catch (\Throwable $e) {
             Log::error('DWD EWAM: failed to write failure status', [
                 'status_message' => $message,
+                'error' => $e->getMessage(),
+            ]);
+        }
+    }
+
+    private function markStage(string $stage, string $message): void
+    {
+        try {
+            $this->waveFetchService?->markStage($stage, $message);
+        } catch (\Throwable $e) {
+            Log::error('DWD EWAM: failed to write stage status', [
+                'stage' => $stage,
+                'message' => $message,
                 'error' => $e->getMessage(),
             ]);
         }

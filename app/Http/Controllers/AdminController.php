@@ -10,6 +10,7 @@ use App\Services\BrowserLoginThrottle;
 use App\Services\WaveFetchService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Artisan;
 
 class AdminController extends Controller
 {
@@ -114,6 +115,20 @@ class AdminController extends Controller
         $result = $waveFetchService->resetStaleLock();
 
         return redirect('/admin')->with('status', $result['message']);
+    }
+
+    public function diagnoseDwd(Request $request, AdminAuthService $auth)
+    {
+        $this->authorizeAdmin($request, $auth);
+
+        $exitCode = Artisan::call('wave:diagnose');
+
+        return redirect('/admin')->with(
+            'status',
+            $exitCode === 0
+                ? 'Диагностика DWD завершена: проблем не найдено.'
+                : 'Диагностика DWD завершена: найдены проблемы.'
+        );
     }
 
     private function authorizeAdmin(Request $request, AdminAuthService $auth): void

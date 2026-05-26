@@ -45,6 +45,12 @@
                                 {{ $fetchStatus['running'] ? 'Загрузка выполняется' : 'Загрузить DWD сейчас' }}
                             </button>
                         </form>
+                        <form method="POST" action="/admin/dwd-diagnose">
+                            @csrf
+                            <button type="submit" class="action-button secondary">
+                                Проверить DWD
+                            </button>
+                        </form>
                         @if($fetchStatus['can_reset'])
                             <form method="POST" action="/admin/force-fetch/reset-lock">
                                 @csrf
@@ -59,6 +65,7 @@
                 <section class="admin-section">
                     <h2>Последняя операция</h2>
                     <div class="admin-status-row"><span>Статус</span><strong>{{ $fetchStatus['status'] }}</strong></div>
+                    <div class="admin-status-row"><span>Этап</span><strong>{{ $fetchStatus['stage'] ?? '-' }}</strong></div>
                     @if($fetchStatus['stale'])
                         <div class="admin-flash error">Загрузка выглядит зависшей. Можно сбросить lock и запустить DWD заново.</div>
                     @elseif($fetchStatus['running'])
@@ -68,6 +75,37 @@
                     <div class="admin-status-row"><span>Завершение</span><strong>{{ $fetchStatus['finished_at'] ?? '-' }}</strong></div>
                     @if($fetchStatus['error'])
                         <div class="admin-flash error">{{ $fetchStatus['error'] }}</div>
+                    @endif
+                </section>
+
+                <section class="admin-section">
+                    <h2>Диагностика DWD</h2>
+                    @if(!empty($fetchStatus['diagnostic']))
+                        <div class="admin-status-row">
+                            <span>Проверено</span>
+                            <strong>{{ $fetchStatus['diagnostic']['checked_at'] ?? '-' }}</strong>
+                        </div>
+                        <div class="admin-diagnostic-list">
+                            @foreach(($fetchStatus['diagnostic']['results'] ?? []) as $check)
+                                <div class="admin-status-row">
+                                    <span>{{ $check['name'] ?? '-' }}</span>
+                                    <strong>{{ !empty($check['ok']) ? 'OK' : 'Ошибка' }}</strong>
+                                </div>
+                                <p class="admin-note">{{ $check['message'] ?? '' }}</p>
+                            @endforeach
+                        </div>
+                    @else
+                        <p class="admin-note">Диагностика ещё не запускалась.</p>
+                    @endif
+                </section>
+
+                <section class="admin-section">
+                    <h2>Последние строки DWD-лога</h2>
+                    @if(!empty($fetchStatus['last_log_lines']))
+                        <pre class="admin-log">@foreach($fetchStatus['last_log_lines'] as $line){{ $line }}
+@endforeach</pre>
+                    @else
+                        <p class="admin-note">Лог DWD пока пуст.</p>
                     @endif
                 </section>
 
