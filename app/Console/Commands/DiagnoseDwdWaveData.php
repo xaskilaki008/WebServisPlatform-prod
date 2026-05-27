@@ -29,27 +29,32 @@ class DiagnoseDwdWaveData extends Command
             $this->checkCache(),
             $this->checkDwdHttpOptions(),
             $this->checkDwdDns(),
-            $this->checkDwdIndex('12'),
-            $this->checkDwdIndex('00'),
-            $this->checkBeaches(),
         ];
+
+        foreach (['12', '00'] as $runDir) {
+            foreach (['swh', 'tm10', 'mwd'] as $parameter) {
+                $results[] = $this->checkDwdIndex($runDir, $parameter);
+            }
+        }
+
+        $results[] = $this->checkBeaches();
 
         $waveFetchService->saveDiagnostic($results);
 
         foreach ($results as $result) {
-            $line = sprintf(
-                '[%s] %s: %s',
-                $result['ok'] ? 'OK' : 'FAIL',
-                $result['name'],
-                $result['message']
-            );
+            $label = strtoupper($result['level'] ?? (!empty($result['ok']) ? 'ok' : 'error'));
+            $line = sprintf('[%s] %s: %s', $label, $result['name'], $result['message']);
 
-            $result['ok'] ? $this->info($line) : $this->error($line);
+            match ($result['level'] ?? 'error') {
+                'ok' => $this->info($line),
+                'warning' => $this->warn($line),
+                default => $this->error($line),
+            };
         }
 
-        return collect($results)->every(fn (array $result) => $result['ok'])
-            ? self::SUCCESS
-            : self::FAILURE;
+        return collect($results)->contains(fn (array $result) => ($result['level'] ?? 'error') === 'error')
+            ? self::FAILURE
+            : self::SUCCESS;
     }
 
     private function checkWgrib2(): array
@@ -58,7 +63,7 @@ class DiagnoseDwdWaveData extends Command
         $resolvedPath = $this->resolveExecutable($path);
 
         if (!$resolvedPath) {
-            return $this->result(false, 'wgrib2', "Файл wgrib2 не найден: {$path}");
+            return $this->result('error', 'wgrib2', "Файл wgrib2 не найден: {$path}");
         }
 
         try {
@@ -67,20 +72,20 @@ class DiagnoseDwdWaveData extends Command
             $output = trim($process->getOutput() ?: $process->getErrorOutput());
 
             if (!$process->isSuccessful() && $output === '') {
-                return $this->result(false, 'wgrib2', trim($process->getErrorOutput()) ?: 'wgrib2 -version завершился с ошибкой.');
+                return $this->result('error', 'wgrib2', trim($process->getErrorOutput()) ?: 'wgrib2 -version завершился с ошибкой.');
             }
 
-            return $this->result(true, 'wgrib2', $output ?: "Найден: {$resolvedPath}");
+            return $this->result('ok', 'wgrib2', $output ?: "Найден: {$resolvedPath}");
         } catch (Throwable $e) {
-            return $this->result(false, 'wgrib2', $e->getMessage());
+            return $this->result('error', 'wgrib2', $e->getMessage());
         }
     }
 
     private function checkBzip2(): array
     {
         return function_exists('bzdecompress')
-            ? $this->result(true, 'PHP BZIP2', 'Расширение BZIP2 включено.')
-            : $this->result(false, 'PHP BZIP2', 'Функция bzdecompress недоступна.');
+            ? $this->result('ok', 'PHP BZIP2', 'Расширение BZIP2 включено.')
+            : $this->result('error', 'PHP BZIP2', 'Функция bzdecompress недоступна.');
     }
 
     private function checkDatabase(): array
@@ -88,9 +93,9 @@ class DiagnoseDwdWaveData extends Command
         try {
             DB::connection()->getPdo();
 
-            return $this->result(true, 'PostgreSQL', 'Подключение к БД работает.');
+            return $this->result('ok', 'PostgreSQL', 'Подключение к БД работает.');
         } catch (Throwable $e) {
-            return $this->result(false, 'PostgreSQL', $e->getMessage());
+            return $this->result('error', 'PostgreSQL', $e->getMessage());
         }
     }
 
@@ -103,10 +108,10 @@ class DiagnoseDwdWaveData extends Command
             Cache::forget($key);
 
             return $ok
-                ? $this->result(true, 'Cache', 'Запись и чтение cache работают.')
-                : $this->result(false, 'Cache', 'Cache не вернул тестовое значение.');
+                ? $this->result('ok', 'Cache', 'Запись и чтение cache работают.')
+                : $this->result('error', 'Cache', 'Cache не вернул тестовое значение.');
         } catch (Throwable $e) {
-            return $this->result(false, 'Cache', $e->getMessage());
+            return $this->result('error', 'Cache', $e->getMessage());
         }
     }
 
@@ -128,24 +133,33 @@ class DiagnoseDwdWaveData extends Command
         $message .= '; ' . $options['auto_curl_resolve_status'];
         $message .= '; режим=' . $options['connection_mode'];
 
-        return $this->result($options['curl_resolve_valid'], 'DWD HTTP options', $message);
+        if (!$options['curl_resolve_valid']) {
+            return $this->result('error', 'DWD HTTP options', $message);
+        }
+
+        $level = $options['connection_mode'] === 'dns' ? 'ok' : 'warning';
+
+        return $this->result($level, 'DWD HTTP options', $message);
     }
 
     private function checkDwdDns(): array
     {
         $host = parse_url((string) config('dwd.ewam_base_url'), PHP_URL_HOST) ?: 'opendata.dwd.de';
         $ips = gethostbynamel($host);
+        $mode = $this->dwdHttpClient->diagnosticOptions()['connection_mode'];
 
         if (!$ips) {
-            return $this->result(false, 'DWD DNS', "DNS не смог разрешить {$host}.");
+            $level = $mode === 'dns' ? 'error' : 'warning';
+
+            return $this->result($level, 'DWD DNS', "DNS не смог разрешить {$host}; режим HTTP={$mode}.");
         }
 
-        return $this->result(true, 'DWD DNS', "{$host} => " . implode(', ', $ips));
+        return $this->result('ok', 'DWD DNS', "{$host} => " . implode(', ', $ips));
     }
 
-    private function checkDwdIndex(string $runDir): array
+    private function checkDwdIndex(string $runDir, string $parameter): array
     {
-        $url = $this->dwdHttpClient->baseUrlForRun($runDir) . 'swh/';
+        $url = $this->dwdHttpClient->baseUrlForRun($runDir) . "{$parameter}/";
         $options = $this->dwdHttpClient->diagnosticOptions();
         $mode = $options['connection_mode'];
         $resolveStatus = $options['curl_resolve_status'];
@@ -153,9 +167,10 @@ class DiagnoseDwdWaveData extends Command
         $proxyStatus = $options['proxy']
             ? 'proxy=' . $options['masked_proxy']
             : 'proxy не используется';
+        $name = "DWD index {$runDir}/{$parameter}";
 
         if ($options['curl_resolve'] && !$options['curl_resolve_valid']) {
-            return $this->result(false, "DWD index {$runDir}/swh", $options['curl_resolve_error']);
+            return $this->result('error', $name, $options['curl_resolve_error']);
         }
 
         try {
@@ -163,8 +178,8 @@ class DiagnoseDwdWaveData extends Command
 
             if ($response->failed()) {
                 return $this->result(
-                    false,
-                    "DWD index {$runDir}/swh",
+                    'error',
+                    $name,
                     "HTTP {$response->status()} при GET {$url}; режим={$mode}; {$proxyStatus}; {$resolveStatus}; {$autoResolveStatus}"
                 );
             }
@@ -176,21 +191,21 @@ class DiagnoseDwdWaveData extends Command
 
             if (!$containsIndex) {
                 return $this->result(
-                    false,
-                    "DWD index {$runDir}/swh",
+                    'error',
+                    $name,
                     "GET {$url}: HTTP {$response->status()}, но ответ не похож на индекс DWD; режим={$mode}; {$proxyStatus}; {$resolveStatus}; {$autoResolveStatus}"
                 );
             }
 
             return $this->result(
-                true,
-                "DWD index {$runDir}/swh",
+                'ok',
+                $name,
                 "GET {$url}: HTTP {$response->status()}; режим={$mode}; {$proxyStatus}; {$resolveStatus}; {$autoResolveStatus}"
             );
         } catch (Throwable $e) {
             return $this->result(
-                false,
-                "DWD index {$runDir}/swh",
+                'error',
+                $name,
                 "{$e->getMessage()}; режим={$mode}; {$proxyStatus}; {$resolveStatus}; {$autoResolveStatus}"
             );
         }
@@ -205,10 +220,10 @@ class DiagnoseDwdWaveData extends Command
                 ->count();
 
             return $count > 0
-                ? $this->result(true, 'Пляжи', "Пляжей с координатами DWD: {$count}.")
-                : $this->result(false, 'Пляжи', 'Нет пляжей с fetch_latitude/fetch_longitude.');
+                ? $this->result('ok', 'Пляжи', "Пляжей с координатами DWD: {$count}.")
+                : $this->result('error', 'Пляжи', 'Нет пляжей с fetch_latitude/fetch_longitude.');
         } catch (Throwable $e) {
-            return $this->result(false, 'Пляжи', $e->getMessage());
+            return $this->result('error', 'Пляжи', $e->getMessage());
         }
     }
 
@@ -221,10 +236,13 @@ class DiagnoseDwdWaveData extends Command
         return (new ExecutableFinder())->find($path);
     }
 
-    private function result(bool $ok, string $name, string $message): array
+    private function result(string $level, string $name, string $message): array
     {
+        $level = in_array($level, ['ok', 'warning', 'error'], true) ? $level : 'error';
+
         return [
-            'ok' => $ok,
+            'ok' => $level !== 'error',
+            'level' => $level,
             'name' => $name,
             'message' => $message,
         ];

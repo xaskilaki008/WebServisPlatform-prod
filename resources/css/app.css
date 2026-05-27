@@ -1112,13 +1112,16 @@ background-color: #edf3f8;
 
 .admin-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 340px), 1fr));
     gap: 16px;
+    align-items: start;
 }
 
 .admin-section {
     border: 1px solid rgba(25, 49, 83, 0.12);
     border-radius: 8px;
+    min-width: 0;
+    overflow: hidden;
     padding: 14px;
 }
 
@@ -1143,7 +1146,11 @@ background-color: #edf3f8;
     background: #e8f5ec;
     color: #235b32;
     margin: 12px 0;
+    max-height: 220px;
+    overflow: auto;
+    overflow-wrap: anywhere;
     padding: 10px 12px;
+    word-break: break-word;
 }
 
 .admin-flash.error {
@@ -1154,6 +1161,8 @@ background-color: #edf3f8;
 .admin-note {
     color: #5d6b80;
     font-size: 14px;
+    overflow-wrap: anywhere;
+    word-break: break-word;
 }
 
 .admin-log {
@@ -1165,13 +1174,103 @@ background-color: #edf3f8;
     margin: 0;
     max-height: 360px;
     overflow: auto;
+    overflow-wrap: anywhere;
     padding: 12px;
     white-space: pre-wrap;
+    word-break: break-word;
 }
 
 .admin-diagnostic-list {
     display: grid;
     gap: 8px;
+    max-height: 440px;
+    overflow: auto;
+    padding-right: 4px;
+}
+
+.admin-actions {
+    flex-wrap: wrap;
+    align-items: flex-start;
+}
+
+.admin-actions form,
+.admin-section-title form {
+    min-width: 0;
+}
+
+.admin-actions .action-button,
+.admin-section-title .action-button {
+    max-width: 100%;
+    white-space: normal;
+}
+
+.admin-header,
+.admin-status-row,
+.admin-section-title {
+    min-width: 0;
+}
+
+.admin-status-row {
+    flex-wrap: wrap;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+}
+
+.admin-status-row span,
+.admin-status-row strong {
+    min-width: 0;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+}
+
+.admin-section-title {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.admin-diagnostic-item {
+    border-bottom: 1px solid rgba(25, 49, 83, 0.08);
+    min-width: 0;
+    padding-bottom: 8px;
+}
+
+.admin-diagnostic-message {
+    background: #f7f9fc;
+    border-radius: 8px;
+    color: #3f4c5f;
+    font-size: 12px;
+    line-height: 1.5;
+    margin: 6px 0 0;
+    max-height: 140px;
+    overflow: auto;
+    overflow-wrap: anywhere;
+    padding: 8px;
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+
+.admin-check {
+    border-radius: 999px;
+    font-size: 12px;
+    padding: 3px 8px;
+}
+
+.admin-check-ok {
+    background: #e8f5ec;
+    color: #235b32;
+}
+
+.admin-check-warning {
+    background: #fff4d6;
+    color: #7a4d00;
+}
+
+.admin-check-error {
+    background: #fdecec;
+    color: #8a2424;
 }
 
 @media (max-width: 819px) {

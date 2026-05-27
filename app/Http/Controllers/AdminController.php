@@ -8,9 +8,10 @@ use App\Models\WaveForecast;
 use App\Services\AdminAuthService;
 use App\Services\BrowserLoginThrottle;
 use App\Services\WaveFetchService;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\Cache;
 
 class AdminController extends Controller
 {
@@ -63,12 +64,25 @@ class AdminController extends Controller
     {
         $this->authorizeAdmin($request, $auth);
 
+        $forecastWindowStart = now('UTC')->startOfHour();
+        $forecastWindowEnd = $forecastWindowStart->copy()->addDay();
+        $latestModelRunAt = WaveForecast::query()->max('model_run_at');
+        $forecastCount24h = $latestModelRunAt
+            ? WaveForecast::query()
+                ->where('model_run_at', $latestModelRunAt)
+                ->where('forecast_time', '>=', $forecastWindowStart)
+                ->where('forecast_time', '<', $forecastWindowEnd)
+                ->count()
+            : 0;
+
         return view('admin.index', [
             'parsingEnabled' => Cache::get('parsing_enabled', true),
             'fetchStatus' => $waveFetchService->status(),
-            'forecastCount24h' => WaveForecast::query()
-                ->where('parsed_at', '>=', now()->subDay())
-                ->count(),
+            'forecastCount24h' => $forecastCount24h,
+            'forecastWindowStart' => $forecastWindowStart->toDateTimeString(),
+            'forecastWindowEnd' => $forecastWindowEnd->toDateTimeString(),
+            'latestModelRunAt' => $latestModelRunAt,
+            'latestParsedAt' => WaveForecast::query()->max('parsed_at'),
             'reactionCount1h' => Reaction::query()
                 ->where('created_at', '>=', now()->subHour())
                 ->count(),
@@ -87,9 +101,13 @@ class AdminController extends Controller
         $newStatus = !Cache::get('parsing_enabled', true);
         Cache::put('parsing_enabled', $newStatus);
 
-        return redirect('/admin')->with('status', $newStatus
+        $message = $newStatus
             ? 'Плановый DWD-парсинг включён.'
-            : 'Плановый DWD-парсинг выключен.');
+            : 'Плановый DWD-парсинг выключен.';
+
+        return $this->adminActionResponse($request, true, 'success', $message, [
+            'parsing_enabled' => $newStatus,
+        ]);
     }
 
     public function forceFetch(Request $request, AdminAuthService $auth, WaveFetchService $waveFetchService)
@@ -98,14 +116,29 @@ class AdminController extends Controller
 
         $result = $waveFetchService->start();
 
-        return redirect('/admin')->with('status', $result['message']);
+        return $this->adminActionResponse(
+            $request,
+            (bool) ($result['started'] ?? false) || (($result['status'] ?? null) === 'running'),
+            $result['status'] ?? 'unknown',
+            $result['message'] ?? 'Статус запуска DWD неизвестен.',
+            $waveFetchService->status(),
+            ($result['status'] ?? null) === 'failed' ? [$result['message'] ?? 'Ошибка запуска DWD.'] : []
+        );
     }
 
-    public function forceFetchStatus(Request $request, AdminAuthService $auth, WaveFetchService $waveFetchService)
+    public function forceFetchStatus(Request $request, AdminAuthService $auth, WaveFetchService $waveFetchService): JsonResponse
     {
         $this->authorizeAdmin($request, $auth);
 
-        return response()->json($waveFetchService->status());
+        $status = $waveFetchService->status();
+
+        return $this->adminJsonResponse(
+            true,
+            $status['status'] ?? 'idle',
+            $this->dwdStatusMessage($status),
+            $status,
+            array_values(array_filter([$status['error'] ?? null]))
+        );
     }
 
     public function resetFetchLock(Request $request, AdminAuthService $auth, WaveFetchService $waveFetchService)
@@ -114,26 +147,120 @@ class AdminController extends Controller
 
         $result = $waveFetchService->resetStaleLock();
 
-        return redirect('/admin')->with('status', $result['message']);
+        return $this->adminActionResponse(
+            $request,
+            (bool) ($result['reset'] ?? false),
+            ($result['reset'] ?? false) ? 'success' : 'blocked',
+            $result['message'] ?? 'Состояние DWD не изменено.',
+            $waveFetchService->status(),
+            ($result['reset'] ?? false) ? [] : [$result['message'] ?? 'Сброс недоступен.']
+        );
     }
 
-    public function diagnoseDwd(Request $request, AdminAuthService $auth)
+    public function diagnoseDwd(Request $request, AdminAuthService $auth, WaveFetchService $waveFetchService)
     {
         $this->authorizeAdmin($request, $auth);
 
         $exitCode = Artisan::call('wave:diagnose');
+        $status = $waveFetchService->status();
+        $message = $exitCode === 0
+            ? 'Диагностика DWD завершена: критических проблем не найдено.'
+            : 'Диагностика DWD завершена: найдены проблемы.';
 
-        return redirect('/admin')->with(
-            'status',
-            $exitCode === 0
-                ? 'Диагностика DWD завершена: проблем не найдено.'
-                : 'Диагностика DWD завершена: найдены проблемы.'
+        return $this->adminActionResponse(
+            $request,
+            $exitCode === 0,
+            $exitCode === 0 ? 'success' : 'error',
+            $message,
+            $status,
+            $exitCode === 0 ? [] : [$message]
+        );
+    }
+
+    public function dwdLog(Request $request, AdminAuthService $auth, WaveFetchService $waveFetchService): JsonResponse
+    {
+        $this->authorizeAdmin($request, $auth);
+
+        return $this->adminJsonResponse(
+            true,
+            'success',
+            'DWD-лог прочитан.',
+            ['last_log_lines' => $waveFetchService->logLines()]
+        );
+    }
+
+    public function clearDwdLog(Request $request, AdminAuthService $auth, WaveFetchService $waveFetchService)
+    {
+        $this->authorizeAdmin($request, $auth);
+
+        $result = $waveFetchService->clearLog();
+
+        return $this->adminActionResponse(
+            $request,
+            (bool) ($result['cleared'] ?? false),
+            ($result['cleared'] ?? false) ? 'success' : 'error',
+            $result['message'] ?? 'DWD-лог не очищен.',
+            $waveFetchService->status(),
+            ($result['cleared'] ?? false) ? [] : [$result['message'] ?? 'DWD-лог не очищен.']
         );
     }
 
     private function authorizeAdmin(Request $request, AdminAuthService $auth): void
     {
         abort_unless($auth->admin($request), 403);
+    }
+
+    private function adminActionResponse(
+        Request $request,
+        bool $success,
+        string $status,
+        string $message,
+        array $details = [],
+        array $errors = []
+    ) {
+        if ($request->expectsJson()) {
+            return $this->adminJsonResponse($success, $status, $message, $details, $errors);
+        }
+
+        return redirect('/admin')->with($success ? 'status' : 'error', $message);
+    }
+
+    private function adminJsonResponse(
+        bool $success,
+        string $status,
+        string $message,
+        array $details = [],
+        array $errors = []
+    ): JsonResponse {
+        return response()->json([
+            'success' => $success,
+            'status' => $status,
+            'message' => $message,
+            'details' => $details,
+            'errors' => $errors,
+            'updated_at' => now()->toDateTimeString(),
+        ]);
+    }
+
+    private function dwdStatusMessage(array $status): string
+    {
+        if (!empty($status['stale'])) {
+            return 'Загрузка DWD выглядит зависшей.';
+        }
+
+        if (!empty($status['running'])) {
+            return 'Загрузка DWD выполняется.';
+        }
+
+        if (($status['status'] ?? null) === 'success') {
+            return 'Последняя загрузка DWD завершена успешно.';
+        }
+
+        if (($status['status'] ?? null) === 'failed') {
+            return 'Последняя загрузка DWD завершилась ошибкой.';
+        }
+
+        return 'DWD-загрузка сейчас не выполняется.';
     }
 
     private function blockedMessage(int $retryAfterSeconds): string

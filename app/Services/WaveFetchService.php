@@ -82,7 +82,9 @@ class WaveFetchService
             ? (bool) $fileStatus['running']
             : $cacheRunning;
         $heartbeatAt = $fileStatus['heartbeat_at'] ?? null;
-        $lastLogAt = $fileStatus['last_log_at'] ?? $this->lastLogAt();
+        $lastLogAt = array_key_exists('last_log_at', $fileStatus)
+            ? $fileStatus['last_log_at']
+            : $this->lastLogAt();
         $heartbeatStale = $running && $this->isStaleTimestamp($heartbeatAt, self::HEARTBEAT_STALE_MINUTES);
         $logStale = $running && $this->isStaleTimestamp($lastLogAt, self::HEARTBEAT_STALE_MINUTES);
         $ttlStale = $running && $this->isStaleStartedAt($startedAt);
@@ -204,6 +206,34 @@ class WaveFetchService
                 'results' => $results,
             ],
         ]));
+    }
+
+    public function logLines(): array
+    {
+        return $this->lastLogLines();
+    }
+
+    public function clearLog(): array
+    {
+        try {
+            File::ensureDirectoryExists(dirname($this->logPath()));
+            file_put_contents($this->logPath(), '');
+            $this->writeStatus(array_merge($this->readFileStatus(), [
+                'last_log_at' => null,
+            ]));
+
+            return [
+                'cleared' => true,
+                'message' => 'DWD-лог очищен.',
+            ];
+        } catch (Throwable $e) {
+            Log::error('DWD log clear failed', ['error' => $e->getMessage()]);
+
+            return [
+                'cleared' => false,
+                'message' => 'Не удалось очистить DWD-лог: ' . $e->getMessage(),
+            ];
+        }
     }
 
     private function backgroundProcess(): Process

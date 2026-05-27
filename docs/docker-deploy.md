@@ -122,6 +122,14 @@ Check the binary:
 ```bash
 docker compose exec app which wgrib2
 docker compose exec app test -x /usr/bin/wgrib2
+docker compose exec app /usr/bin/wgrib2 -version
+```
+
+Run the environment diagnostics before the full parser. This does not download
+GRIB2 files and does not change forecasts:
+
+```bash
+docker compose exec app php artisan wave:diagnose
 ```
 
 Run the parser:
@@ -134,6 +142,7 @@ Check saved forecasts:
 
 ```bash
 docker compose exec app php artisan tinker --execute="echo App\\Models\\WaveForecast::count();"
+docker compose exec app php artisan tinker --execute="App\\Models\\WaveForecast::latest('parsed_at')->take(5)->get(['beach_id','forecast_time','model_run_at','parsed_at'])->each(fn($row) => dump($row->toArray()));"
 ```
 
 Check API data for a beach:
@@ -148,6 +157,26 @@ stdout, stderr, and saved forecast count:
 ```bash
 docker compose logs --tail=120 app
 docker compose exec app tail -n 120 storage/logs/laravel.log
+docker compose exec app tail -n 120 storage/logs/dwd-wave-fetch.log
+docker compose exec app cat storage/app/dwd_fetch_status.json
+```
+
+The admin panel exposes the same DWD state through protected routes:
+
+```text
+GET  /admin/force-fetch/status
+GET  /admin/dwd-log
+POST /admin/dwd-log/clear
+POST /admin/dwd-diagnose
+POST /admin/force-fetch
+```
+
+For normal VPS/Docker deployment keep these empty unless a local development VPN
+requires a workaround:
+
+```env
+DWD_HTTP_PROXY=
+DWD_CURL_RESOLVE=
 ```
 
 ## Static assets and slider

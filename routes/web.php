@@ -111,6 +111,8 @@ Route::post('/admin/force-fetch', [AdminController::class, 'forceFetch']);
 Route::post('/admin/force-fetch/reset-lock', [AdminController::class, 'resetFetchLock']);
 Route::get('/admin/force-fetch/status', [AdminController::class, 'forceFetchStatus']);
 Route::post('/admin/dwd-diagnose', [AdminController::class, 'diagnoseDwd']);
+Route::get('/admin/dwd-log', [AdminController::class, 'dwdLog']);
+Route::post('/admin/dwd-log/clear', [AdminController::class, 'clearDwdLog']);
 
 Route::get('/api/beach-info/{id}', [BeachController::class, 'getInfo']);
 Route::get('/api/beach-photo/{id}', [BeachController::class, 'getPhoto']);
