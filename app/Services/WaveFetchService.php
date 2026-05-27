@@ -89,6 +89,14 @@ class WaveFetchService
         $logStale = $running && $this->isStaleTimestamp($lastLogAt, self::HEARTBEAT_STALE_MINUTES);
         $ttlStale = $running && $this->isStaleStartedAt($startedAt);
         $cacheFileConflict = $cacheRunning && array_key_exists('running', $fileStatus) && !$running;
+        $orphanedCacheLockCleared = false;
+
+        if ($cacheFileConflict) {
+            $this->cacheForget(self::LOCK_KEY);
+            $cacheRunning = false;
+            $orphanedCacheLockCleared = true;
+        }
+
         $stale = $ttlStale || $heartbeatStale || $logStale || $cacheFileConflict;
         $minutesSinceLastLog = $lastLogAt ? $this->minutesSince($lastLogAt) : null;
 
@@ -105,6 +113,7 @@ class WaveFetchService
             'minutes_since_last_log' => $minutesSinceLastLog,
             'cache_running' => $cacheRunning,
             'cache_file_conflict' => $cacheFileConflict,
+            'orphaned_cache_lock_cleared' => $orphanedCacheLockCleared,
             'started_at' => $startedAt,
             'finished_at' => $fileStatus['finished_at'] ?? $this->cacheGet(self::FINISHED_AT_KEY),
             'error' => $fileStatus['error'] ?? $this->cacheGet(self::ERROR_KEY),
