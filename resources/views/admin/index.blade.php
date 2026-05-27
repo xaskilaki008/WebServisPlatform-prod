@@ -55,7 +55,7 @@
                             <form method="POST" action="/admin/force-fetch/reset-lock">
                                 @csrf
                                 <button type="submit" class="action-button secondary">
-                                    Сбросить зависший запуск
+                                    Сбросить состояние DWD
                                 </button>
                             </form>
                         @endif
@@ -66,12 +66,19 @@
                     <h2>Последняя операция</h2>
                     <div class="admin-status-row"><span>Статус</span><strong>{{ $fetchStatus['status'] }}</strong></div>
                     <div class="admin-status-row"><span>Этап</span><strong>{{ $fetchStatus['stage'] ?? '-' }}</strong></div>
-                    @if($fetchStatus['stale'])
+                    @if($fetchStatus['cache_file_conflict'] ?? false)
+                        <div class="admin-flash error">Cache-lock и файловый статус DWD расходятся. Можно сбросить состояние и запустить DWD заново.</div>
+                    @elseif($fetchStatus['stale'])
                         <div class="admin-flash error">Загрузка выглядит зависшей. Можно сбросить lock и запустить DWD заново.</div>
                     @elseif($fetchStatus['running'])
                         <div class="admin-flash">Загрузка DWD сейчас выполняется.</div>
                     @endif
+                    @if(($fetchStatus['log_stale'] ?? false) && $fetchStatus['running'])
+                        <div class="admin-flash error">Нет новых строк DWD-лога {{ $fetchStatus['minutes_since_last_log'] ?? '?' }} мин. Возможно, загрузка зависла.</div>
+                    @endif
                     <div class="admin-status-row"><span>Старт</span><strong>{{ $fetchStatus['started_at'] ?? '-' }}</strong></div>
+                    <div class="admin-status-row"><span>Heartbeat</span><strong>{{ $fetchStatus['heartbeat_at'] ?? '-' }}</strong></div>
+                    <div class="admin-status-row"><span>Последняя строка лога</span><strong>{{ $fetchStatus['last_log_at'] ?? '-' }}</strong></div>
                     <div class="admin-status-row"><span>Завершение</span><strong>{{ $fetchStatus['finished_at'] ?? '-' }}</strong></div>
                     @if($fetchStatus['error'])
                         <div class="admin-flash error">{{ $fetchStatus['error'] }}</div>

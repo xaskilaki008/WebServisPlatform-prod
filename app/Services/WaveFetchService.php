@@ -18,6 +18,7 @@ class WaveFetchService
     private const ERROR_KEY = 'wave_fetch_error';
     private const LOCK_MINUTES = 60;
     private const LAST_LOG_LINES = 30;
+    private const HEARTBEAT_STALE_MINUTES = 10;
 
     public function start(): array
     {
@@ -38,6 +39,8 @@ class WaveFetchService
             'running' => true,
             'stage' => 'starting',
             'started_at' => $startedAt,
+            'heartbeat_at' => $startedAt,
+            'last_log_at' => $startedAt,
             'finished_at' => null,
             'error' => null,
         ]);
@@ -73,16 +76,33 @@ class WaveFetchService
     public function status(): array
     {
         $fileStatus = $this->readFileStatus();
+        $cacheRunning = $this->cacheHas(self::LOCK_KEY);
         $startedAt = $fileStatus['started_at'] ?? $this->cacheGet(self::STARTED_AT_KEY);
-        $running = (bool) ($fileStatus['running'] ?? $this->cacheHas(self::LOCK_KEY));
-        $stale = $running && $this->isStaleStartedAt($startedAt);
+        $running = array_key_exists('running', $fileStatus)
+            ? (bool) $fileStatus['running']
+            : $cacheRunning;
+        $heartbeatAt = $fileStatus['heartbeat_at'] ?? null;
+        $lastLogAt = $fileStatus['last_log_at'] ?? $this->lastLogAt();
+        $heartbeatStale = $running && $this->isStaleTimestamp($heartbeatAt, self::HEARTBEAT_STALE_MINUTES);
+        $logStale = $running && $this->isStaleTimestamp($lastLogAt, self::HEARTBEAT_STALE_MINUTES);
+        $ttlStale = $running && $this->isStaleStartedAt($startedAt);
+        $cacheFileConflict = $cacheRunning && array_key_exists('running', $fileStatus) && !$running;
+        $stale = $ttlStale || $heartbeatStale || $logStale || $cacheFileConflict;
+        $minutesSinceLastLog = $lastLogAt ? $this->minutesSince($lastLogAt) : null;
 
         return [
             'status' => $fileStatus['status'] ?? $this->cacheGet(self::STATUS_KEY, 'idle'),
             'running' => $running,
             'stage' => $fileStatus['stage'] ?? null,
             'stale' => $stale,
-            'can_reset' => $stale,
+            'can_reset' => $stale || $cacheFileConflict,
+            'heartbeat_at' => $heartbeatAt,
+            'heartbeat_stale' => $heartbeatStale,
+            'last_log_at' => $lastLogAt,
+            'log_stale' => $logStale,
+            'minutes_since_last_log' => $minutesSinceLastLog,
+            'cache_running' => $cacheRunning,
+            'cache_file_conflict' => $cacheFileConflict,
             'started_at' => $startedAt,
             'finished_at' => $fileStatus['finished_at'] ?? $this->cacheGet(self::FINISHED_AT_KEY),
             'error' => $fileStatus['error'] ?? $this->cacheGet(self::ERROR_KEY),
@@ -100,6 +120,7 @@ class WaveFetchService
             'running' => true,
             'stage' => $stage,
             'started_at' => $status['started_at'] ?? now()->toDateTimeString(),
+            'heartbeat_at' => now()->toDateTimeString(),
             'finished_at' => null,
             'error' => null,
         ]));
@@ -112,6 +133,7 @@ class WaveFetchService
             'status' => 'success',
             'running' => false,
             'stage' => 'completed',
+            'heartbeat_at' => now()->toDateTimeString(),
             'finished_at' => now()->toDateTimeString(),
             'error' => null,
         ]));
@@ -129,6 +151,7 @@ class WaveFetchService
             'status' => 'failed',
             'running' => false,
             'stage' => $stage,
+            'heartbeat_at' => now()->toDateTimeString(),
             'finished_at' => now()->toDateTimeString(),
             'error' => $message,
         ]));
@@ -156,6 +179,7 @@ class WaveFetchService
             'status' => 'idle',
             'running' => false,
             'stage' => 'reset',
+            'heartbeat_at' => now()->toDateTimeString(),
             'finished_at' => now()->toDateTimeString(),
             'error' => $message,
         ]));
@@ -212,7 +236,10 @@ class WaveFetchService
         $status = $this->readFileStatus();
         $running = (bool) ($status['running'] ?? $this->cacheHas(self::LOCK_KEY));
 
-        if (!$running || !$this->isStaleStartedAt($status['started_at'] ?? $this->cacheGet(self::STARTED_AT_KEY))) {
+        if (!$running
+            || (!$this->isStaleStartedAt($status['started_at'] ?? $this->cacheGet(self::STARTED_AT_KEY))
+                && !$this->isStaleTimestamp($status['heartbeat_at'] ?? null, self::HEARTBEAT_STALE_MINUTES)
+                && !$this->isStaleTimestamp($status['last_log_at'] ?? $this->lastLogAt(), self::HEARTBEAT_STALE_MINUTES))) {
             return;
         }
 
@@ -253,13 +280,18 @@ class WaveFetchService
 
     public function appendLog(string $stage, string $message): void
     {
+        $loggedAt = now()->toDateTimeString();
+
         try {
             File::ensureDirectoryExists(dirname($this->logPath()));
             file_put_contents(
                 $this->logPath(),
-                sprintf("[%s] %-18s %s%s", now()->toDateTimeString(), $stage, $message, PHP_EOL),
+                sprintf("[%s] %-18s %s%s", $loggedAt, $stage, $message, PHP_EOL),
                 FILE_APPEND
             );
+            $this->writeStatus(array_merge($this->readFileStatus(), [
+                'last_log_at' => $loggedAt,
+            ]));
         } catch (Throwable $e) {
             Log::error('DWD log write failed', ['error' => $e->getMessage()]);
         }
@@ -292,6 +324,47 @@ class WaveFetchService
             return Carbon::parse($startedAt)->lte(now()->subMinutes(self::LOCK_MINUTES));
         } catch (Throwable) {
             return true;
+        }
+    }
+
+    private function isStaleTimestamp(?string $timestamp, int $minutes): bool
+    {
+        if (!$timestamp) {
+            return true;
+        }
+
+        try {
+            return Carbon::parse($timestamp)->lte(now()->subMinutes($minutes));
+        } catch (Throwable) {
+            return true;
+        }
+    }
+
+    private function minutesSince(?string $timestamp): ?int
+    {
+        if (!$timestamp) {
+            return null;
+        }
+
+        try {
+            return max(0, Carbon::parse($timestamp)->diffInMinutes(now()));
+        } catch (Throwable) {
+            return null;
+        }
+    }
+
+    private function lastLogAt(): ?string
+    {
+        try {
+            if (!is_file($this->logPath())) {
+                return null;
+            }
+
+            return Carbon::createFromTimestamp(filemtime($this->logPath()))->toDateTimeString();
+        } catch (Throwable $e) {
+            Log::error('DWD log mtime read failed', ['error' => $e->getMessage()]);
+
+            return null;
         }
     }
 
