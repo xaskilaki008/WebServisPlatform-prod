@@ -4,6 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Панель администратора</title>
+    @if(($fetchStatus['running'] ?? false) && !($fetchStatus['stale'] ?? false))
+        <meta http-equiv="refresh" content="10">
+    @endif
     @vite(['resources/css/app.css'])
 </head>
 <body class="admin-page">
