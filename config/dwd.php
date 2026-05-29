@@ -12,4 +12,5 @@ return [
     'retry_delay_ms' => (int) env('DWD_HTTP_RETRY_DELAY_MS', 2000),
     'connect_timeout' => (int) env('DWD_CONNECT_TIMEOUT', 10),
     'timeout' => (int) env('DWD_HTTP_TIMEOUT', 30),
+    'forecast_enabled' => filter_var(env('DWD_FORECAST_ENABLED', true), FILTER_VALIDATE_BOOL),
 ];

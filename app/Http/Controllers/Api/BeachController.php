@@ -22,7 +22,9 @@ class BeachController extends Controller
     {
         $beach = Beach::findOrFail($id);
         $visitor = $visitorResolver->current(request());
-        $forecast = $forecastSelector->forBeach((int) $id, now('UTC'));
+        $forecast = config('dwd.forecast_enabled')
+            ? $forecastSelector->forBeach((int) $id, now('UTC'))
+            : null;
 
         $latestForecast = $forecast ? [
             'wave_height' => $forecast->wave_height,
