@@ -114,11 +114,18 @@ class AdminController extends Controller
     {
         $this->authorizeAdmin($request, $auth);
 
-        $result = $waveFetchService->start();
+        if (config('dwd.fetch_mode') === 'sync') {
+            @set_time_limit(0);
+            ignore_user_abort(true);
+
+            $result = $waveFetchService->startSync();
+        } else {
+            $result = $waveFetchService->start();
+        }
 
         return $this->adminActionResponse(
             $request,
-            (bool) ($result['started'] ?? false) || (($result['status'] ?? null) === 'running'),
+            in_array($result['status'] ?? null, ['running', 'success'], true),
             $result['status'] ?? 'unknown',
             $result['message'] ?? 'Статус запуска DWD неизвестен.',
             $waveFetchService->status(),

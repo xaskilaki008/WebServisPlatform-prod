@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Log;
@@ -71,6 +72,77 @@ class WaveFetchService
             'status' => 'running',
             'message' => 'Загрузка DWD запущена в фоне. Откройте блок диагностики для просмотра этапов.',
         ];
+    }
+
+    public function startSync(): array
+    {
+        $this->clearStaleLock();
+        $status = $this->status();
+
+        if ($status['running'] && !$status['stale']) {
+            return [
+                'started' => false,
+                'status' => 'running',
+                'message' => 'DWD fetch is already running.',
+            ];
+        }
+
+        try {
+            $startedAt = now()->toDateTimeString();
+            $this->writeStatus([
+                'status' => 'running',
+                'running' => true,
+                'stage' => 'starting',
+                'started_at' => $startedAt,
+                'heartbeat_at' => $startedAt,
+                'last_log_at' => $startedAt,
+                'finished_at' => null,
+                'error' => null,
+            ]);
+            $this->appendLog('starting', 'Synchronous DWD fetch started from admin panel.');
+
+            $this->cachePut(self::LOCK_KEY, true, now()->addMinutes(self::LOCK_MINUTES));
+            $this->cachePut(self::STATUS_KEY, 'running', now()->addMinutes(self::LOCK_MINUTES));
+            $this->cachePut(self::STARTED_AT_KEY, $startedAt, now()->addMinutes(self::LOCK_MINUTES));
+            $this->cacheForget(self::FINISHED_AT_KEY);
+            $this->cacheForget(self::ERROR_KEY);
+
+            $exitCode = Artisan::call('wave:fetch');
+
+            if ($exitCode !== 0) {
+                $output = trim(Artisan::output());
+                $message = $output !== ''
+                    ? $output
+                    : "DWD parser finished with exit code {$exitCode}.";
+                $currentStatus = $this->status();
+
+                if (($currentStatus['status'] ?? null) !== 'failed') {
+                    $this->markFailed($message, 'sync_failed');
+                }
+
+                return [
+                    'started' => true,
+                    'status' => 'failed',
+                    'message' => $message,
+                ];
+            }
+
+            return [
+                'started' => true,
+                'status' => 'success',
+                'message' => 'DWD fetch completed successfully.',
+            ];
+        } catch (Throwable $e) {
+            $this->markFailed($e->getMessage(), 'sync_exception');
+
+            return [
+                'started' => true,
+                'status' => 'failed',
+                'message' => $e->getMessage(),
+            ];
+        } finally {
+            $this->cacheForget(self::LOCK_KEY);
+        }
     }
 
     public function status(): array
