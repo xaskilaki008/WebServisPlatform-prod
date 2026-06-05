@@ -2,12 +2,11 @@
 
 namespace App\Services;
 
+use App\Jobs\RunWaveForecastFetch;
 use Illuminate\Support\Carbon;
-use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Log;
-use Symfony\Component\Process\Process;
 use Throwable;
 
 class WaveFetchService
@@ -20,44 +19,28 @@ class WaveFetchService
     private const LOCK_MINUTES = 60;
     private const LAST_LOG_LINES = 30;
     private const HEARTBEAT_STALE_MINUTES = 10;
+    private const QUEUED_STALE_MINUTES = 5;
 
     public function start(): array
     {
-        $this->clearStaleLock();
         $status = $this->status();
 
-        if ($status['running'] && !$status['stale']) {
+        if ($status['active'] ?? false) {
             return [
                 'started' => false,
-                'status' => 'running',
-                'message' => 'Загрузка DWD уже выполняется.',
+                'status' => $status['status'] ?? 'running',
+                'message' => $this->activeStatusMessage($status),
             ];
         }
 
-        $startedAt = now()->toDateTimeString();
-        $this->writeStatus([
-            'status' => 'running',
-            'running' => true,
-            'stage' => 'starting',
-            'started_at' => $startedAt,
-            'heartbeat_at' => $startedAt,
-            'last_log_at' => $startedAt,
-            'finished_at' => null,
-            'error' => null,
-        ]);
-        $this->appendLog('starting', 'Запуск фоновой загрузки DWD.');
+        $this->markQueued();
 
-        $this->cachePut(self::LOCK_KEY, true, now()->addMinutes(self::LOCK_MINUTES));
-        $this->cachePut(self::STATUS_KEY, 'running', now()->addMinutes(self::LOCK_MINUTES));
-        $this->cachePut(self::STARTED_AT_KEY, $startedAt, now()->addMinutes(self::LOCK_MINUTES));
-        $this->cacheForget(self::FINISHED_AT_KEY);
-        $this->cacheForget(self::ERROR_KEY);
-
-        $process = $this->backgroundProcess();
-        $process->run();
-
-        if (!$process->isSuccessful()) {
-            $message = trim($process->getErrorOutput()) ?: 'Не удалось запустить фоновую загрузку DWD.';
+        try {
+            RunWaveForecastFetch::dispatch()
+                ->onConnection((string) config('dwd.queue_connection', 'database'))
+                ->onQueue((string) config('dwd.queue', 'forecast'));
+        } catch (Throwable $e) {
+            $message = 'Не удалось поставить загрузку forecast model в очередь: ' . $e->getMessage();
             $this->markFailed($message, 'start_failed');
 
             return [
@@ -69,98 +52,44 @@ class WaveFetchService
 
         return [
             'started' => true,
-            'status' => 'running',
-            'message' => 'Загрузка DWD запущена в фоне. Откройте блок диагностики для просмотра этапов.',
+            'status' => 'queued',
+            'message' => 'Задача загрузки forecast model поставлена в очередь. Если статус долго не меняется на running, проверьте queue worker.',
         ];
     }
 
-    public function startSync(): array
+    private function activeStatusMessage(array $status): string
     {
-        $this->clearStaleLock();
-        $status = $this->status();
-
-        if ($status['running'] && !$status['stale']) {
-            return [
-                'started' => false,
-                'status' => 'running',
-                'message' => 'DWD fetch is already running.',
-            ];
+        if (($status['status'] ?? null) === 'queued') {
+            return !empty($status['stale'])
+                ? 'Задача загрузки forecast model уже поставлена в очередь, но worker ещё не начал выполнение. Проверьте queue service или сбросьте зависшую задачу.'
+                : 'Задача загрузки forecast model уже поставлена в очередь и ожидает worker.';
         }
 
-        try {
-            $startedAt = now()->toDateTimeString();
-            $this->writeStatus([
-                'status' => 'running',
-                'running' => true,
-                'stage' => 'starting',
-                'started_at' => $startedAt,
-                'heartbeat_at' => $startedAt,
-                'last_log_at' => $startedAt,
-                'finished_at' => null,
-                'error' => null,
-            ]);
-            $this->appendLog('starting', 'Synchronous DWD fetch started from admin panel.');
-
-            $this->cachePut(self::LOCK_KEY, true, now()->addMinutes(self::LOCK_MINUTES));
-            $this->cachePut(self::STATUS_KEY, 'running', now()->addMinutes(self::LOCK_MINUTES));
-            $this->cachePut(self::STARTED_AT_KEY, $startedAt, now()->addMinutes(self::LOCK_MINUTES));
-            $this->cacheForget(self::FINISHED_AT_KEY);
-            $this->cacheForget(self::ERROR_KEY);
-
-            $exitCode = Artisan::call('wave:fetch');
-
-            if ($exitCode !== 0) {
-                $output = trim(Artisan::output());
-                $message = $output !== ''
-                    ? $output
-                    : "DWD parser finished with exit code {$exitCode}.";
-                $currentStatus = $this->status();
-
-                if (($currentStatus['status'] ?? null) !== 'failed') {
-                    $this->markFailed($message, 'sync_failed');
-                }
-
-                return [
-                    'started' => true,
-                    'status' => 'failed',
-                    'message' => $message,
-                ];
-            }
-
-            return [
-                'started' => true,
-                'status' => 'success',
-                'message' => 'DWD fetch completed successfully.',
-            ];
-        } catch (Throwable $e) {
-            $this->markFailed($e->getMessage(), 'sync_exception');
-
-            return [
-                'started' => true,
-                'status' => 'failed',
-                'message' => $e->getMessage(),
-            ];
-        } finally {
-            $this->cacheForget(self::LOCK_KEY);
-        }
+        return !empty($status['stale'])
+            ? 'Загрузка forecast model выглядит зависшей. Сбросьте зависшую задачу перед новым запуском.'
+            : 'Загрузка forecast model уже выполняется.';
     }
 
     public function status(): array
     {
         $fileStatus = $this->readFileStatus();
         $cacheRunning = $this->cacheHas(self::LOCK_KEY);
+        $statusValue = $fileStatus['status'] ?? $this->cacheGet(self::STATUS_KEY, 'idle');
         $startedAt = $fileStatus['started_at'] ?? $this->cacheGet(self::STARTED_AT_KEY);
-        $running = array_key_exists('running', $fileStatus)
-            ? (bool) $fileStatus['running']
-            : $cacheRunning;
+        $queuedAt = $fileStatus['queued_at'] ?? null;
+        $queued = $statusValue === 'queued';
+        $running = $statusValue === 'running'
+            || (array_key_exists('running', $fileStatus) && (bool) $fileStatus['running']);
+        $active = $queued || $running;
         $heartbeatAt = $fileStatus['heartbeat_at'] ?? null;
         $lastLogAt = array_key_exists('last_log_at', $fileStatus)
             ? $fileStatus['last_log_at']
             : $this->lastLogAt();
         $heartbeatStale = $running && $this->isStaleTimestamp($heartbeatAt, self::HEARTBEAT_STALE_MINUTES);
         $logStale = $running && $this->isStaleTimestamp($lastLogAt, self::HEARTBEAT_STALE_MINUTES);
-        $ttlStale = $running && $this->isStaleStartedAt($startedAt);
-        $cacheFileConflict = $cacheRunning && array_key_exists('running', $fileStatus) && !$running;
+        $queuedStale = $queued && $this->isStaleTimestamp($queuedAt, self::QUEUED_STALE_MINUTES);
+        $ttlStale = $active && $this->isStaleStartedAt($startedAt);
+        $cacheFileConflict = $cacheRunning && array_key_exists('running', $fileStatus) && !$running && !$queued;
         $orphanedCacheLockCleared = false;
 
         if ($cacheFileConflict) {
@@ -169,15 +98,19 @@ class WaveFetchService
             $orphanedCacheLockCleared = true;
         }
 
-        $stale = $ttlStale || $heartbeatStale || $logStale || $cacheFileConflict;
+        $stale = $queuedStale || $ttlStale || $heartbeatStale || $logStale || $cacheFileConflict;
         $minutesSinceLastLog = $lastLogAt ? $this->minutesSince($lastLogAt) : null;
 
         return [
-            'status' => $fileStatus['status'] ?? $this->cacheGet(self::STATUS_KEY, 'idle'),
+            'status' => $statusValue,
+            'active' => $active,
+            'queued' => $queued,
             'running' => $running,
             'stage' => $fileStatus['stage'] ?? null,
             'stale' => $stale,
             'can_reset' => $stale || $cacheFileConflict,
+            'queued_at' => $queuedAt,
+            'queued_stale' => $queuedStale,
             'heartbeat_at' => $heartbeatAt,
             'heartbeat_stale' => $heartbeatStale,
             'last_log_at' => $lastLogAt,
@@ -195,11 +128,61 @@ class WaveFetchService
         ];
     }
 
+    public function markQueued(): void
+    {
+        $queuedAt = now()->toDateTimeString();
+
+        $this->writeStatus([
+            'status' => 'queued',
+            'queued' => true,
+            'running' => false,
+            'stage' => 'queued',
+            'queued_at' => $queuedAt,
+            'started_at' => $queuedAt,
+            'heartbeat_at' => null,
+            'last_log_at' => $queuedAt,
+            'finished_at' => null,
+            'error' => null,
+        ]);
+        $this->appendLog('queued', 'Задача загрузки forecast model поставлена в очередь.');
+
+        $this->cachePut(self::LOCK_KEY, true, now()->addMinutes(self::LOCK_MINUTES));
+        $this->cachePut(self::STATUS_KEY, 'queued', now()->addMinutes(self::LOCK_MINUTES));
+        $this->cachePut(self::STARTED_AT_KEY, $queuedAt, now()->addMinutes(self::LOCK_MINUTES));
+        $this->cacheForget(self::FINISHED_AT_KEY);
+        $this->cacheForget(self::ERROR_KEY);
+    }
+
+    public function markRunning(): void
+    {
+        $status = $this->readFileStatus();
+        $startedAt = now()->toDateTimeString();
+
+        $this->writeStatus(array_merge($status, [
+            'status' => 'running',
+            'queued' => false,
+            'running' => true,
+            'stage' => 'starting',
+            'started_at' => $startedAt,
+            'heartbeat_at' => $startedAt,
+            'finished_at' => null,
+            'error' => null,
+        ]));
+        $this->appendLog('running', 'Queue worker начал загрузку forecast model.');
+
+        $this->cachePut(self::LOCK_KEY, true, now()->addMinutes(self::LOCK_MINUTES));
+        $this->cachePut(self::STATUS_KEY, 'running', now()->addMinutes(self::LOCK_MINUTES));
+        $this->cachePut(self::STARTED_AT_KEY, $startedAt, now()->addMinutes(self::LOCK_MINUTES));
+        $this->cacheForget(self::FINISHED_AT_KEY);
+        $this->cacheForget(self::ERROR_KEY);
+    }
+
     public function markStage(string $stage, ?string $message = null): void
     {
         $status = $this->readFileStatus();
         $this->writeStatus(array_merge($status, [
             'status' => 'running',
+            'queued' => false,
             'running' => true,
             'stage' => $stage,
             'started_at' => $status['started_at'] ?? now()->toDateTimeString(),
@@ -214,13 +197,14 @@ class WaveFetchService
     {
         $this->writeStatus(array_merge($this->readFileStatus(), [
             'status' => 'success',
+            'queued' => false,
             'running' => false,
             'stage' => 'completed',
             'heartbeat_at' => now()->toDateTimeString(),
             'finished_at' => now()->toDateTimeString(),
             'error' => null,
         ]));
-        $this->appendLog('completed', 'Загрузка DWD успешно завершена.');
+        $this->appendLog('completed', 'Загрузка forecast model успешно завершена.');
 
         $this->cachePut(self::STATUS_KEY, 'success', now()->addDay());
         $this->cachePut(self::FINISHED_AT_KEY, now()->toDateTimeString(), now()->addDay());
@@ -232,6 +216,7 @@ class WaveFetchService
     {
         $this->writeStatus(array_merge($this->readFileStatus(), [
             'status' => 'failed',
+            'queued' => false,
             'running' => false,
             'stage' => $stage,
             'heartbeat_at' => now()->toDateTimeString(),
@@ -257,9 +242,10 @@ class WaveFetchService
             ];
         }
 
-        $message = 'Зависший запуск DWD был сброшен администратором.';
+        $message = 'Зависший запуск forecast model был сброшен администратором.';
         $this->writeStatus(array_merge($this->readFileStatus(), [
             'status' => 'idle',
+            'queued' => false,
             'running' => false,
             'stage' => 'reset',
             'heartbeat_at' => now()->toDateTimeString(),
@@ -275,7 +261,7 @@ class WaveFetchService
 
         return [
             'reset' => true,
-            'message' => 'Зависший запуск DWD сброшен.',
+            'message' => 'Зависший запуск forecast model сброшен.',
         ];
     }
 
@@ -305,56 +291,43 @@ class WaveFetchService
 
             return [
                 'cleared' => true,
-                'message' => 'DWD-лог очищен.',
+                'message' => 'forecast model-лог очищен.',
             ];
         } catch (Throwable $e) {
             Log::error('DWD log clear failed', ['error' => $e->getMessage()]);
 
             return [
                 'cleared' => false,
-                'message' => 'Не удалось очистить DWD-лог: ' . $e->getMessage(),
+                'message' => 'Не удалось очистить forecast model-лог: ' . $e->getMessage(),
             ];
         }
     }
 
-    private function backgroundProcess(): Process
+    public function releaseLock(): void
     {
-        $php = PHP_BINARY;
-
-        if (PHP_OS_FAMILY === 'Windows') {
-            return new Process([
-                'cmd',
-                '/C',
-                'start',
-                '/B',
-                '',
-                $php,
-                'artisan',
-                'wave:fetch',
-            ], base_path());
-        }
-
-        $command = sprintf(
-            'nohup %s artisan wave:fetch > /dev/null 2>&1 &',
-            escapeshellarg($php)
-        );
-
-        return Process::fromShellCommandline($command, base_path());
+        $this->cacheForget(self::LOCK_KEY);
     }
 
     private function clearStaleLock(): void
     {
         $status = $this->readFileStatus();
-        $running = (bool) ($status['running'] ?? $this->cacheHas(self::LOCK_KEY));
+        $state = (string) ($status['status'] ?? $this->cacheGet(self::STATUS_KEY, 'idle'));
+        $active = in_array($state, ['queued', 'running'], true)
+            || (bool) ($status['running'] ?? false);
+        $queuedStale = $state === 'queued'
+            && $this->isStaleTimestamp($status['queued_at'] ?? null, self::QUEUED_STALE_MINUTES);
+        $runningStale = $state === 'running'
+            && ($this->isStaleTimestamp($status['heartbeat_at'] ?? null, self::HEARTBEAT_STALE_MINUTES)
+                || $this->isStaleTimestamp($status['last_log_at'] ?? $this->lastLogAt(), self::HEARTBEAT_STALE_MINUTES));
 
-        if (!$running
+        if (!$active
             || (!$this->isStaleStartedAt($status['started_at'] ?? $this->cacheGet(self::STARTED_AT_KEY))
-                && !$this->isStaleTimestamp($status['heartbeat_at'] ?? null, self::HEARTBEAT_STALE_MINUTES)
-                && !$this->isStaleTimestamp($status['last_log_at'] ?? $this->lastLogAt(), self::HEARTBEAT_STALE_MINUTES))) {
+                && !$queuedStale
+                && !$runningStale)) {
             return;
         }
 
-        $this->markFailed('Загрузка DWD зависла и была автоматически разблокирована по TTL.', 'stale_unlocked');
+        $this->markFailed('Загрузка forecast model зависла и была автоматически разблокирована по TTL.', 'stale_unlocked');
     }
 
     private function writeStatus(array $status): void

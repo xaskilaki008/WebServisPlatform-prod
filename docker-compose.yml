@@ -30,7 +30,7 @@ services:
       context: .
       target: app
     restart: unless-stopped
-    command: php artisan queue:work --tries=3 --timeout=90
+    command: php artisan queue:work --queue=forecast,default --tries=1 --timeout=3600
     env_file:
       - .env
     depends_on:

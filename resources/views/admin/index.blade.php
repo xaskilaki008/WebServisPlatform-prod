@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Панель администратора</title>
-    @if(($fetchStatus['running'] ?? false) && !($fetchStatus['stale'] ?? false))
+    @if(($fetchStatus['active'] ?? false) && !($fetchStatus['stale'] ?? false))
         <meta http-equiv="refresh" content="10">
     @endif
     @vite(['resources/css/app.css'])
@@ -14,7 +14,7 @@
         <section class="admin-card">
             <header class="admin-header">
                 <div>
-                    <p class="admin-kicker">DWD parser</p>
+                    <p class="admin-kicker">forecast model parser</p>
                     <h1>Панель администратора</h1>
                 </div>
                 <form method="POST" action="/admin/logout">
@@ -32,7 +32,7 @@
 
             <div class="admin-grid">
                 <section class="admin-section">
-                    <h2>DWD-парсинг</h2>
+                    <h2>forecast model-парсинг</h2>
                     <div class="admin-status-row">
                         <span>Плановый парсинг</span>
                         <strong>{{ $parsingEnabled ? 'Включён' : 'Выключен' }}</strong>
@@ -47,18 +47,18 @@
                         </form>
                         <form method="POST" action="/admin/force-fetch">
                             @csrf
-                            <button type="submit" class="action-button primary" @disabled(($fetchStatus['running'] ?? false) && !($fetchStatus['stale'] ?? false))>
-                                {{ ($fetchStatus['running'] ?? false) && !($fetchStatus['stale'] ?? false) ? 'Загрузка выполняется' : 'Загрузить DWD сейчас' }}
+                            <button type="submit" class="action-button primary" @disabled(($fetchStatus['active'] ?? false) && !($fetchStatus['stale'] ?? false))>
+                                {{ ($fetchStatus['active'] ?? false) && !($fetchStatus['stale'] ?? false) ? 'Задача активна' : 'Загрузить forecast model сейчас' }}
                             </button>
                         </form>
                         <form method="POST" action="/admin/dwd-diagnose">
                             @csrf
-                            <button type="submit" class="action-button secondary">Проверить DWD</button>
+                            <button type="submit" class="action-button secondary">Проверить forecast model</button>
                         </form>
                         @if($fetchStatus['can_reset'] ?? false)
                             <form method="POST" action="/admin/force-fetch/reset-lock">
                                 @csrf
-                                <button type="submit" class="action-button secondary">Сбросить состояние DWD</button>
+                                <button type="submit" class="action-button secondary">Сбросить состояние forecast model</button>
                             </form>
                         @endif
                     </div>
@@ -69,15 +69,21 @@
                     <div class="admin-status-row"><span>Статус</span><strong>{{ $fetchStatus['status'] ?? 'idle' }}</strong></div>
                     <div class="admin-status-row"><span>Этап</span><strong>{{ $fetchStatus['stage'] ?? '-' }}</strong></div>
                     @if($fetchStatus['cache_file_conflict'] ?? false)
-                        <div class="admin-flash error">Cache-lock и файловый статус DWD расходятся. Можно сбросить состояние и запустить DWD заново.</div>
+                        <div class="admin-flash error">Cache-lock и файловый статус forecast model расходятся. Можно сбросить состояние и запустить forecast model заново.</div>
                     @elseif($fetchStatus['stale'] ?? false)
-                        <div class="admin-flash error">Загрузка выглядит зависшей. Можно сбросить lock и запустить DWD заново.</div>
+                        <div class="admin-flash error">Загрузка выглядит зависшей. Можно сбросить lock и запустить forecast model заново.</div>
+                    @elseif($fetchStatus['queued'] ?? false)
+                        <div class="admin-flash">Задача forecast model поставлена в очередь и ожидает queue worker.</div>
                     @elseif($fetchStatus['running'] ?? false)
-                        <div class="admin-flash">Загрузка DWD сейчас выполняется.</div>
+                        <div class="admin-flash">Загрузка forecast model сейчас выполняется.</div>
+                    @endif
+                    @if(($fetchStatus['queued_stale'] ?? false) && ($fetchStatus['queued'] ?? false))
+                        <div class="admin-flash error">Задача forecast model стоит в очереди слишком долго. Проверьте queue service.</div>
                     @endif
                     @if(($fetchStatus['log_stale'] ?? false) && ($fetchStatus['running'] ?? false))
-                        <div class="admin-flash error">Нет новых строк DWD-лога {{ $fetchStatus['minutes_since_last_log'] ?? '?' }} мин. Возможно, загрузка зависла.</div>
+                        <div class="admin-flash error">Нет новых строк forecast model-лога {{ $fetchStatus['minutes_since_last_log'] ?? '?' }} мин. Возможно, загрузка зависла.</div>
                     @endif
+                    <div class="admin-status-row"><span>Поставлено в очередь</span><strong>{{ $fetchStatus['queued_at'] ?? '-' }}</strong></div>
                     <div class="admin-status-row"><span>Старт</span><strong>{{ $fetchStatus['started_at'] ?? '-' }}</strong></div>
                     <div class="admin-status-row"><span>Heartbeat</span><strong>{{ $fetchStatus['heartbeat_at'] ?? '-' }}</strong></div>
                     <div class="admin-status-row"><span>Последняя строка лога</span><strong>{{ $fetchStatus['last_log_at'] ?? '-' }}</strong></div>
@@ -95,7 +101,7 @@
                 </section>
 
                 <section class="admin-section">
-                    <h2>Диагностика DWD</h2>
+                    <h2>Диагностика forecast model</h2>
                     @if(!empty($fetchStatus['diagnostic']))
                         <div class="admin-status-row">
                             <span>Проверено</span>
@@ -123,16 +129,16 @@
 
                 <section class="admin-section">
                     <div class="admin-section-title">
-                        <h2>Последние строки DWD-лога</h2>
+                        <h2>Последние строки forecast model-лога</h2>
                         <form method="POST" action="/admin/dwd-log/clear">
                             @csrf
-                            <button type="submit" class="action-button secondary">Очистить DWD-лог</button>
+                            <button type="submit" class="action-button secondary">Очистить forecast model-лог</button>
                         </form>
                     </div>
                     @if(!empty($fetchStatus['last_log_lines']))
                         <pre class="admin-log">{{ implode(PHP_EOL, $fetchStatus['last_log_lines']) }}</pre>
                     @else
-                        <p class="admin-note">Лог DWD пока пуст.</p>
+                        <p class="admin-note">Лог forecast model пока пуст.</p>
                     @endif
                 </section>
 

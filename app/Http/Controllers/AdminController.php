@@ -102,8 +102,8 @@ class AdminController extends Controller
         Cache::put('parsing_enabled', $newStatus);
 
         $message = $newStatus
-            ? 'Плановый DWD-парсинг включён.'
-            : 'Плановый DWD-парсинг выключен.';
+            ? 'Плановый forecast model-парсинг включён.'
+            : 'Плановый forecast model-парсинг выключен.';
 
         return $this->adminActionResponse($request, true, 'success', $message, [
             'parsing_enabled' => $newStatus,
@@ -114,22 +114,15 @@ class AdminController extends Controller
     {
         $this->authorizeAdmin($request, $auth);
 
-        if (config('dwd.fetch_mode') === 'sync') {
-            @set_time_limit(0);
-            ignore_user_abort(true);
-
-            $result = $waveFetchService->startSync();
-        } else {
-            $result = $waveFetchService->start();
-        }
+        $result = $waveFetchService->start();
 
         return $this->adminActionResponse(
             $request,
-            in_array($result['status'] ?? null, ['running', 'success'], true),
+            in_array($result['status'] ?? null, ['queued', 'running', 'success'], true),
             $result['status'] ?? 'unknown',
-            $result['message'] ?? 'Статус запуска DWD неизвестен.',
+            $result['message'] ?? 'Статус запуска forecast model неизвестен.',
             $waveFetchService->status(),
-            ($result['status'] ?? null) === 'failed' ? [$result['message'] ?? 'Ошибка запуска DWD.'] : []
+            ($result['status'] ?? null) === 'failed' ? [$result['message'] ?? 'Ошибка запуска forecast model.'] : []
         );
     }
 
@@ -158,7 +151,7 @@ class AdminController extends Controller
             $request,
             (bool) ($result['reset'] ?? false),
             ($result['reset'] ?? false) ? 'success' : 'blocked',
-            $result['message'] ?? 'Состояние DWD не изменено.',
+            $result['message'] ?? 'Состояние forecast model не изменено.',
             $waveFetchService->status(),
             ($result['reset'] ?? false) ? [] : [$result['message'] ?? 'Сброс недоступен.']
         );
@@ -171,8 +164,8 @@ class AdminController extends Controller
         $exitCode = Artisan::call('wave:diagnose');
         $status = $waveFetchService->status();
         $message = $exitCode === 0
-            ? 'Диагностика DWD завершена: критических проблем не найдено.'
-            : 'Диагностика DWD завершена: найдены проблемы.';
+            ? 'Диагностика forecast model завершена: критических проблем не найдено.'
+            : 'Диагностика forecast model завершена: найдены проблемы.';
 
         return $this->adminActionResponse(
             $request,
@@ -191,7 +184,7 @@ class AdminController extends Controller
         return $this->adminJsonResponse(
             true,
             'success',
-            'DWD-лог прочитан.',
+            'forecast model-лог прочитан.',
             ['last_log_lines' => $waveFetchService->logLines()]
         );
     }
@@ -206,9 +199,9 @@ class AdminController extends Controller
             $request,
             (bool) ($result['cleared'] ?? false),
             ($result['cleared'] ?? false) ? 'success' : 'error',
-            $result['message'] ?? 'DWD-лог не очищен.',
+            $result['message'] ?? 'forecast model-лог не очищен.',
             $waveFetchService->status(),
-            ($result['cleared'] ?? false) ? [] : [$result['message'] ?? 'DWD-лог не очищен.']
+            ($result['cleared'] ?? false) ? [] : [$result['message'] ?? 'forecast model-лог не очищен.']
         );
     }
 
@@ -252,22 +245,30 @@ class AdminController extends Controller
     private function dwdStatusMessage(array $status): string
     {
         if (!empty($status['stale'])) {
-            return 'Загрузка DWD выглядит зависшей.';
+            if (($status['status'] ?? null) === 'queued') {
+                return 'Задача forecast model поставлена в очередь, но worker ещё не начал выполнение. Проверьте queue service.';
+            }
+
+            return 'Загрузка forecast model выглядит зависшей.';
+        }
+
+        if (!empty($status['queued'])) {
+            return 'Задача forecast model поставлена в очередь и ожидает queue worker.';
         }
 
         if (!empty($status['running'])) {
-            return 'Загрузка DWD выполняется.';
+            return 'Загрузка forecast model выполняется.';
         }
 
         if (($status['status'] ?? null) === 'success') {
-            return 'Последняя загрузка DWD завершена успешно.';
+            return 'Последняя загрузка forecast model завершена успешно.';
         }
 
         if (($status['status'] ?? null) === 'failed') {
-            return 'Последняя загрузка DWD завершилась ошибкой.';
+            return 'Последняя загрузка forecast model завершилась ошибкой.';
         }
 
-        return 'DWD-загрузка сейчас не выполняется.';
+        return 'forecast model-загрузка сейчас не выполняется.';
     }
 
     private function blockedMessage(int $retryAfterSeconds): string

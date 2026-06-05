@@ -46,7 +46,11 @@ DB_PORT=5432
 DB_DATABASE=webservisplatform
 DB_USERNAME=webservis
 DB_PASSWORD=CHANGE_ME_TO_A_STRONG_PASSWORD
+QUEUE_CONNECTION=database
+DB_QUEUE_RETRY_AFTER=3900
 WGRIB2_PATH=/usr/bin/wgrib2
+DWD_QUEUE_CONNECTION=database
+DWD_QUEUE=forecast
 ```
 
 Generate and keep the production app key only in the server `.env`:
@@ -98,6 +102,16 @@ docker compose logs --tail=80 queue
 docker compose logs --tail=80 scheduler
 ```
 
+The forecast model parser is started from the admin panel through the `queue`
+service. If the admin panel shows `queued` for more than a few minutes, the
+worker is not processing the job:
+
+```bash
+docker compose ps queue
+docker compose logs --tail=80 queue
+docker compose up -d queue
+```
+
 The homepage `/` should return a normal HTML response. If it returns an empty or
 very small response, check `app` and `nginx` logs first, then run:
 
@@ -138,6 +152,11 @@ Run the parser:
 docker compose exec app php artisan wave:fetch
 ```
 
+The admin panel does not run this command inside a web request. It queues a
+`forecast` job, then the `queue` service executes `wave:fetch`. During a healthy
+manual run the status should move from `queued` to `running` and then to
+`success` or `failed`.
+
 Check saved forecasts:
 
 ```bash
@@ -169,6 +188,13 @@ GET  /admin/dwd-log
 POST /admin/dwd-log/clear
 POST /admin/dwd-diagnose
 POST /admin/force-fetch
+```
+
+If `/admin/force-fetch/status` stays at `queued`, inspect the worker:
+
+```bash
+docker compose logs --tail=120 queue
+docker compose exec app php artisan queue:failed
 ```
 
 For normal VPS/Docker deployment keep these empty unless a local development VPN

@@ -13,5 +13,6 @@ return [
     'connect_timeout' => (int) env('DWD_CONNECT_TIMEOUT', 10),
     'timeout' => (int) env('DWD_HTTP_TIMEOUT', 30),
     'forecast_enabled' => filter_var(env('DWD_FORECAST_ENABLED', true), FILTER_VALIDATE_BOOL),
-    'fetch_mode' => env('DWD_FETCH_MODE', 'background'),
+    'queue_connection' => env('DWD_QUEUE_CONNECTION', 'database'),
+    'queue' => env('DWD_QUEUE', 'forecast'),
 ];
