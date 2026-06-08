@@ -97,12 +97,6 @@
                     <button type="button" class="filter-chip" data-category="danger">Купание не рекомендуется</button>
                 </div>
             </div>
-            <div class="favorites-panel">
-                <h3 class="filter-title">Избранные пляжи</h3>
-                <div id="favorites-list" class="favorites-list">
-                    <div class="empty-state compact">Избранные пляжи пока не добавлены.</div>
-                </div>
-            </div>
             <div id="beaches-list" class="list-wrap"></div>
         </section>
 

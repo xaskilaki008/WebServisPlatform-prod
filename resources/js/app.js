@@ -98,13 +98,11 @@ const toggleMapSizeButton = document.getElementById('toggle-map-size-button');
 const fitMapButton = document.getElementById('fit-map-button');
 const sidebarPhoto = document.getElementById('sidebar-beach-photo');
 const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content || '';
-const favoriteToggleButton = document.getElementById('favorite-toggle-button');
 const reactionPositiveButton = document.getElementById('reaction-positive-button');
 const reactionNegativeButton = document.getElementById('reaction-negative-button');
 const reactionMessage = document.getElementById('reaction-message');
 const reactionPositiveCount = document.getElementById('reaction-positive-count');
 const reactionNegativeCount = document.getElementById('reaction-negative-count');
-const favoritesList = document.getElementById('favorites-list');
 let reactionNoticeTimer = null;
 const routeState = {
     map: 'beaches-map',
@@ -420,40 +418,6 @@ function showReactionNotice(message, timeout = 2000) {
     }, timeout);
 }
 
-function updateFavoriteControl(data = {}) {
-    if (!favoriteToggleButton) return;
-
-    const isFavorite = Boolean(data.is_favorite);
-    favoriteToggleButton.disabled = false;
-    favoriteToggleButton.textContent = isFavorite ? '★ В избранном' : '☆ Добавить в избранное';
-    favoriteToggleButton.classList.toggle('active', isFavorite);
-}
-
-function renderFavorites(items = []) {
-    if (!favoritesList) return;
-
-    if (!items.length) {
-        favoritesList.innerHTML = '<div class="empty-state compact">Избранные пляжи пока не добавлены.</div>';
-        return;
-    }
-
-    favoritesList.innerHTML = items.map(beach => `
-        <button type="button" class="favorite-list-item" data-favorite-id="${beach.id}">
-            <span>${beach.name || 'Без названия'}</span>
-            <small>${beach.category_label || getBeachCategoryLabel(beach)}</small>
-        </button>
-    `).join('');
-}
-
-function loadFavorites() {
-    if (!favoritesList) return;
-
-    apiFetch('/api/favorites')
-        .then(response => response.json())
-        .then(data => renderFavorites(data.favorites || []))
-        .catch(() => renderFavorites([]));
-}
-
 function submitReaction(type) {
     const beachId = Number(detailMapButton.dataset.id);
     if (!beachId) return;
@@ -497,23 +461,6 @@ function submitReaction(type) {
         });
 }
 
-function toggleFavorite() {
-    const beachId = Number(detailMapButton.dataset.id);
-    if (!beachId || !favoriteToggleButton) return;
-
-    favoriteToggleButton.disabled = true;
-
-    apiFetch(`/api/beaches/${beachId}/favorite-toggle`, { method: 'POST' })
-        .then(response => response.json())
-        .then(data => {
-            updateFavoriteControl(data);
-            loadFavorites();
-        })
-        .catch(() => {
-            favoriteToggleButton.disabled = false;
-        });
-}
-
 function renderLoadingState() {
     beachesList.innerHTML = `
         <div class="skeleton skeleton-card"></div>
@@ -548,8 +495,6 @@ function updateDetailScreen(beach = {}) {
     detailCategory.className = 'category-badge ' + getCategoryBadgeClass(beach);
     detailMapButton.dataset.id = beach.id ?? '';
     updateReactionControls({ reaction_stats: {}, can_react: false });
-    updateFavoriteControl({ is_favorite: false });
-    if (favoriteToggleButton) favoriteToggleButton.disabled = true;
 
     const hasCoords = beach.latitude !== undefined && beach.longitude !== undefined;
     detailCoordinates.textContent = hasCoords ? `${beach.latitude}, ${beach.longitude}` : '-';
@@ -606,7 +551,6 @@ function updateDetailScreen(beach = {}) {
             }
             updateOperatorControls(beach, data.operator_status ?? beach.operator_status ?? null);
             updateReactionControls(data);
-            updateFavoriteControl(data);
         })
         .catch(err => {
             console.error('Ошибка загрузки волн:', err);
@@ -1485,20 +1429,6 @@ if (reactionNegativeButton) {
     reactionNegativeButton.addEventListener('click', () => submitReaction('negative'));
 }
 
-if (favoriteToggleButton) {
-    favoriteToggleButton.addEventListener('click', toggleFavorite);
-}
-
-if (favoritesList) {
-    favoritesList.addEventListener('click', event => {
-        const button = event.target.closest('[data-favorite-id]');
-        if (!button) return;
-
-        const beach = beaches.find(item => String(item.id) === String(button.dataset.favoriteId));
-        if (beach) openBeachDetails(beach, 'list-screen');
-    });
-}
-
 toggleMapSizeButton.addEventListener('click', function () {
     setMapExpanded(!isMapExpanded);
 });
@@ -1531,7 +1461,6 @@ apiFetch('/api/beaches')
         if (beachesPolygonLayer) refreshPolygonStyles();
         renderMapMarkers();
         renderBeachesList();
-        loadFavorites();
 
         if (beaches.length > 0) {
             const urlParams = new URLSearchParams(window.location.search);

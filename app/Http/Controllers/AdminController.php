@@ -62,7 +62,9 @@ class AdminController extends Controller
 
     public function index(Request $request, AdminAuthService $auth, WaveFetchService $waveFetchService)
     {
-        $this->authorizeAdmin($request, $auth);
+        if (!$auth->admin($request)) {
+            return view('admin.authorize');
+        }
 
         $forecastWindowStart = now('UTC')->startOfHour();
         $forecastWindowEnd = $forecastWindowStart->copy()->addDay();

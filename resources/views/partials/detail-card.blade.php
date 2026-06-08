@@ -129,7 +129,6 @@
     <section class="detail-group-block detail-feedback-block">
         <div class="detail-feedback-header">
             <h3 class="detail-section-title">Оценка посетителей</h3>
-            <button type="button" id="favorite-toggle-button" class="favorite-button" disabled>☆ Добавить в избранное</button>
         </div>
 
         <div class="reaction-panel">
