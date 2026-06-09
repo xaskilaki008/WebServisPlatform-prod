@@ -11,6 +11,7 @@ Thumbs.db
 # Local environment and secrets
 .env
 .env.backup
+.env.docker.local
 .env.production
 /auth.json
 

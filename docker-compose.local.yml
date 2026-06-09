@@ -1,0 +1,41 @@
+x-laravel-local-env: &laravel-local-env
+  APP_ENV: local
+  APP_DEBUG: "true"
+  APP_URL: http://127.0.0.1:8000
+  DB_HOST: db
+  DB_PORT: "5432"
+  DB_DATABASE: webservisplatform
+  DB_USERNAME: webservis
+  DB_PASSWORD: local_secret
+  QUEUE_CONNECTION: database
+  DB_QUEUE_RETRY_AFTER: "3900"
+  CACHE_STORE: database
+  WGRIB2_PATH: /usr/bin/wgrib2
+  DWD_AUTO_CURL_RESOLVE: "true"
+  DWD_QUEUE_CONNECTION: database
+  DWD_QUEUE: forecast
+
+services:
+  app:
+    env_file:
+      - .env.docker.local
+    environment:
+      <<: *laravel-local-env
+
+  queue:
+    env_file:
+      - .env.docker.local
+    environment:
+      <<: *laravel-local-env
+
+  scheduler:
+    env_file:
+      - .env.docker.local
+    environment:
+      <<: *laravel-local-env
+
+  db:
+    environment:
+      POSTGRES_DB: webservisplatform
+      POSTGRES_USER: webservis
+      POSTGRES_PASSWORD: local_secret
