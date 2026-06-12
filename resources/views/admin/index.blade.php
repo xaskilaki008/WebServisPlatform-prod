@@ -23,6 +23,21 @@
                 </form>
             </header>
 
+            <nav class="admin-nav" aria-label="Навигация администратора">
+                <a class="admin-nav-button" href="/">Вернуться на сайт</a>
+                <a class="admin-nav-button active" href="/admin">Панель администратора</a>
+                <a class="admin-nav-button placeholder" href="#" aria-disabled="true">Управление пляжами</a>
+                <a class="admin-nav-button placeholder" href="#" aria-disabled="true">Управление операторами</a>
+                <a class="admin-nav-button placeholder" href="#" aria-disabled="true">Пользователи и роли</a>
+                <a class="admin-nav-button placeholder" href="#" aria-disabled="true">Журнал действий</a>
+                <a class="admin-nav-button" href="/admin">Прогнозы forecast model</a>
+                <a class="admin-nav-button placeholder" href="#" aria-disabled="true">Ручная корректировка</a>
+                <form method="POST" action="/admin/logout" class="admin-nav-logout">
+                    @csrf
+                    <button type="submit" class="admin-nav-button danger">Выйти</button>
+                </form>
+            </nav>
+
             @if(session('status'))
                 <div class="admin-flash">{{ session('status') }}</div>
             @endif

@@ -25,7 +25,9 @@
                 <p class="topbar-subtitle">Будьте в курсе доступности пляжей любимого моря</p>
             </div>
             <div class="topbar-logo-wrap">
-                <img class="topbar-logo" src="{{ asset('супер-пупер логотип сайта.png') }}" alt="Логотип сайта">
+                <a href="/" class="topbar-logo-link" aria-label="На главную страницу">
+                    <img class="topbar-logo" src="{{ asset('супер-пупер логотип сайта.png') }}" alt="Логотип сайта">
+                </a>
             </div>
             <div class="topbar-nav">
                 <button type="button" class="nav-button active" data-screen-target="map-screen">Карта</button>
@@ -55,25 +57,52 @@
                 </section>
                 <aside class="left-column">
                     <div class="panel legend-panel">
-                        <p class="legend-panel-hint">Нажмите чтобы выбрать категорию из списка</p>
-                        <img class="mobile-legend-image" src="{{ asset('./flag-colors.png') }}" alt="Цвета флажков">
-
-                        <div class="desktop-legend-images">
-                            <img src="{{ asset('./separate-flag-colors(green).png') }}" alt="Безопасно">
-                            <img src="{{ asset('./separate-flag-colors(yellow).png') }}" alt="Внимание">
-                            <img src="{{ asset('./separate-flag-colors(red).png') }}" alt="Опасно">
+                        <div class="mobile-legend-compact">
+                            <img class="mobile-legend-image" src="{{ asset('./flag-colors.png') }}" alt="Цвета флажков">
+                            <div class="mobile-legend-actions" aria-label="Уровни волнения">
+                                <button type="button" class="mobile-legend-button danger" data-category="danger" data-legend-level="danger">Опасно — купание запрещено</button>
+                                <button type="button" class="mobile-legend-button caution" data-category="caution" data-legend-level="caution">Умеренно опасно — будьте осторожны</button>
+                                <button type="button" class="mobile-legend-button safe" data-category="safe" data-legend-level="safe">Безопасно — купание разрешено</button>
+                            </div>
                         </div>
+                        <div class="mobile-legend-detail" aria-live="polite"></div>
+
+                        <div class="legend-descriptions" aria-label="Описание уровней волнения">
+                            <button type="button" class="legend-description-card safe" data-category="safe" aria-label="Показать пляжи, где купание допустимо">
+                                <img src="{{ asset('./separate-flag-colors(green).png') }}" alt="Безопасно">
+                                <div class="legend-description-text">
+                                    <h3>Зелёный уровень — безопасно</h3>
+                                    <p><strong>Спокойное море.</strong> Купание разрешено.</p>
+                                    <p>Высота волн до 1,2 м. Условия в целом безопасны, но необходимо соблюдать обычные меры предосторожности.</p>
+                                    <p><strong>Рекомендация:</strong> можно купаться, не заплывая за буйки.</p>
+                                </div>
+                            </button>
+                            <button type="button" class="legend-description-card caution" data-category="caution" aria-label="Показать пляжи, где нужна осторожность">
+                                <img src="{{ asset('./separate-flag-colors(yellow).png') }}" alt="Внимание">
+                                <div class="legend-description-text">
+                                    <h3>Жёлтый уровень — умеренно опасно</h3>
+                                    <p><strong>Повышенное волнение.</strong> Будьте внимательны и осторожны.</p>
+                                    <p>Высота волн от 1,2 до 1,5 м. Возможны сложности при входе и выходе из воды, а также риск обратного течения.</p>
+                                    <p><strong>Рекомендация:</strong> детям, пожилым людям и неуверенным пловцам купаться не рекомендуется.</p>
+                                </div>
+                            </button>
+                            <button type="button" class="legend-description-card danger" data-category="danger" aria-label="Показать пляжи, где купание не рекомендуется">
+                                <img src="{{ asset('./separate-flag-colors(red).png') }}" alt="Опасно">
+                                <div class="legend-description-text">
+                                    <h3>Красный уровень — опасно</h3>
+                                    <p><strong>Сильное волнение.</strong> Купание запрещено.</p>
+                                    <p>Высота волн более 1,5 м. Купание может быть опасным из-за сильных волн и риска быть унесённым в море.</p>
+                                    <p><strong>Рекомендация:</strong> не входить в воду и следовать указаниям спасателей.</p>
+                                </div>
+                            </button>
+                        </div>
+                        <p class="legend-panel-hint">Нажмите чтобы выбрать категорию</p>
                     </div>
                 </aside>
             </div>
         </section>
 
         <section id="list-screen" class="screen">
-            <div class="screen-header">
-                <div>
-                    <h2 class="screen-title">Найдено пляжей: <span id="results-counter" class="counter-badge">0</span></h2>
-                </div>
-            </div>
             @if($isOperator ?? false)
                 <div class="operator-warning-panel">
                     <div>
@@ -88,7 +117,10 @@
                 <p class="filter-description">Список обновляется мгновенно по названию и категории безопасности.</p>
                 <div class="search-row">
                     <input id="search-input" class="search-input" type="text" placeholder="Введите часть названия пляжа">
-                    <button type="button" id="clear-search-button" class="clear-search-button">Очистить поиск</button>
+                    <div class="search-row-actions">
+                        <button type="button" id="clear-search-button" class="clear-search-button">Очистить поиск</button>
+                        <h2 class="screen-title search-results-title">Найдено пляжей: <span id="results-counter" class="counter-badge">0</span></h2>
+                    </div>
                 </div>
                 <div class="filter-chips">
                     <button type="button" class="filter-chip active" data-category="all">Все пляжи</button>

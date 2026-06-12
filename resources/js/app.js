@@ -92,6 +92,8 @@ const navButtons = document.querySelectorAll('[data-screen-target]');
 const screens = document.querySelectorAll('.screen');
 const searchInput = document.getElementById('search-input');
 const filterChips = document.querySelectorAll('[data-category]');
+const mobileLegendButtons = document.querySelectorAll('.mobile-legend-button[data-legend-level]');
+const mobileLegendDetail = document.querySelector('.mobile-legend-detail');
 const scrollTopButton = document.getElementById('scroll-top-button');
 const clearSearchButton = document.getElementById('clear-search-button');
 const toggleMapSizeButton = document.getElementById('toggle-map-size-button');
@@ -128,6 +130,7 @@ let activeCategory = 'all';
 let searchQuery = '';
 let isMapExpanded = false;
 let hidePopupNumberOnce = false;
+let lastLegendTap = { level: null, time: 0 };
 const urlParamsAtBoot = new URLSearchParams(window.location.search);
 const initialBeachParam = urlParamsAtBoot.get('beach');
 const initialRouteIsList = urlParamsAtBoot.has(routeState.list);
@@ -144,6 +147,27 @@ if (initialRouteIsList) {
 if (initialRouteIsMap) {
     screens.forEach(screen => screen.classList.toggle('active', screen.id === 'map-screen'));
 }
+
+const legendLevelDetails = {
+    safe: {
+        title: 'Зелёный уровень — безопасно',
+        text: 'Спокойное море. Купание разрешено.',
+        description: 'Высота волн до 1,2 м. Условия в целом безопасны, но необходимо соблюдать обычные меры предосторожности.',
+        recommendation: 'Можно купаться, не заплывая за буйки.',
+    },
+    caution: {
+        title: 'Жёлтый уровень — умеренно опасно',
+        text: 'Повышенное волнение. Будьте внимательны и осторожны.',
+        description: 'Высота волн от 1,2 до 1,5 м. Возможны сложности при входе и выходе из воды, а также риск обратного течения.',
+        recommendation: 'Детям, пожилым людям и неуверенным пловцам купаться не рекомендуется.',
+    },
+    danger: {
+        title: 'Красный уровень — опасно',
+        text: 'Сильное волнение. Купание запрещено.',
+        description: 'Высота волн более 1,5 м. Купание может быть опасным из-за сильных волн и риска быть унесённым в море.',
+        recommendation: 'Не входить в воду и следовать указаниям спасателей.',
+    },
+};
 
 function apiFetch(url, options = {}) {
     const headers = {
@@ -1353,6 +1377,38 @@ filterChips.forEach(chip => {
         });
         renderBeachesList();
     });
+});
+
+function showMobileLegendDetail(level) {
+    if (!mobileLegendDetail || !legendLevelDetails[level]) return;
+
+    const detail = legendLevelDetails[level];
+    mobileLegendDetail.className = `mobile-legend-detail is-visible ${level}`;
+    mobileLegendDetail.innerHTML = `
+        <h3>${detail.title}</h3>
+        <p><strong>${detail.text}</strong></p>
+        <p>${detail.description}</p>
+        <p><strong>Рекомендация:</strong> ${detail.recommendation}</p>
+    `;
+}
+
+mobileLegendButtons.forEach(button => {
+    button.addEventListener('dblclick', function () {
+        showMobileLegendDetail(button.dataset.legendLevel);
+    });
+
+    button.addEventListener('touchend', function () {
+        const level = button.dataset.legendLevel;
+        const now = Date.now();
+
+        if (lastLegendTap.level === level && now - lastLegendTap.time < 360) {
+            showMobileLegendDetail(level);
+            lastLegendTap = { level: null, time: 0 };
+            return;
+        }
+
+        lastLegendTap = { level, time: now };
+    }, { passive: true });
 });
 
 beachesList.addEventListener('click', function (event) {

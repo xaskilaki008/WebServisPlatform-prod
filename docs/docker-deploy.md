@@ -22,6 +22,77 @@ Docker services:
 The compose file passes environment variables with `env_file: .env`; the `.env`
 file does not need to be copied into the Docker image.
 
+## Local Docker Desktop run
+
+For local Windows/Docker Desktop development, use the local override file instead
+of the server `.env`. This keeps the Windows `.env` for `php artisan serve` and
+runs the full Docker stack with `app`, `nginx`, `db`, `queue`, and `scheduler`:
+
+```powershell
+docker compose --env-file .env.docker.local -f docker-compose.yml -f docker-compose.local.yml up -d --build
+```
+
+Open the local Docker site at:
+
+```text
+http://127.0.0.1:8000/
+http://127.0.0.1:8000/admin
+```
+
+Use the same command after changing Dockerfile, compose files, composer/npm
+dependencies, or environment/configuration that must be baked into the image.
+For routine Blade, CSS, or JS edits, use the faster local cycle below.
+
+## Fast local change cycle
+
+If the local Docker stack is already running, do not rebuild the whole
+application for every UI edit. Use targeted commands instead.
+
+After changing only Blade templates:
+
+```powershell
+docker compose --env-file .env.docker.local -f docker-compose.yml -f docker-compose.local.yml exec app php artisan view:clear
+```
+
+After changing only CSS or JS:
+
+```powershell
+docker compose --env-file .env.docker.local -f docker-compose.yml -f docker-compose.local.yml exec app npm run build
+```
+
+After changing Blade plus CSS/JS:
+
+```powershell
+docker compose --env-file .env.docker.local -f docker-compose.yml -f docker-compose.local.yml exec app npm run build
+docker compose --env-file .env.docker.local -f docker-compose.yml -f docker-compose.local.yml exec app php artisan view:clear
+```
+
+Then refresh the browser with `Ctrl+F5` to avoid stale built assets.
+
+Use the full rebuild again when changing Docker, dependency, or environment
+files:
+
+```powershell
+docker compose --env-file .env.docker.local -f docker-compose.yml -f docker-compose.local.yml up -d --build
+```
+
+Check local containers:
+
+```powershell
+docker compose --env-file .env.docker.local -f docker-compose.yml -f docker-compose.local.yml ps
+docker compose --env-file .env.docker.local -f docker-compose.yml -f docker-compose.local.yml logs --tail=80 queue scheduler
+```
+
+Stop the local stack:
+
+```powershell
+docker compose --env-file .env.docker.local -f docker-compose.yml -f docker-compose.local.yml down
+```
+
+The local Docker database is exposed on the host port configured by
+`DB_FORWARD_PORT` in `.env.docker.local`; Laravel containers still connect to it
+as `db:5432`.
+
 ## First deploy
 
 ```bash

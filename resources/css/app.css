@@ -84,6 +84,18 @@ body {
     justify-content: center;
 }
 
+.topbar-logo-link {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    text-decoration: none;
+}
+
+.topbar-logo-link:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 4px;
+}
+
 .topbar-logo {
     display: block;
     height: clamp(38px, 5vw, 58px);
@@ -276,19 +288,21 @@ background-color: #edf3f8;
     display: flex;
     flex-direction: column;
     align-items: flex-start;
-    gap: 12px;
+    gap: 7px;
+    max-height: calc(100vh - 118px);
     overflow: visible;
+    overscroll-behavior: contain;
 }
 
 .panel.legend-panel {
-    padding-top: 0;
+    padding: 8px 10px;
     border-radius: 0;
 }
 
 .legend-panel-hint {
     margin: 0;
     color: #173042;
-    font-size: 13px;
+    font-size: 12px;
 }
 
 /* По умолчанию (на ПК) прячем мобильную картинку */
@@ -296,28 +310,47 @@ background-color: #edf3f8;
     display: none;
 }
 
-/* Настройки для трех картинок на ПК */
-.desktop-legend-images {
-    width: 100%;
-    display: flex;
-    align-items: center;
-    gap: 10px;
+.mobile-legend-compact,
+.mobile-legend-actions,
+.mobile-legend-detail {
+    display: none;
 }
 
-.desktop-legend-images img {
-    height: 74px;
+/* Настройки для трех картинок на ПК */
+.desktop-legend-images {
+    display: none;
+}
+
+.legend-category-button {
+    appearance: none;
+    border: 1px solid transparent;
+    background: transparent;
+    cursor: pointer;
+    padding: 0;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
+}
+
+.legend-category-button img {
+    height: 58px;
     width: auto;
     object-fit: contain;
     border-radius: 8px;
-    transition: transform 0.2s ease;
+    display: block;
 }
 
-.desktop-legend-images img:hover {
-    transform: translateY(-3px) scale(1.15);
+.legend-category-button:hover {
+    transform: translateY(-2px) scale(1.06);
     box-shadow: 0 8px 16px rgba(11, 102, 156, 0.15);
 
     position: relative;
     z-index: 10;
+}
+
+.legend-category-button.active,
+.legend-category-button:focus-visible {
+    border-color: rgba(11, 102, 156, 0.65);
+    box-shadow: 0 0 0 3px rgba(11, 102, 156, 0.14);
+    outline: none;
 }
 
 .legend-panel h3 {
@@ -328,6 +361,80 @@ background-color: #edf3f8;
     line-height: 1.2;
 }
 
+
+.legend-descriptions {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 7px;
+    width: 100%;
+}
+
+.legend-description-card {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    align-items: start;
+    gap: 8px;
+    appearance: none;
+    border-left: 4px solid var(--border);
+    border-bottom: 0;
+    border-right: 0;
+    border-top: 0;
+    background: rgba(255, 255, 255, 0.74);
+    cursor: pointer;
+    font: inherit;
+    padding: 7px 8px;
+    text-align: left;
+    transition: background var(--transition), box-shadow var(--transition), transform var(--transition);
+}
+
+.legend-description-card:hover {
+    background: #ffffff;
+    box-shadow: 0 8px 16px rgba(11, 102, 156, 0.12);
+    transform: translateY(-1px);
+}
+
+.legend-description-card.active,
+.legend-description-card:focus-visible {
+    box-shadow: 0 0 0 3px rgba(11, 102, 156, 0.14);
+    outline: none;
+}
+
+.legend-description-card img {
+    height: 58px;
+    width: auto;
+    object-fit: contain;
+    border-radius: 8px;
+    display: block;
+}
+
+.legend-description-card.safe {
+    border-color: var(--status-safe);
+}
+
+.legend-description-card.caution {
+    border-color: var(--status-caution);
+}
+
+.legend-description-card.danger {
+    border-color: var(--status-danger);
+}
+
+.legend-description-card h3 {
+    color: var(--text);
+    font-size: 12px;
+    margin-bottom: 4px;
+}
+
+.legend-description-card p {
+    color: var(--text-soft);
+    font-size: 11px;
+    line-height: 1.24;
+    margin: 0 0 4px;
+}
+
+.legend-description-card p:last-child {
+    margin-bottom: 0;
+}
 
 .legend-image {
     flex: 1;
@@ -429,8 +536,25 @@ background-color: #edf3f8;
 
 .search-row {
     display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
     gap: 8px;
     margin: 10px 0 10px;
+}
+
+.search-row-actions {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 10px;
+    min-width: 0;
+}
+
+.search-results-title {
+    margin: 0;
+    font-size: 15px;
+    line-height: 1.2;
+    white-space: nowrap;
 }
 
 .search-input {
@@ -451,6 +575,7 @@ background-color: #edf3f8;
     border: 1px solid var(--border);
     font-weight: 650;
     justify-self: start;
+    white-space: nowrap;
 }
 
 .clear-search-button:hover {
@@ -1111,6 +1236,65 @@ background-color: #edf3f8;
     padding: 32px 16px;
 }
 
+.admin-page .admin-card {
+    border-radius: 0;
+}
+
+.admin-nav {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin: 16px 0 18px;
+    padding: 12px;
+    border: 1px solid rgba(25, 49, 83, 0.12);
+    background: #f8fafc;
+}
+
+.admin-nav-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 38px;
+    border: 1px solid rgba(25, 49, 83, 0.16);
+    border-radius: 0;
+    background: #ffffff;
+    color: #24364b;
+    cursor: pointer;
+    font: inherit;
+    font-size: 14px;
+    font-weight: 700;
+    line-height: 1.2;
+    padding: 9px 12px;
+    text-align: center;
+    text-decoration: none;
+}
+
+.admin-nav-button:hover,
+.admin-nav-button:focus-visible {
+    border-color: rgba(11, 102, 156, 0.45);
+    color: #0b669c;
+    outline: none;
+}
+
+.admin-nav-button.active {
+    background: #e7f2f8;
+    border-color: rgba(11, 102, 156, 0.36);
+    color: #0b669c;
+}
+
+.admin-nav-button.placeholder {
+    color: #68778b;
+    cursor: default;
+}
+
+.admin-nav-button.danger {
+    color: #8a2424;
+}
+
+.admin-nav-logout {
+    display: contents;
+}
+
 .admin-auth-gate {
     min-height: 100vh;
     display: grid;
@@ -1152,7 +1336,7 @@ background-color: #edf3f8;
 
 .admin-section {
     border: 1px solid rgba(25, 49, 83, 0.12);
-    border-radius: 8px;
+    border-radius: 0;
     min-width: 0;
     overflow: hidden;
     padding: 14px;
@@ -1170,12 +1354,12 @@ background-color: #edf3f8;
 
 .admin-form input {
     border: 1px solid rgba(25, 49, 83, 0.18);
-    border-radius: 8px;
+    border-radius: 0;
     padding: 10px 12px;
 }
 
 .admin-flash {
-    border-radius: 8px;
+    border-radius: 0;
     background: #e8f5ec;
     color: #235b32;
     margin: 12px 0;
@@ -1200,7 +1384,7 @@ background-color: #edf3f8;
 
 .admin-log {
     background: #101828;
-    border-radius: 8px;
+    border-radius: 0;
     color: #d7e3f4;
     font-size: 12px;
     line-height: 1.5;
@@ -1272,7 +1456,7 @@ background-color: #edf3f8;
 
 .admin-diagnostic-message {
     background: #f7f9fc;
-    border-radius: 8px;
+    border-radius: 0;
     color: #3f4c5f;
     font-size: 12px;
     line-height: 1.5;
@@ -1286,9 +1470,21 @@ background-color: #edf3f8;
 }
 
 .admin-check {
-    border-radius: 999px;
+    border-radius: 0;
     font-size: 12px;
     padding: 3px 8px;
+}
+
+.admin-page .admin-card .action-button,
+.admin-page .admin-card .admin-section,
+.admin-page .admin-card .admin-flash,
+.admin-page .admin-card .admin-log,
+.admin-page .admin-card .admin-diagnostic-item,
+.admin-page .admin-card .admin-diagnostic-message,
+.admin-page .admin-card input,
+.admin-page .admin-card pre,
+.admin-page .admin-card button {
+    border-radius: 0;
 }
 
 .admin-check-ok {
@@ -1826,6 +2022,12 @@ background-color: #edf3f8;
     }
 }
 
+@media (min-width: 820px) and (max-width: 1119px) {
+    .legend-descriptions {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
 @media (min-width: 1200px) {
     .main-container {
         max-width: 1800px;
@@ -1888,8 +2090,19 @@ background-color: #edf3f8;
         grid-template-columns: 1fr;
     }
 
-    .clear-search-button {
+    .search-row-actions {
         width: 100%;
+        justify-content: space-between;
+        gap: 8px;
+    }
+
+    .search-results-title {
+        white-space: normal;
+        text-align: right;
+    }
+
+    .clear-search-button {
+        width: auto;
     }
 
     .filter-chips {
@@ -1944,6 +2157,9 @@ background-color: #edf3f8;
     .legend-panel {
         flex-direction: column;
         align-items: flex-start;
+        gap: 8px;
+        max-height: none;
+        overflow: visible;
     }
 
     /* На телефоне ПРЯЧЕМ три отдельные картинки */
@@ -1951,12 +2167,102 @@ background-color: #edf3f8;
         display: none;
     }
 
+    .legend-descriptions {
+        display: none;
+    }
+
+    .mobile-legend-compact {
+        display: grid;
+        grid-template-columns: minmax(88px, 0.7fr) minmax(0, 1.3fr);
+        align-items: stretch;
+        gap: 8px;
+        width: 100%;
+    }
+
+    .mobile-legend-actions {
+        display: grid;
+        gap: 6px;
+    }
+
+    .mobile-legend-button {
+        border: 1px solid rgba(20, 38, 58, 0.14);
+        border-radius: 0;
+        color: #ffffff;
+        cursor: pointer;
+        font: inherit;
+        font-size: 12px;
+        font-weight: 700;
+        line-height: 1.18;
+        min-height: 38px;
+        padding: 7px 8px;
+        text-align: left;
+        touch-action: manipulation;
+    }
+
+    .mobile-legend-button.danger {
+        background: var(--status-danger);
+    }
+
+    .mobile-legend-button.caution {
+        background: #d8a200;
+        color: #1d2630;
+    }
+
+    .mobile-legend-button.safe {
+        background: var(--status-safe);
+    }
+
+    .mobile-legend-button.active,
+    .mobile-legend-button:focus-visible {
+        outline: 2px solid rgba(15, 131, 203, 0.48);
+        outline-offset: 2px;
+    }
+
+    .mobile-legend-detail {
+        border-left: 4px solid var(--border);
+        background: #ffffff;
+        color: var(--text-soft);
+        font-size: 12px;
+        line-height: 1.35;
+        padding: 8px 9px;
+        width: 100%;
+    }
+
+    .mobile-legend-detail.is-visible {
+        display: block;
+    }
+
+    .mobile-legend-detail.safe {
+        border-color: var(--status-safe);
+    }
+
+    .mobile-legend-detail.caution {
+        border-color: var(--status-caution);
+    }
+
+    .mobile-legend-detail.danger {
+        border-color: var(--status-danger);
+    }
+
+    .mobile-legend-detail h3 {
+        color: var(--text);
+        font-size: 13px;
+        margin: 0 0 5px;
+    }
+
+    .mobile-legend-detail p {
+        margin: 0 0 5px;
+    }
+
+    .mobile-legend-detail p:last-child {
+        margin-bottom: 0;
+    }
+
     /* На телефоне ПОКАЗЫВАЕМ старую длинную картинку */
     .mobile-legend-image {
         display: block;
         width: 100%;
         max-width: 100%;
-        margin-top: 8px;
         object-fit: contain;
         border-radius: var(--radius-md);
         background: var(--surface-soft);
