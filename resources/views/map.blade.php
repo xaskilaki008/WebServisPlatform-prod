@@ -33,6 +33,11 @@
                 <button type="button" class="nav-button active" data-screen-target="map-screen">Карта</button>
                 <button type="button" class="nav-button" data-screen-target="list-screen">Список пляжей</button>
             </div>
+            @unless($isOperator ?? false)
+                <button id="secret-login-btn" class="topbar-auth-btn" type="button" aria-label="Авторизация">
+                    <img src="{{ asset('значки и иконки/user-cog.svg') }}" alt="">
+                </button>
+            @endunless
             @if(($isOperator ?? false) && $operatorBeachId)
                 <div class="topbar-actions">
                     <a class="topbar-operator-link" href="/operator/{{ $operatorBeachId }}">Панель оператора</a>
@@ -144,12 +149,6 @@
         </section>
     </main>
 </div>
-<!-- Скрытая кнопка для вызова окна авторизации -->
-@unless($isOperator ?? false)
-<button id="secret-login-btn" class="ghost-btn" aria-label="Вход для сотрудников">
-    <img src="{{ asset('значки и иконки/user-cog.svg') }}" alt="">
-</button>
-@endunless
 
 <!-- Модальное окно авторизации (изначально скрыто) -->
 <div id="login-modal" class="modal-overlay hidden">

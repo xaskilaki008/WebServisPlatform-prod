@@ -788,6 +788,13 @@ function syncSecretLoginButtonPosition() {
     const legendPanel = document.querySelector('.legend-panel');
     const horizontalOffset = 150;
     if (!loginButton) return;
+    if (loginButton.classList.contains('topbar-auth-btn')) {
+        loginButton.style.top = '';
+        loginButton.style.left = '';
+        loginButton.style.right = '';
+        loginButton.style.bottom = '';
+        return;
+    }
 
     const useFallbackPosition = () => {
         loginButton.style.top = 'auto';

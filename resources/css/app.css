@@ -144,6 +144,43 @@ background-color: #edf3f8;
     color: rgba(255, 255, 255, 0.904);
 }
 
+.topbar-auth-btn {
+    align-items: center;
+    background: #edf3f8;
+    border: 1px solid rgba(139, 139, 139, 0.429);
+    border-radius: 7px;
+    box-shadow: 0 6px 14px rgba(11, 103, 156, 0.206);
+    color: rgba(0, 0, 0, 0.772);
+    cursor: pointer;
+    display: inline-flex;
+    flex: 0 0 auto;
+    height: 40px;
+    justify-content: center;
+    padding: 0;
+    transition: background-color var(--transition), border-color var(--transition), box-shadow var(--transition), color var(--transition), transform var(--transition);
+    width: 40px;
+}
+
+.topbar-auth-btn img {
+    display: block;
+    height: 22px;
+    width: 22px;
+}
+
+.topbar-auth-btn:hover,
+.topbar-auth-btn:focus-visible {
+    background-color: var(--accent);
+    border-color: var(--accent-strong);
+    box-shadow: 0 8px 18px rgba(11, 103, 156, 0.28);
+    color: #ffffff;
+    outline: none;
+    transform: translateY(-1px);
+}
+
+.topbar-auth-btn:focus-visible {
+    box-shadow: 0 0 0 3px rgba(14, 129, 198, 0.22), 0 8px 18px rgba(11, 103, 156, 0.28);
+}
+
 
 
 .page-body {
@@ -221,7 +258,7 @@ background-color: #edf3f8;
 .panel,
 .detail-card,
 .filter-panel {
-    background: var(--surface);
+    background: #0f172a;
     border: 1px solid var(--border);
     border-radius: var(--radius-lg);
     box-shadow: var(--shadow-soft);
@@ -249,7 +286,7 @@ background-color: #edf3f8;
 .filter-description,
 .info-note {
     margin: 5px 0;
-    color: var(--text-soft);
+    color: #a3b6ca;
     line-height: 1.45;
     font-size: 14px;
 }
@@ -258,7 +295,7 @@ background-color: #edf3f8;
 .detail-field strong,
 .list-meta strong,
 .info-note strong {
-    color: var(--text);
+    color: #a3b6ca;;
 }
 
 .info-grid {
@@ -2051,6 +2088,10 @@ background-color: #edf3f8;
 }
 
 @media (max-width: 819px) {
+    .topbar {
+        position: static;
+    }
+
     .topbar-inner {
         flex-direction: column;
         align-items: stretch;
@@ -2071,6 +2112,11 @@ background-color: #edf3f8;
 
     .topbar-actions {
         justify-content: stretch;
+    }
+
+    .topbar-auth-btn {
+        align-self: stretch;
+        width: 100%;
     }
 
     .topbar-operator-link {
@@ -2157,7 +2203,7 @@ background-color: #edf3f8;
     .legend-panel {
         flex-direction: column;
         align-items: flex-start;
-        gap: 8px;
+        gap: 2px;
         max-height: none;
         overflow: visible;
     }
@@ -2173,15 +2219,15 @@ background-color: #edf3f8;
 
     .mobile-legend-compact {
         display: grid;
-        grid-template-columns: minmax(88px, 0.7fr) minmax(0, 1.3fr);
+        grid-template-columns: 24px minmax(0, 1fr);
         align-items: stretch;
-        gap: 8px;
+        gap: 4px;
         width: 100%;
     }
 
     .mobile-legend-actions {
         display: grid;
-        gap: 6px;
+        gap: 3px;
     }
 
     .mobile-legend-button {
@@ -2190,11 +2236,11 @@ background-color: #edf3f8;
         color: #ffffff;
         cursor: pointer;
         font: inherit;
-        font-size: 12px;
+        font-size: 10px;
         font-weight: 700;
-        line-height: 1.18;
-        min-height: 38px;
-        padding: 7px 8px;
+        line-height: 1.05;
+        min-height: 12px;
+        padding: 4px 5px;
         text-align: left;
         touch-action: manipulation;
     }
@@ -2204,8 +2250,8 @@ background-color: #edf3f8;
     }
 
     .mobile-legend-button.caution {
-        background: #d8a200;
-        color: #1d2630;
+        background: #bbd000;
+        color: #ffffff;
     }
 
     .mobile-legend-button.safe {
@@ -2222,9 +2268,9 @@ background-color: #edf3f8;
         border-left: 4px solid var(--border);
         background: #ffffff;
         color: var(--text-soft);
-        font-size: 12px;
-        line-height: 1.35;
-        padding: 8px 9px;
+        font-size: 11px;
+        line-height: 1.22;
+        padding: 6px 7px;
         width: 100%;
     }
 
@@ -2246,7 +2292,7 @@ background-color: #edf3f8;
 
     .mobile-legend-detail h3 {
         color: var(--text);
-        font-size: 13px;
+        font-size: 12px;
         margin: 0 0 5px;
     }
 
@@ -2263,6 +2309,8 @@ background-color: #edf3f8;
         display: block;
         width: 100%;
         max-width: 100%;
+        height: 140px;
+        max-height: 140px;
         object-fit: contain;
         border-radius: var(--radius-md);
         background: var(--surface-soft);
