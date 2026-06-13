@@ -10,13 +10,14 @@
     @php
         $forecast = $beach->latestForecast;
         $statusOptions = [
-            '0' => ['title' => 'Зеркальный штиль', 'note' => 'Все отлично'],
-            '1' => ['title' => 'Легкая рябь', 'note' => 'Все отлично'],
-            '2' => ['title' => 'Небольшое волнение', 'note' => 'Умеренно опасно'],
-            '3' => ['title' => 'Умеренное волнение', 'note' => 'Умеренно опасно'],
-            '4' => ['title' => 'Крупные волны', 'note' => 'Опасно'],
-            '5' => ['title' => 'Сильные волны', 'note' => 'Опасно'],
-            'hazard' => ['title' => 'Особая опасность', 'note' => 'Оперативное предупреждение'],
+            '0' => ['title' => 'Зеркально-гладкая', 'note' => 'Безопасно', 'image' => 'волны без фона/0 балла бофорта.png'],
+            '1' => ['title' => 'Рябь', 'note' => 'Безопасно', 'image' => 'волны без фона/1 балла бофорта.png'],
+            '2' => ['title' => 'Появляются небольшие гребни волн', 'note' => 'Умеренно опасно', 'image' => 'волны без фона/2 балла бофорта.png'],
+            '3' => ['title' => 'Небольшие гребни волн начинают опрокидываться', 'note' => 'Умеренно опасно', 'image' => 'волны без фона/3 балла бофорта.png'],
+            '4' => ['title' => 'Хорошо заметны небольшие волны, местами появляются "барашки"', 'note' => 'Опасно', 'image' => 'волны без фона/4 балла бофорта.png'],
+            '5' => ['title' => 'Волны принимают хорошо выраженную форму, повсюду образуются "барашки"', 'note' => 'Опасно', 'image' => 'волны без фона/5 балла бофорта.png'],
+            '6' => ['title' => 'Появляются гребни большой высоты, ветер срывает пену с гребней', 'note' => 'Опасно', 'image' => 'волны без фона/6 балла бофорта.png'],
+            'hazard' => ['title' => 'Особое предупреждение', 'note' => 'Оперативное предупреждение', 'image' => 'hazard.png'],
         ];
     @endphp
 
@@ -65,22 +66,34 @@
 
                 <fieldset class="operator-fieldset">
                     <legend>Состояние моря</legend>
-                    <div class="operator-status-grid">
-                        @foreach($statusOptions as $value => $option)
-                            <label class="operator-status-option">
-                                <input
-                                    type="radio"
-                                    name="operator_status"
-                                    value="{{ $value }}"
-                                    @checked((string) $beach->operator_status === (string) $value)
-                                >
-                                <span>
-                                    <img src="{{ asset('значки и иконки/operator-simbols/' . ($value === 'hazard' ? 'hazard' : $value) . '.png') }}" alt="">
-                                    <b>{{ $option['title'] }}</b>
-                                    <small>{{ $option['note'] }}</small>
-                                </span>
-                            </label>
-                        @endforeach
+                    <div class="operator-status-picker-row">
+                        <button type="button" id="operator-status-picker-button" class="operator-secondary-button">Выбрать состояние моря</button>
+                        <div id="operator-status-current" class="operator-status-current">Не выбрано</div>
+                    </div>
+                    <div id="operator-status-modal" class="modal-overlay hidden">
+                        <div class="modal-content operator-status-modal">
+                            <button id="operator-status-close" class="close-btn" type="button">&times;</button>
+                            <h2>Состояние моря</h2>
+                            <p class="modal-subtitle">Выберите наблюдаемое состояние волнения.</p>
+                            <div class="operator-status-grid">
+                                @foreach($statusOptions as $value => $option)
+                                    <label class="operator-status-option">
+                                        <input
+                                            type="radio"
+                                            name="operator_status"
+                                            value="{{ $value }}"
+                                            data-status-title="{{ $option['title'] }}"
+                                            @checked((string) $beach->operator_status === (string) $value)
+                                        >
+                                        <span>
+                                            <img src="{{ asset('значки и иконки/operator-simbols/' . $option['image']) }}" alt="">
+                                            <b>{{ $option['title'] }}</b>
+                                            <small>{{ $option['note'] }}</small>
+                                        </span>
+                                    </label>
+                                @endforeach
+                            </div>
+                        </div>
                     </div>
                 </fieldset>
 
@@ -188,6 +201,10 @@
     <script>
         const statusInputs = document.querySelectorAll('input[name="operator_status"]');
         const warningField = document.getElementById('operator-warning-field');
+        const statusPickerButton = document.getElementById('operator-status-picker-button');
+        const statusCurrent = document.getElementById('operator-status-current');
+        const statusModal = document.getElementById('operator-status-modal');
+        const statusClose = document.getElementById('operator-status-close');
         const directionInputs = document.querySelectorAll('input[name="operator_wave_direction"]');
         const azimuthField = document.getElementById('operator-azimuth-field');
         const timerButton = document.getElementById('operator-period-timer');
@@ -210,8 +227,21 @@
 
         function syncWarningField() {
             const selected = document.querySelector('input[name="operator_status"]:checked')?.value;
-            const shouldShow = selected === 'hazard' || Number(selected) >= 2;
+            const shouldShow = selected === 'hazard' || Number(selected) >= 4;
             warningField.classList.toggle('hidden', !shouldShow);
+        }
+
+        function syncStatusCurrent() {
+            const selected = document.querySelector('input[name="operator_status"]:checked');
+            statusCurrent.textContent = selected?.dataset.statusTitle || 'Не выбрано';
+        }
+
+        function openStatusModal() {
+            statusModal?.classList.remove('hidden');
+        }
+
+        function closeStatusModal() {
+            statusModal?.classList.add('hidden');
         }
 
         function syncAzimuthField() {
@@ -219,7 +249,20 @@
             azimuthField.classList.toggle('hidden', selected !== 'azimuth');
         }
 
-        statusInputs.forEach(input => input.addEventListener('change', syncWarningField));
+        statusPickerButton?.addEventListener('click', openStatusModal);
+        statusClose?.addEventListener('click', closeStatusModal);
+        statusModal?.addEventListener('click', event => {
+            if (event.target === statusModal) closeStatusModal();
+        });
+        document.addEventListener('keydown', event => {
+            if (event.key === 'Escape') closeStatusModal();
+        });
+
+        statusInputs.forEach(input => input.addEventListener('change', () => {
+            syncWarningField();
+            syncStatusCurrent();
+            closeStatusModal();
+        }));
         directionInputs.forEach(input => input.addEventListener('change', syncAzimuthField));
 
         async function runOperatorAction(button, url, pendingText) {
@@ -390,6 +433,7 @@
         });
 
         syncWarningField();
+        syncStatusCurrent();
         syncAzimuthField();
     </script>
 </body>

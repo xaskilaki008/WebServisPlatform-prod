@@ -51,7 +51,7 @@ Route::post('/operator/{id}', function (Request $request, int $id) {
     abort_unless($operator, 403, 'Доступ запрещен');
 
     $validated = $request->validate([
-        'operator_status' => ['required', 'in:0,1,2,3,4,5,hazard'],
+        'operator_status' => ['required', 'in:0,1,2,3,4,5,6,hazard'],
         'operator_warning' => ['nullable', 'string', 'max:250'],
         'operator_wave_direction' => ['required', 'in:direct,left,right,azimuth,chaotic'],
         'operator_wave_azimuth' => ['nullable', 'required_if:operator_wave_direction,azimuth', 'integer', 'between:0,360'],

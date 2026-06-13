@@ -251,15 +251,16 @@ function getCategoryBadgeClass(beach) {
 
 function getOperatorStatusText(status) {
     if (status === null || status === undefined || status === '') return 'Нет данных';
-    if (String(status) === 'hazard') return 'Особая опасность';
+    if (String(status) === 'hazard') return 'Особое предупреждение';
 
     const labels = {
-        0: 'Зеркальный штиль',
-        1: 'Легкая рябь',
-        2: 'Небольшое волнение',
-        3: 'Умеренное волнение',
-        4: 'Крупные волны',
-        5: 'Сильные волны',
+        0: 'Зеркально-гладкая',
+        1: 'Рябь',
+        2: 'Появляются небольшие гребни волн',
+        3: 'Небольшие гребни волн начинают опрокидываться',
+        4: 'Хорошо заметны небольшие волны, местами появляются "барашки"',
+        5: 'Волны принимают хорошо выраженную форму, повсюду образуются "барашки"',
+        6: 'Появляются гребни большой высоты, ветер срывает пену с гребней',
     };
 
     return labels[status] || `Бофорт ${status}`;
@@ -1329,15 +1330,11 @@ function openBeachPopup(marker, beach) {
     }, delay));
 }
 
-function scrollMapScreenToBottomAfterResize() {
-    const scrollToMapBottom = () => {
-        mapScreen?.scrollIntoView({ behavior: 'smooth', block: 'end' });
-    };
-
-    window.requestAnimationFrame(() => {
-        window.requestAnimationFrame(scrollToMapBottom);
+function scrollToBottom() {
+    window.scrollTo({
+        top: document.documentElement.scrollHeight,
+        behavior: 'smooth'
     });
-    window.setTimeout(scrollToMapBottom, 240);
 }
 
 function setMapExpanded(nextState) {
@@ -1357,7 +1354,7 @@ function setMapExpanded(nextState) {
     keepMapViewCenteredAfterResize(currentCenter, currentZoom);
     centerMapAfterResize();
     syncSecretLoginButtonPosition();
-    scrollMapScreenToBottomAfterResize();
+    scrollToBottom();
 }
 
 detailHeaderActions.className = 'detail-header-actions';
