@@ -135,6 +135,7 @@ let searchQuery = '';
 let isMapExpanded = false;
 let hidePopupNumberOnce = false;
 let lastLegendTap = { level: null, time: 0 };
+const mapScrollDebugEnabled = true;
 const urlParamsAtBoot = new URLSearchParams(window.location.search);
 const initialBeachParam = urlParamsAtBoot.get('beach');
 const initialRouteIsList = urlParamsAtBoot.has(routeState.list);
@@ -775,6 +776,18 @@ function centerMapVertically() {
         ? window.scrollY + rect.top - topbarHeight - viewportGap
         : window.scrollY + rect.top + (rect.height / 2) - topbarHeight - (availableHeight / 2);
 
+    if (mapScrollDebugEnabled) {
+        console.debug('[map-scroll] centerMapVertically scroll request', {
+            currentScrollY: window.scrollY,
+            rectTop: rect.top,
+            rectHeight: rect.height,
+            topbarHeight,
+            availableHeight,
+            targetScrollTop: Math.max(0, targetScrollTop),
+            isMapExpanded,
+        });
+    }
+
     window.scrollTo({
         top: Math.max(0, targetScrollTop),
         behavior: 'smooth',
@@ -1331,15 +1344,54 @@ function openBeachPopup(marker, beach) {
 }
 
 function scrollToBottom() {
-    window.scrollTo({
-        top: document.documentElement.scrollHeight,
+    const scrollTarget = document.scrollingElement || document.documentElement || document.body;
+    const bottom = Math.max(
+        scrollTarget.scrollHeight,
+        document.documentElement.scrollHeight,
+        document.body.scrollHeight
+    );
+
+    if (mapScrollDebugEnabled) {
+        console.debug('[map-scroll] scrollToBottom request', {
+            currentScrollY: window.scrollY,
+            scrollTargetTop: scrollTarget.scrollTop,
+            scrollTargetScrollHeight: scrollTarget.scrollHeight,
+            documentElementScrollHeight: document.documentElement.scrollHeight,
+            bodyScrollHeight: document.body.scrollHeight,
+            bottom,
+            isMapExpanded,
+        });
+    }
+
+    scrollTarget.scrollTo({
+        top: bottom,
         behavior: 'smooth'
     });
+
+    window.scrollTo({
+        top: bottom,
+        behavior: 'smooth'
+    });
+}
+
+function scrollToBottomAfterMapExpand() {
+    [180, 420, 800].forEach(delay => window.setTimeout(scrollToBottom, delay));
 }
 
 function setMapExpanded(nextState) {
     const currentCenter = map.getCenter();
     const currentZoom = map.getZoom();
+
+    if (mapScrollDebugEnabled) {
+        console.groupCollapsed('[map-scroll] toggle-map-size-button');
+        console.debug('before toggle', {
+            nextState,
+            currentScrollY: window.scrollY,
+            documentElementScrollHeight: document.documentElement.scrollHeight,
+            bodyScrollHeight: document.body.scrollHeight,
+            mapScreenClass: mapScreen.className,
+        });
+    }
 
     isMapExpanded = nextState;
     mapScreen.classList.toggle('is-map-expanded', isMapExpanded);
@@ -1352,9 +1404,25 @@ function setMapExpanded(nextState) {
     const image = toggleMapSizeButton.querySelector('img');
     if (image) image.src = icon;
     keepMapViewCenteredAfterResize(currentCenter, currentZoom);
-    centerMapAfterResize();
     syncSecretLoginButtonPosition();
-    scrollToBottom();
+
+    if (isMapExpanded) {
+        scrollToBottomAfterMapExpand();
+    } else {
+        centerMapAfterResize();
+    }
+
+    if (mapScrollDebugEnabled) {
+        window.setTimeout(() => {
+            console.debug('after toggle delays', {
+                currentScrollY: window.scrollY,
+                documentElementScrollHeight: document.documentElement.scrollHeight,
+                bodyScrollHeight: document.body.scrollHeight,
+                mapScreenClass: mapScreen.className,
+            });
+            console.groupEnd();
+        }, 900);
+    }
 }
 
 detailHeaderActions.className = 'detail-header-actions';
@@ -1413,6 +1481,16 @@ filterChips.forEach(chip => {
     });
 });
 
+function triggerActiveFilterChip() {
+    const activeFilterChip = document.querySelector('.filter-chip.active');
+    if (activeFilterChip) {
+        activeFilterChip.click();
+        return;
+    }
+
+    setActiveCategory(activeCategory);
+}
+
 function restartLegendFlash(target) {
     if (!target) return;
     target.classList.remove('is-tap-flash');
@@ -1428,7 +1506,7 @@ function getActiveLegendFlashTarget() {
 
 if (legendPanelHint) {
     legendPanelHint.addEventListener('click', function () {
-        setActiveCategory(activeCategory);
+        triggerActiveFilterChip();
         restartLegendFlash(getActiveLegendFlashTarget());
     });
 }

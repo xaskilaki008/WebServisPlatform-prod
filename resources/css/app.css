@@ -2711,12 +2711,14 @@ background-color: #edf3f8;
     justify-content: center;
     z-index: 9999;
     opacity: 1;
-    transition: opacity 0.3s ease;
+    visibility: visible;
+    transition: opacity 0.3s ease, visibility 0.3s ease;
 }
 
 .modal-overlay.hidden {
     opacity: 0;
     pointer-events: none;
+    visibility: hidden;
     /* Чтобы нельзя было кликнуть, когда скрыто */
 }
 

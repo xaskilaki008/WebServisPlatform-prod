@@ -95,6 +95,7 @@
                                 </div>
                             </button>
                         </div>
+                        <button type="button" class="legend-panel-hint">Нажмите чтобы выбрать категорию</button>
                         <div class="legend-extra-details" aria-label="Подробности уровней волнения">
                             <article class="legend-extra-detail safe">
                                 <h4>Описание</h4>
@@ -112,7 +113,6 @@
                                 <p><strong>Рекомендация:</strong> не входить в воду и следовать указаниям спасателей.</p>
                             </article>
                         </div>
-                        <button type="button" class="legend-panel-hint">Нажмите чтобы выбрать категорию</button>
                     </div>
                 </aside>
             </div>

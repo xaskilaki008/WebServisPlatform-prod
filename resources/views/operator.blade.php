@@ -61,7 +61,7 @@
                 </div>
             </div>
 
-            <form method="POST" action="/operator/{{ $beach->id }}" class="operator-form">
+            <form id="operator-form" method="POST" action="/operator/{{ $beach->id }}" class="operator-form">
                 @csrf
 
                 <fieldset class="operator-fieldset">
@@ -69,31 +69,6 @@
                     <div class="operator-status-picker-row">
                         <button type="button" id="operator-status-picker-button" class="operator-secondary-button">Выбрать состояние моря</button>
                         <div id="operator-status-current" class="operator-status-current">Не выбрано</div>
-                    </div>
-                    <div id="operator-status-modal" class="modal-overlay hidden">
-                        <div class="modal-content operator-status-modal">
-                            <button id="operator-status-close" class="close-btn" type="button">&times;</button>
-                            <h2>Состояние моря</h2>
-                            <p class="modal-subtitle">Выберите наблюдаемое состояние волнения.</p>
-                            <div class="operator-status-grid">
-                                @foreach($statusOptions as $value => $option)
-                                    <label class="operator-status-option">
-                                        <input
-                                            type="radio"
-                                            name="operator_status"
-                                            value="{{ $value }}"
-                                            data-status-title="{{ $option['title'] }}"
-                                            @checked((string) $beach->operator_status === (string) $value)
-                                        >
-                                        <span>
-                                            <img src="{{ asset('значки и иконки/operator-simbols/' . $option['image']) }}" alt="">
-                                            <b>{{ $option['title'] }}</b>
-                                            <small>{{ $option['note'] }}</small>
-                                        </span>
-                                    </label>
-                                @endforeach
-                            </div>
-                        </div>
                     </div>
                 </fieldset>
 
@@ -159,6 +134,33 @@
             </form>
         </section>
     </main>
+
+    <div id="operator-status-modal" class="modal-overlay hidden" aria-hidden="true">
+        <div class="modal-content operator-status-modal">
+            <button id="operator-status-close" class="close-btn" type="button">&times;</button>
+            <h2>Состояние моря</h2>
+            <p class="modal-subtitle">Выберите наблюдаемое состояние волнения.</p>
+            <div class="operator-status-grid">
+                @foreach($statusOptions as $value => $option)
+                    <label class="operator-status-option">
+                        <input
+                            form="operator-form"
+                            type="radio"
+                            name="operator_status"
+                            value="{{ $value }}"
+                            data-status-title="{{ $option['title'] }}"
+                            @checked((string) $beach->operator_status === (string) $value)
+                        >
+                        <span>
+                            <img src="{{ asset('значки и иконки/operator-simbols/' . $option['image']) }}" alt="">
+                            <b>{{ $option['title'] }}</b>
+                            <small>{{ $option['note'] }}</small>
+                        </span>
+                    </label>
+                @endforeach
+            </div>
+        </div>
+    </div>
 
     <div id="operator-password-modal" class="modal-overlay hidden">
         <div class="modal-content operator-password-modal">
@@ -237,11 +239,20 @@
         }
 
         function openStatusModal() {
-            statusModal?.classList.remove('hidden');
+            if (!statusModal) return;
+            statusModal.classList.remove('hidden');
+            statusModal.setAttribute('aria-hidden', 'false');
+            statusModal.querySelector('.operator-status-grid')?.scrollTo({ top: 0 });
+            console.debug('[operator-status-modal] opened', {
+                optionCount: statusModal.querySelectorAll('input[name="operator_status"]').length,
+            });
         }
 
         function closeStatusModal() {
-            statusModal?.classList.add('hidden');
+            if (!statusModal) return;
+            statusModal.classList.add('hidden');
+            statusModal.setAttribute('aria-hidden', 'true');
+            console.debug('[operator-status-modal] closed');
         }
 
         function syncAzimuthField() {
@@ -261,7 +272,7 @@
         statusInputs.forEach(input => input.addEventListener('change', () => {
             syncWarningField();
             syncStatusCurrent();
-            closeStatusModal();
+            window.setTimeout(closeStatusModal, 0);
         }));
         directionInputs.forEach(input => input.addEventListener('change', syncAzimuthField));
 
