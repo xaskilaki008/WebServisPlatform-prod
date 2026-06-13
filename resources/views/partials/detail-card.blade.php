@@ -22,7 +22,7 @@
 
     <div class="detail-data-grid">
         <section class="detail-group-block detail-data-section">
-            <h3 class="detail-section-title">Автоматические гидроданные</h3>
+            <h3 class="detail-section-title">Информация о волнении</h3>
 
             <div class="detail-tables-grid">
                 <div>
@@ -149,11 +149,11 @@
 
     <div class="detail-group-block detail-update-block">
         <div class="detail-row-table">
-            <div class="detail-lbl">Прогноз DWD на:</div>
+            <div class="detail-lbl">Прогноз модели данных на:</div>
             <div class="detail-val" id="detail-forecast-time">-</div>
         </div>
         <div class="detail-row-table">
-            <div class="detail-lbl">Запуск модели DWD:</div>
+            <div class="detail-lbl">Запуск модели данных:</div>
             <div class="detail-val" id="detail-model-run-time">-</div>
         </div>
         <div class="detail-row-table">

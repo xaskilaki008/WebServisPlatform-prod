@@ -81,6 +81,7 @@ const operatorContactPhoneRow = document.getElementById('operator-contact-phone-
 const operatorContactPhone = document.getElementById('operator-contact-phone');
 const openOperatorLink = document.getElementById('open-operator-link');
 const operatorContext = window.operatorContext || { isOperator: false, operatorBeachId: null };
+const detailNumberPlain = document.querySelector('.detail-number-plain');
 const detailTitleRow = document.createElement('div');
 const detailGeoWrap = document.createElement('div');
 const detailGeoButton = document.createElement('button');
@@ -92,8 +93,11 @@ const navButtons = document.querySelectorAll('[data-screen-target]');
 const screens = document.querySelectorAll('.screen');
 const searchInput = document.getElementById('search-input');
 const filterChips = document.querySelectorAll('[data-category]');
+const mobileLegendCompact = document.querySelector('.mobile-legend-compact');
 const mobileLegendButtons = document.querySelectorAll('.mobile-legend-button[data-legend-level]');
 const mobileLegendDetail = document.querySelector('.mobile-legend-detail');
+const legendDescriptions = document.querySelector('.legend-descriptions');
+const legendPanelHint = document.querySelector('.legend-panel-hint');
 const scrollTopButton = document.getElementById('scroll-top-button');
 const clearSearchButton = document.getElementById('clear-search-button');
 const toggleMapSizeButton = document.getElementById('toggle-map-size-button');
@@ -163,7 +167,7 @@ const legendLevelDetails = {
     },
     danger: {
         title: 'Красный уровень — опасно',
-        text: 'Сильное волнение. Купание запрещено.',
+        text: 'Сильное волнение. Опасно.',
         description: 'Высота волн более 1,5 м. Купание может быть опасным из-за сильных волн и риска быть унесённым в море.',
         recommendation: 'Не входить в воду и следовать указаниям спасателей.',
     },
@@ -233,9 +237,9 @@ function getBeachCategoryKey(beach) {
 function getBeachCategoryLabel(beach) {
     if (beach && beach.category_label) return beach.category_label;
     const key = getBeachCategoryKey(beach || {});
-    if (key === 'safe') return 'Купание допустимо';
-    if (key === 'caution') return 'Нужна осторожность';
-    return 'Купание запрещено';
+    if (key === 'safe') return 'Безопасно';
+    if (key === 'caution') return 'Умеренно опасно';
+    return 'Опасно';
 }
 
 function getCategoryBadgeClass(beach) {
@@ -277,7 +281,7 @@ function getOperatorCategoryLabelFromStatus(status) {
     const numericStatus = Number(status);
     if (Number.isNaN(numericStatus)) return '-';
     if (numericStatus <= 1) return 'Безопасно';
-    if (numericStatus <= 3) return 'Осторожно';
+    if (numericStatus <= 3) return 'Умеренно опасно';
     return 'Опасно';
 }
 
@@ -285,7 +289,7 @@ function logDwdDebug(beach = {}) {
     if (!beach.dwd_debug) return;
 
     const debug = beach.dwd_debug;
-    console.groupCollapsed(`[DWD] beach #${debug.beach_id ?? beach.id ?? '-'}`);
+    console.groupCollapsed(`[модель данных] beach #${debug.beach_id ?? beach.id ?? '-'}`);
     console.info('Source folder:', debug.source_folder);
     if (debug.source_files) {
         console.table(debug.source_files);
@@ -302,7 +306,7 @@ function logDwdDebug(beach = {}) {
         model_run_at: debug.model_run_at,
     }]);
     if (debug.air_temp === null && debug.water_temp === null) {
-        console.info('air_temp and water_temp are null because the current DWD parser does not extract temperature parameters yet.');
+        console.info('air_temp and water_temp are null because the current data model parser does not extract temperature parameters yet.');
     }
     console.groupEnd();
 }
@@ -310,7 +314,7 @@ function logDwdDebug(beach = {}) {
 function logDwdDebugSummary(summary) {
     if (!Array.isArray(summary) || summary.length === 0) return;
 
-    console.groupCollapsed('[DWD] force fetch summary');
+    console.groupCollapsed('[модель данных] force fetch summary');
     console.table(summary);
     console.groupEnd();
 }
@@ -1124,6 +1128,12 @@ function renderBeachesList() {
     refreshMarkerVisibility();
 }
 
+function scrollSelectedBeachCardIntoView() {
+    if (getActiveScreenId() !== 'list-screen') return;
+    const selectedCard = beachesList.querySelector('.list-card.selected');
+    selectedCard?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+
 function selectBeach(beach) {
     selectedBeach = beach;
     // updateInfoPanel(beach);
@@ -1131,6 +1141,7 @@ function selectBeach(beach) {
     renderBeachesList();
     refreshMarkerStyles();
     refreshPolygonStyles();
+    window.setTimeout(scrollSelectedBeachCardIntoView, 0);
 }
 
 function showSameBeachInfoAsMarker(beach) {
@@ -1318,6 +1329,17 @@ function openBeachPopup(marker, beach) {
     }, delay));
 }
 
+function scrollMapScreenToBottomAfterResize() {
+    const scrollToMapBottom = () => {
+        mapScreen?.scrollIntoView({ behavior: 'smooth', block: 'end' });
+    };
+
+    window.requestAnimationFrame(() => {
+        window.requestAnimationFrame(scrollToMapBottom);
+    });
+    window.setTimeout(scrollToMapBottom, 240);
+}
+
 function setMapExpanded(nextState) {
     const currentCenter = map.getCenter();
     const currentZoom = map.getZoom();
@@ -1335,6 +1357,7 @@ function setMapExpanded(nextState) {
     keepMapViewCenteredAfterResize(currentCenter, currentZoom);
     centerMapAfterResize();
     syncSecretLoginButtonPosition();
+    scrollMapScreenToBottomAfterResize();
 }
 
 detailHeaderActions.className = 'detail-header-actions';
@@ -1358,6 +1381,9 @@ detailCoordinates.className = 'detail-coordinates';
 detailCoordinates.title = '\u0441\u043a\u043e\u043f\u0438\u0440\u043e\u0432\u0430\u0442\u044c \u043a\u043e\u043e\u0440\u0434\u0438\u043d\u0430\u0442\u044b';
 detailName.parentNode.insertBefore(detailTitleRow, detailName);
 detailTitleRow.appendChild(detailName);
+if (detailNumberPlain) {
+    detailTitleRow.appendChild(detailNumberPlain);
+}
 detailGeoWrap.appendChild(detailGeoButton);
 detailGeoWrap.appendChild(detailCoordinates);
 detailTitleRow.appendChild(detailGeoWrap);
@@ -1376,13 +1402,46 @@ if (searchInput) {
     });
 }
 
+function setActiveCategory(category) {
+    activeCategory = category || 'all';
+    filterChips.forEach(button => {
+        button.classList.toggle('active', button.dataset.category === activeCategory);
+    });
+    renderBeachesList();
+}
+
 filterChips.forEach(chip => {
     chip.addEventListener('click', function () {
-        activeCategory = chip.dataset.category;
-        filterChips.forEach(button => {
-            button.classList.toggle('active', button === chip);
-        });
-        renderBeachesList();
+        setActiveCategory(chip.dataset.category);
+    });
+});
+
+function restartLegendFlash(target) {
+    if (!target) return;
+    target.classList.remove('is-tap-flash');
+    void target.offsetWidth;
+    target.classList.add('is-tap-flash');
+}
+
+function getActiveLegendFlashTarget() {
+    return window.matchMedia('(max-width: 819px)').matches
+        ? mobileLegendCompact
+        : legendDescriptions;
+}
+
+if (legendPanelHint) {
+    legendPanelHint.addEventListener('click', function () {
+        setActiveCategory(activeCategory);
+        restartLegendFlash(getActiveLegendFlashTarget());
+    });
+}
+
+[mobileLegendCompact, legendDescriptions].forEach(target => {
+    if (!target) return;
+    target.addEventListener('animationend', function (event) {
+        if (event.animationName === 'mobile-legend-tap-flash') {
+            target.classList.remove('is-tap-flash');
+        }
     });
 });
 
@@ -1638,7 +1697,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const imageOverlay = document.getElementById('image-popup');
     const popupLargePhoto = document.getElementById('popup-large-photo');
     const closePopupBtn = document.getElementById('close-image-popup');
-    const operatorRefreshLists = document.getElementById('operator-refresh-lists');
     // --- ОТКРЫТИЕ ПОПАПА ПО КЛИКУ НА ГЛАВНУЮ КАРТИНКУ ---
     const mainGalleryImg = document.getElementById('gallery-main-img');
     if (mainGalleryImg) {
@@ -1737,12 +1795,6 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('image-popup')?.addEventListener('click', (e) => {
             if (e.target.id === 'image-popup') closeImagePopup();
         });
-
-    if (operatorRefreshLists) {
-        operatorRefreshLists.addEventListener('click', () => {
-            window.location.reload();
-        });
-    }
 
     syncSecretLoginButtonPosition();
     window.addEventListener('resize', syncSecretLoginButtonPosition);
@@ -1846,7 +1898,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (forceFetchBtn) {
         forceFetchBtn.addEventListener('click', function () {
-            if (confirm('ВНИМАНИЕ: Запросить свежие данные прямо сейчас? (Сбор с DWD может занять несколько секунд)')) {
+            if (confirm('ВНИМАНИЕ: Запросить свежие данные прямо сейчас? (Сбор с модели данных может занять несколько секунд)')) {
 
                 const originalText = this.textContent;
                 this.textContent = 'Идёт загрузка...';

@@ -185,9 +185,9 @@ class BeachController extends Controller
     private function operatorCategoryLabel(string $key): string
     {
         return match ($key) {
-            'safe' => 'Купание допустимо',
-            'caution' => 'Нужна осторожность',
-            default => 'Купание запрещено',
+            'safe' => 'Безопасно',
+            'caution' => 'Умеренно опасно',
+            default => 'Опасно',
         };
 
         return match ($key) {

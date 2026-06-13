@@ -82,9 +82,9 @@ class Beach extends Model
     public function getCategoryLabelAttribute(): string
     {
         return match ($this->category_key) {
-            'safe' => 'Купание допустимо',
-            'caution' => 'Нужна осторожность',
-            default => 'Купание запрещено',
+            'safe' => 'Безопасно',
+            'caution' => 'Умеренно опасно',
+            default => 'Опасно',
         };
     }
 
@@ -109,9 +109,9 @@ class Beach extends Model
     public function getOperatorCategoryLabelAttribute(): ?string
     {
         return match ($this->operator_category_key) {
-            'safe' => 'Купание допустимо',
-            'caution' => 'Нужна осторожность',
-            'danger' => 'Купание запрещено',
+            'safe' => 'Безопасно',
+            'caution' => 'Умеренно опасно',
+            'danger' => 'Опасно',
             default => null,
         };
     }

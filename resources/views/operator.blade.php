@@ -12,10 +12,10 @@
         $statusOptions = [
             '0' => ['title' => 'Зеркальный штиль', 'note' => 'Все отлично'],
             '1' => ['title' => 'Легкая рябь', 'note' => 'Все отлично'],
-            '2' => ['title' => 'Небольшое волнение', 'note' => 'Нужна осторожность'],
-            '3' => ['title' => 'Умеренное волнение', 'note' => 'Нужна осторожность'],
-            '4' => ['title' => 'Крупные волны', 'note' => 'Купание запрещено'],
-            '5' => ['title' => 'Сильные волны', 'note' => 'Купание запрещено'],
+            '2' => ['title' => 'Небольшое волнение', 'note' => 'Умеренно опасно'],
+            '3' => ['title' => 'Умеренное волнение', 'note' => 'Умеренно опасно'],
+            '4' => ['title' => 'Крупные волны', 'note' => 'Опасно'],
+            '5' => ['title' => 'Сильные волны', 'note' => 'Опасно'],
             'hazard' => ['title' => 'Особая опасность', 'note' => 'Оперативное предупреждение'],
         ];
     @endphp
@@ -39,9 +39,9 @@
                 <div class="operator-flash">{{ session('status') }}</div>
             @endif
 
-            <div class="temp-admin-panel operator-admin-panel" aria-label="DWD parser controls">
+            <div class="temp-admin-panel operator-admin-panel" aria-label="Управление моделью данных">
                 <button id="toggle-parsing-btn" class="admin-danger-btn" type="button">Парсинг: вкл/выкл</button>
-                <button id="force-fetch-btn" class="admin-danger-btn" type="button">Загрузить DWD сейчас</button>
+                <button id="force-fetch-btn" class="admin-danger-btn" type="button">Загрузить модель данных сейчас</button>
             </div>
 
             <div class="operator-readonly">
@@ -54,7 +54,7 @@
                     <span>Направление: {{ $forecast?->wave_direction !== null ? $forecast->wave_direction . '°' : 'нет данных' }}</span>
                     <span>Температура воздуха: {{ $forecast?->air_temp !== null ? $forecast->air_temp . '°C' : 'нет данных' }}</span>
                     <span>Температура воды: {{ $forecast?->water_temp !== null ? $forecast->water_temp . '°C' : 'нет данных' }}</span>
-                    <span>Прогноз DWD на: {{ $forecast?->forecast_time ? $forecast->forecast_time->format('d.m.Y H:i') : 'нет данных' }}</span>
+                    <span>Прогноз модели данных на: {{ $forecast?->forecast_time ? $forecast->forecast_time->format('d.m.Y H:i') : 'нет данных' }}</span>
                     <span>Расчёт модели: {{ $forecast?->model_run_at ? $forecast->model_run_at->format('d.m.Y H:i') : 'нет данных' }}</span>
                     <span>Обработано сервером: {{ $forecast?->parsed_at ? $forecast->parsed_at->format('d.m.Y H:i') : 'нет данных' }}</span>
                 </div>
@@ -243,7 +243,7 @@
                 button.textContent = data.message || 'Готово';
 
                 if (data.dwd_debug_summary && console.groupCollapsed) {
-                    console.groupCollapsed('DWD debug summary');
+                    console.groupCollapsed('модель данных debug summary');
                     console.table(data.dwd_debug_summary);
                     console.groupEnd();
                 }
