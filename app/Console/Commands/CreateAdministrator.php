@@ -2,17 +2,20 @@
 
 namespace App\Console\Commands;
 
-use App\Models\Administrator;
+use App\Models\Role;
+use App\Models\User;
+use App\Services\UserIdentityNormalizer;
 use Illuminate\Console\Command;
 
 class CreateAdministrator extends Command
 {
-    protected $signature = 'admin:create {login?}';
+    protected $signature = 'admin:create {login?} {--email=}';
     protected $description = 'Create or update an administrator account';
 
-    public function handle(): int
+    public function handle(UserIdentityNormalizer $normalizer): int
     {
-        $login = $this->argument('login') ?: $this->ask('Admin login');
+        $login = $normalizer->login($this->argument('login') ?: $this->ask('Admin login'));
+        $email = $normalizer->email($this->option('email') ?: "{$login}@local.invalid");
         $password = $this->secret('Admin password');
         $passwordConfirmation = $this->secret('Confirm admin password');
 
@@ -28,9 +31,19 @@ class CreateAdministrator extends Command
             return self::FAILURE;
         }
 
-        Administrator::query()->updateOrCreate(
+        $role = Role::query()->where('name', Role::ADMIN)->firstOrFail();
+
+        User::query()->updateOrCreate(
             ['login' => $login],
-            ['password' => $password]
+            [
+                'role_id' => $role->id,
+                'name' => $login,
+                'email' => $email,
+                'password' => $password,
+                'password_hash' => $password,
+                'full_name' => $login,
+                'is_active' => true,
+            ]
         );
 
         $this->info("Administrator '{$login}' has been saved.");

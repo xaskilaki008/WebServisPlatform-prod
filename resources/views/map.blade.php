@@ -10,8 +10,10 @@
     <script src="https://unpkg.com/@turf/turf@6/turf.min.js"></script>
     <script>
         window.operatorContext = {
+            isAdmin: @json($isAdmin ?? false),
             isOperator: @json($isOperator ?? false),
             operatorBeachId: @json($operatorBeachId ?? null),
+            operatorBeachIds: @json($operatorBeachIds ?? []),
         };
     </script>
     @vite(['resources/css/app.css', 'resources/js/app.js'])
@@ -40,7 +42,7 @@
             @endunless
             @if(($isOperator ?? false) && $operatorBeachId)
                 <div class="topbar-actions">
-                    <a class="topbar-operator-link" href="/operator/{{ $operatorBeachId }}">Панель оператора</a>
+                    <a class="topbar-operator-link" href="{{ $operatorPanelUrl ?? ('/operator/' . $operatorBeachId) }}">Панель оператора</a>
                 </div>
             @endif
         </div>
@@ -162,6 +164,9 @@
     <div class="modal-content auth-modal-content">
         <button id="close-modal-btn" class="close-btn" type="button">&times;</button>
         <div class="auth-card">
+            @if($isAdmin ?? false)
+                <a class="auth-admin-link" href="{{ $adminPanelUrl ?? '/admin' }}">Вернуться в админ-панель</a>
+            @endif
             <img class="auth-logo" src="{{ asset('супер-пупер логотип сайта.png') }}" alt="Логотип сайта">
             <h2 id="auth-title">Авторизация</h2>
             <p id="auth-subtitle" class="modal-subtitle">Войдите или создайте аккаунт пользователя сайта.</p>
@@ -175,9 +180,9 @@
 
             <form id="visitor-login-form" class="auth-form" data-auth-panel="login">
                 <div class="auth-field">
-                    <label for="visitor-login-identifier">Ник или email</label>
+                    <label for="visitor-login-identifier">Email, ник или логин</label>
                     <div class="auth-input-shell is-invalid">
-                        <input class="auth-input" type="text" id="visitor-login-identifier" name="identifier" placeholder="nickname или you@example.com" required autocomplete="username" data-auth-validate="identifier">
+                        <input class="auth-input" type="text" id="visitor-login-identifier" name="identifier" placeholder="login, nickname или you@example.com" required autocomplete="username" data-auth-validate="identifier">
                     </div>
                 </div>
                 <div class="auth-field">
@@ -187,7 +192,11 @@
                         <button type="button" class="auth-password-toggle" data-password-target="visitor-login-password">Показать</button>
                     </div>
                 </div>
-                <button type="submit" class="primary-btn auth-submit-button">Войти</button>
+                <div class="auth-form-actions">
+                    <button type="submit" class="primary-btn auth-submit-button">Войти</button>
+                    <button type="button" id="auth-clear-button" class="auth-link-button" data-auth-clear>Очистить</button>
+                </div>
+                <button type="button" class="auth-link-button auth-reset-open-button" data-auth-reset-open>Забыли пароль?</button>
             </form>
 
             <form id="visitor-register-form" class="auth-form hidden" data-auth-panel="register">
@@ -203,24 +212,10 @@
                         <input class="auth-input" type="email" id="visitor-register-email" name="email" placeholder="you@example.com" required autocomplete="email" data-auth-validate="email">
                     </div>
                 </div>
-                <div class="auth-fio-grid" aria-label="Необязательные ФИО">
-                    <div class="auth-field">
-                        <label for="visitor-register-last-name">Фамилия</label>
-                        <div class="auth-input-shell auth-input-shell-optional">
-                            <input class="auth-input" type="text" id="visitor-register-last-name" name="last_name" placeholder="Необязательно" autocomplete="family-name" data-auth-validate="optional-text">
-                        </div>
-                    </div>
-                    <div class="auth-field">
-                        <label for="visitor-register-first-name">Имя</label>
-                        <div class="auth-input-shell auth-input-shell-optional">
-                            <input class="auth-input" type="text" id="visitor-register-first-name" name="first_name" placeholder="Необязательно" autocomplete="given-name" data-auth-validate="optional-text">
-                        </div>
-                    </div>
-                    <div class="auth-field">
-                        <label for="visitor-register-middle-name">Отчество</label>
-                        <div class="auth-input-shell auth-input-shell-optional">
-                            <input class="auth-input" type="text" id="visitor-register-middle-name" name="middle_name" placeholder="Необязательно" autocomplete="additional-name" data-auth-validate="optional-text">
-                        </div>
+                <div class="auth-field">
+                    <label for="visitor-register-full-name">ФИО</label>
+                    <div class="auth-input-shell auth-input-shell-optional">
+                        <input class="auth-input" type="text" id="visitor-register-full-name" name="full_name" placeholder="Фамилия Имя Отчество, необязательно" autocomplete="name" data-auth-validate="optional-text">
                     </div>
                 </div>
                 <div class="auth-field">
@@ -244,12 +239,48 @@
                         <button type="button" id="visitor-send-code-button" class="auth-send-code-button">Отправить код</button>
                     </div>
                 </div>
-                <button type="submit" class="primary-btn auth-submit-button">Зарегистрироваться</button>
+                <div class="auth-form-actions">
+                    <button type="submit" class="primary-btn auth-submit-button">Зарегистрироваться</button>
+                    <button type="button" class="auth-link-button" data-auth-clear>Очистить</button>
+                </div>
             </form>
 
-            <div class="auth-footer">
-                <button type="button" id="auth-clear-button" class="auth-link-button">Очистить</button>
-            </div>
+            <form id="visitor-reset-password-form" class="auth-form hidden" data-auth-panel="reset">
+                <p class="auth-reset-note">Введите почту аккаунта. Мы отправим код, после этого можно будет задать новый пароль.</p>
+                <div class="auth-field">
+                    <label for="visitor-reset-email">Email</label>
+                    <div class="auth-input-shell is-invalid">
+                        <input class="auth-input" type="email" id="visitor-reset-email" name="email" placeholder="you@example.com" required autocomplete="email" data-auth-validate="email">
+                    </div>
+                </div>
+                <div id="visitor-reset-masked-email" class="auth-reset-mask hidden" aria-live="polite"></div>
+                <div class="auth-field">
+                    <label for="visitor-reset-code">Код из письма</label>
+                    <div class="auth-input-shell auth-code-shell is-invalid">
+                        <input class="auth-input" type="text" id="visitor-reset-code" name="verification_code" placeholder="6 цифр" required inputmode="numeric" maxlength="6" autocomplete="one-time-code" data-auth-validate="code">
+                        <button type="button" id="visitor-reset-send-code-button" class="auth-send-code-button">Отправить код</button>
+                    </div>
+                </div>
+                <div class="auth-field">
+                    <label for="visitor-reset-password">Новый пароль</label>
+                    <div class="auth-input-shell is-invalid">
+                        <input class="auth-input" type="password" id="visitor-reset-password" name="password" placeholder="Минимум 8 символов" required autocomplete="new-password" data-auth-validate="password">
+                        <button type="button" class="auth-password-toggle" data-password-target="visitor-reset-password">Показать</button>
+                    </div>
+                </div>
+                <div class="auth-field">
+                    <label for="visitor-reset-password-confirmation">Повтор нового пароля</label>
+                    <div class="auth-input-shell is-invalid">
+                        <input class="auth-input" type="password" id="visitor-reset-password-confirmation" name="password_confirmation" placeholder="Повторите новый пароль" required autocomplete="new-password" data-auth-validate="password-confirmation" data-password-source="visitor-reset-password">
+                        <button type="button" class="auth-password-toggle" data-password-target="visitor-reset-password-confirmation">Показать</button>
+                    </div>
+                </div>
+                <div class="auth-form-actions">
+                    <button type="submit" class="primary-btn auth-submit-button">Изменить пароль</button>
+                    <button type="button" class="auth-link-button" data-auth-clear>Очистить</button>
+                </div>
+                <button type="button" class="auth-link-button auth-back-login-button" data-auth-back-login>Вернуться ко входу</button>
+            </form>
         </div>
         @if($isOperator ?? false)
             <button type="button" id="operator-logout-button" class="logout-button">Log-out</button>

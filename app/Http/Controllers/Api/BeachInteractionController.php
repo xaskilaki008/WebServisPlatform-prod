@@ -5,44 +5,53 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Beach;
 use App\Models\FavoriteBeach;
+use App\Models\User;
 use App\Services\BeachInteractionService;
-use App\Services\VisitorResolver;
-use Illuminate\Database\QueryException;
 use Illuminate\Http\Request;
 
 class BeachInteractionController extends Controller
 {
     public function reaction(
         Request $request,
-        VisitorResolver $visitorResolver,
         BeachInteractionService $interactionService,
         Beach $beach
     ) {
+        $user = $request->user();
+
+        if (!$user instanceof User) {
+            return response()->json([
+                'success' => false,
+                'auth_required' => true,
+                'message' => 'Войдите в систему, чтобы оставить реакцию',
+                'reaction_stats' => $interactionService->reactionStats((int) $beach->id),
+                ...$interactionService->reactionAvailability(null, (int) $beach->id),
+            ], 401);
+        }
+
         $validated = $request->validate([
             'reaction_type' => ['required', 'in:positive,negative'],
         ]);
 
-        $visitor = $visitorResolver->currentOrCreate($request);
-        $result = $interactionService->addReaction($visitor, (int) $beach->id, $validated['reaction_type']);
+        $result = $interactionService->addReaction($user, (int) $beach->id, $validated['reaction_type']);
 
         return response()->json([
             ...$result,
             'reaction_stats' => $interactionService->reactionStats((int) $beach->id),
-            ...$interactionService->reactionAvailability($visitor, (int) $beach->id),
+            ...$interactionService->reactionAvailability($user, (int) $beach->id),
         ], $result['success'] ? 200 : 429);
     }
 
-    public function favorites(Request $request, VisitorResolver $visitorResolver)
+    public function favorites(Request $request)
     {
-        $visitor = $visitorResolver->current($request);
+        $user = $request->user();
 
-        if (!$visitor) {
+        if (!$user instanceof User) {
             return response()->json(['favorites' => []]);
         }
 
         $favorites = FavoriteBeach::query()
             ->with('beach')
-            ->where('visitor_id', $visitor->id)
+            ->where('user_id', $user->id)
             ->latest('created_at')
             ->get()
             ->map(fn (FavoriteBeach $favorite) => [
@@ -59,36 +68,19 @@ class BeachInteractionController extends Controller
         return response()->json(['favorites' => $favorites]);
     }
 
-    public function favoriteToggle(Request $request, VisitorResolver $visitorResolver, Beach $beach)
+    public function favoriteToggle(Request $request, BeachInteractionService $interactionService, Beach $beach)
     {
-        $visitor = $visitorResolver->currentOrCreate($request);
+        $user = $request->user();
 
-        $favorite = FavoriteBeach::query()
-            ->where('visitor_id', $visitor->id)
-            ->where('beach_id', $beach->id)
-            ->first();
-
-        if ($favorite) {
-            $favorite->delete();
-
+        if (!$user instanceof User) {
             return response()->json([
+                'success' => false,
+                'auth_required' => true,
                 'is_favorite' => false,
-                'message' => 'Пляж удалён из избранного.',
-            ]);
+                'message' => 'Войдите в систему, чтобы добавить пляж в избранное',
+            ], 401);
         }
 
-        try {
-            FavoriteBeach::query()->firstOrCreate([
-                'visitor_id' => $visitor->id,
-                'beach_id' => $beach->id,
-            ]);
-        } catch (QueryException) {
-            // Unique constraint handles concurrent duplicate requests.
-        }
-
-        return response()->json([
-            'is_favorite' => true,
-            'message' => 'Пляж добавлен в избранное.',
-        ]);
+        return response()->json($interactionService->toggleFavorite($user, $beach));
     }
 }

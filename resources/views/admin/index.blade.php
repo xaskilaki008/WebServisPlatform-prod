@@ -23,20 +23,7 @@
                 </form>
             </header>
 
-            <nav class="admin-nav" aria-label="Навигация администратора">
-                <a class="admin-nav-button" href="/">Вернуться на сайт</a>
-                <a class="admin-nav-button active" href="/admin">Панель администратора</a>
-                <a class="admin-nav-button placeholder" href="#" aria-disabled="true">Управление пляжами</a>
-                <a class="admin-nav-button placeholder" href="#" aria-disabled="true">Управление операторами</a>
-                <a class="admin-nav-button placeholder" href="#" aria-disabled="true">Пользователи и роли</a>
-                <a class="admin-nav-button placeholder" href="#" aria-disabled="true">Журнал действий</a>
-                <a class="admin-nav-button" href="/admin">Прогнозы forecast model</a>
-                <a class="admin-nav-button placeholder" href="#" aria-disabled="true">Ручная корректировка</a>
-                <form method="POST" action="/admin/logout" class="admin-nav-logout">
-                    @csrf
-                    <button type="submit" class="admin-nav-button danger">Выйти</button>
-                </form>
-            </nav>
+            @include('admin.partials.nav', ['active' => 'dashboard'])
 
             @if(session('status'))
                 <div class="admin-flash">{{ session('status') }}</div>
@@ -168,7 +155,7 @@
                     <div class="admin-status-row"><span>Последний парсинг</span><strong>{{ $latestParsedAt ?? '-' }}</strong></div>
                     <div class="admin-status-row"><span>Реакций за последний час</span><strong>{{ $reactionCount1h }}</strong></div>
                     <div class="admin-status-row"><span>Пляжей в избранном</span><strong>{{ $favoriteCount }}</strong></div>
-                    <div class="admin-status-row"><span>Посетителей с избранным</span><strong>{{ $favoriteVisitorCount }}</strong></div>
+                    <div class="admin-status-row"><span>Пользователей с избранным</span><strong>{{ $favoriteVisitorCount }}</strong></div>
                 </section>
             </div>
         </section>

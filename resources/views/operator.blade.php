@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>Панель оператора</title>
     @vite(['resources/css/app.css'])
 </head>
@@ -243,6 +244,7 @@
         const operatorLogoutConfirmClose = document.getElementById('operator-logout-confirm-close');
         const operatorLogoutConfirmButton = document.getElementById('operator-logout-confirm-button');
         const operatorLogoutCancelButton = document.getElementById('operator-logout-cancel-button');
+        const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content || '';
         let timerStart = null;
         let confirmedStatusInput = document.querySelector('input[name="operator_status"]:checked') || null;
         let pendingStatusInput = null;
@@ -430,10 +432,11 @@
             operatorLogoutConfirmButton.disabled = true;
 
             try {
-                const response = await fetch('/api/operator/logout', {
+                const response = await fetch('/api/auth/logout', {
                     method: 'POST',
                     headers: {
                         'Accept': 'application/json',
+                        'X-CSRF-TOKEN': csrfToken,
                     },
                 });
 
@@ -465,11 +468,12 @@
             passwordMessage.classList.add('hidden');
 
             try {
-                const response = await fetch('/api/operator/password', {
+                const response = await fetch('/api/auth/operator/password', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
                         'Accept': 'application/json',
+                        'X-CSRF-TOKEN': csrfToken,
                     },
                     body: JSON.stringify({
                         current_password: formData.get('current_password'),

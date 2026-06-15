@@ -18,7 +18,7 @@
             <form method="POST" action="/admin/login" class="admin-form">
                 @csrf
                 <label>
-                    <span>Логин</span>
+                    <span>Логин, email или ник</span>
                     <input type="text" name="login" value="{{ old('login') }}" required autocomplete="username">
                 </label>
                 <label>

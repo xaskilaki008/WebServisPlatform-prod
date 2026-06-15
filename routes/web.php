@@ -1,35 +1,107 @@
 <?php
 
-use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\AdminController;
 use App\Http\Controllers\Api\BeachController;
 use App\Http\Controllers\Api\BeachInteractionController;
+use App\Http\Controllers\Auth\UnifiedAuthController;
 use App\Models\Beach;
-use App\Models\BeachOperator;
 use App\Models\BeachOperatorLog;
+use App\Services\OperatorAccessService;
+use App\Services\UserActionLogger;
 use App\Services\WaveForecastSelector;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Route;
 
-// Главная страница (Frontend)
-Route::get('/', function (Request $request) {
-    $operator = Schema::hasTable('beach_operators')
-        ? BeachOperator::query()
-            ->where('operator_hash', $request->cookie('operator_hash'))
-            ->first()
-        : null;
+Route::get('/', function (Request $request, OperatorAccessService $operatorAccess) {
+    $user = $request->user();
+    $operatorBeachIds = $operatorAccess->currentOperatorBeachIds($request);
+    $operatorBeachId = $operatorBeachIds[0] ?? null;
+    $isAdmin = $user?->isAdmin() && $user->is_active;
+    $isOperator = !$isAdmin && !empty($operatorBeachIds);
 
     return view('map', [
-        'isOperator' => (bool) $operator,
-        'operatorBeachId' => $operator?->beach_id,
+        'isAdmin' => $isAdmin,
+        'isOperator' => $isOperator,
+        'operatorBeachId' => $operatorBeachId,
+        'operatorBeachIds' => $operatorBeachIds,
+        'operatorPanelUrl' => count($operatorBeachIds) === 1 && $operatorBeachId
+            ? "/operator/{$operatorBeachId}"
+            : '/operator',
+        'adminPanelUrl' => '/admin',
     ]);
 });
 
-Route::get('/operator/{id}', function (Request $request, WaveForecastSelector $forecastSelector, int $id) {
-    $operator = BeachOperator::query()
-        ->where('operator_hash', $request->cookie('operator_hash'))
-        ->where('beach_id', $id)
-        ->first();
+Route::post('/api/auth/email/send-code', [UnifiedAuthController::class, 'sendCode']);
+Route::post('/api/auth/password/send-code', [UnifiedAuthController::class, 'sendPasswordResetCode']);
+Route::post('/api/auth/password/reset', [UnifiedAuthController::class, 'resetPassword']);
+Route::post('/api/auth/register', [UnifiedAuthController::class, 'register']);
+Route::post('/api/auth/login', [UnifiedAuthController::class, 'login']);
+Route::post('/api/auth/logout', [UnifiedAuthController::class, 'logout']);
+
+Route::post('/api/auth/operator/password', function (Request $request, OperatorAccessService $operatorAccess) {
+    $validated = $request->validate([
+        'current_password' => ['required', 'string'],
+        'password' => ['required', 'string', 'min:8', 'confirmed'],
+    ]);
+
+    $user = $request->user();
+
+    if ($user && $user->isOperator()) {
+        $hash = $user->password_hash ?: $user->password;
+
+        if (!$hash || !Hash::check($validated['current_password'], $hash)) {
+            return response()->json(['message' => 'Current password is incorrect'], 422);
+        }
+
+        $user->forceFill([
+            'password' => $validated['password'],
+            'password_hash' => $validated['password'],
+        ])->save();
+
+        return response()->json(['message' => 'Password changed']);
+    }
+
+    $legacy = $operatorAccess->currentLegacyOperator($request);
+
+    abort_unless($legacy, 403);
+
+    if (!Hash::check($validated['current_password'], $legacy->password)) {
+        return response()->json(['message' => 'Current password is incorrect'], 422);
+    }
+
+    $legacy->update([
+        'password' => Hash::make($validated['password']),
+    ]);
+
+    return response()->json(['message' => 'Password changed']);
+});
+
+Route::get('/operator', function (Request $request, OperatorAccessService $operatorAccess) {
+    $operator = $operatorAccess->currentUnifiedOperator($request);
+
+    if (!$operator) {
+        $legacyBeachId = $operatorAccess->currentOperatorBeachId($request);
+
+        abort_unless($legacyBeachId, 403, 'Доступ запрещен');
+
+        return redirect("/operator/{$legacyBeachId}");
+    }
+
+    $beaches = $operator->beaches()->orderBy('name')->get();
+
+    if ($beaches->count() === 1) {
+        return redirect('/operator/' . $beaches->first()->id);
+    }
+
+    return view('operator-beaches', [
+        'operator' => $operator,
+        'beaches' => $beaches,
+    ]);
+});
+
+Route::get('/operator/{id}', function (Request $request, WaveForecastSelector $forecastSelector, OperatorAccessService $operatorAccess, int $id) {
+    $operator = $operatorAccess->compatibilityOperatorForBeach($request, $id);
 
     abort_unless($operator, 403, 'Доступ запрещен');
 
@@ -42,11 +114,13 @@ Route::get('/operator/{id}', function (Request $request, WaveForecastSelector $f
     ]);
 });
 
-Route::post('/operator/{id}', function (Request $request, int $id) {
-    $operator = BeachOperator::query()
-        ->where('operator_hash', $request->cookie('operator_hash'))
-        ->where('beach_id', $id)
-        ->first();
+Route::post('/operator/{id}', function (
+    Request $request,
+    OperatorAccessService $operatorAccess,
+    UserActionLogger $logger,
+    int $id
+) {
+    $operator = $operatorAccess->compatibilityOperatorForBeach($request, $id);
 
     abort_unless($operator, 403, 'Доступ запрещен');
 
@@ -98,10 +172,18 @@ Route::post('/operator/{id}', function (Request $request, int $id) {
         'operator_access_status' => $validated['operator_access_status'],
     ]);
 
+    $logger->log(
+        $request,
+        'operator_record_created',
+        $request->user(),
+        Beach::class,
+        $beach->id,
+        'Operator submitted beach sea-state data.'
+    );
+
     return redirect("/operator/{$id}")->with('status', 'Данные сохранены и опубликованы');
 });
 
-// АПИ для фронтенда (Backend)
 Route::get('/admin/login', [AdminController::class, 'loginForm']);
 Route::post('/admin/login', [AdminController::class, 'login']);
 Route::post('/admin/logout', [AdminController::class, 'logout']);
@@ -113,6 +195,17 @@ Route::get('/admin/force-fetch/status', [AdminController::class, 'forceFetchStat
 Route::post('/admin/dwd-diagnose', [AdminController::class, 'diagnoseDwd']);
 Route::get('/admin/dwd-log', [AdminController::class, 'dwdLog']);
 Route::post('/admin/dwd-log/clear', [AdminController::class, 'clearDwdLog']);
+Route::get('/admin/beaches', [AdminController::class, 'beaches']);
+Route::get('/admin/operators', [AdminController::class, 'operators']);
+Route::post('/admin/operators/{user}', [AdminController::class, 'updateOperator']);
+Route::get('/admin/users', [AdminController::class, 'users']);
+Route::post('/admin/users/{user}/role', [AdminController::class, 'updateUserRole']);
+Route::post('/admin/users/{user}/active', [AdminController::class, 'updateUserActive']);
+Route::post('/admin/users/{user}/ban', [AdminController::class, 'banUser']);
+Route::get('/admin/action-logs', [AdminController::class, 'actionLogs']);
+Route::get('/admin/manual-correction', [AdminController::class, 'manualCorrection']);
+Route::post('/admin/manual-correction/{beach}', [AdminController::class, 'updateManualCorrection']);
+Route::post('/admin/manual-correction/{beach}/reset', [AdminController::class, 'resetManualCorrection']);
 
 Route::get('/api/beach-info/{id}', [BeachController::class, 'getInfo']);
 Route::get('/api/beach-photo/{id}', [BeachController::class, 'getPhoto']);

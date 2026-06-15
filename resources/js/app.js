@@ -78,7 +78,12 @@ const operatorContactBlock = document.getElementById('operator-contact-block');
 const operatorContactNameRow = document.getElementById('operator-contact-name-row');
 const operatorContactName = document.getElementById('operator-contact-name');
 const openOperatorLink = document.getElementById('open-operator-link');
-const operatorContext = window.operatorContext || { isOperator: false, operatorBeachId: null };
+const operatorContext = window.operatorContext || {
+    isAdmin: false,
+    isOperator: false,
+    operatorBeachId: null,
+    operatorBeachIds: [],
+};
 const detailNumberPlain = document.querySelector('.detail-number-plain');
 const detailTitleRow = document.createElement('div');
 const detailGeoWrap = document.createElement('div');
@@ -87,6 +92,7 @@ const detailCoordinates = document.createElement('button');
 const detailHeaderActions = document.createElement('div');
 const detailReturnButton = document.createElement('button');
 const detailMapButton = document.createElement('button');
+const detailFavoriteButton = document.createElement('button');
 const navButtons = document.querySelectorAll('[data-screen-target]');
 const screens = document.querySelectorAll('.screen');
 const searchInput = document.getElementById('search-input');
@@ -110,6 +116,7 @@ const reactionMessage = document.getElementById('reaction-message');
 const reactionPositiveCount = document.getElementById('reaction-positive-count');
 const reactionNegativeCount = document.getElementById('reaction-negative-count');
 let reactionNoticeTimer = null;
+const favoriteAuthMessage = 'Войдите в систему, чтобы добавить пляж в избранное';
 const routeState = {
     map: 'beaches-map',
     list: 'beach-list',
@@ -328,7 +335,11 @@ function updateOperatorControls(beach = {}, status = null) {
     const beachId = Number(beach.id);
     const hasOperatorData = Boolean(latestOperatorLog);
     const hasOperatorContact = hasOperatorData && Boolean(operatorFirstName);
-    const canEdit = Boolean(operatorContext.isOperator) && Number(operatorContext.operatorBeachId) === beachId;
+    const operatorBeachIds = Array.isArray(operatorContext.operatorBeachIds)
+        ? operatorContext.operatorBeachIds.map(Number)
+        : [Number(operatorContext.operatorBeachId)].filter(Boolean);
+    const canEdit = Boolean(operatorContext.isAdmin)
+        || (Boolean(operatorContext.isOperator) && operatorBeachIds.includes(beachId));
 
     if (operatorColumnView) {
         operatorColumnView.classList.remove('hidden');
@@ -416,15 +427,22 @@ function updateReactionControls(data = {}) {
     if (reactionNegativeCount) reactionNegativeCount.textContent = String(stats.negative ?? 0);
 
     const canReact = data.can_react !== false;
+    const authRequired = data.auth_required === true;
     [reactionPositiveButton, reactionNegativeButton].forEach(button => {
         if (button) button.disabled = !canReact;
     });
 
     if (reactionMessage) {
         const retrySeconds = Number(data.reaction_retry_after_seconds || 0);
-        reactionMessage.textContent = canReact
-            ? ''
-            : `Следующую реакцию можно будет отправить через ${Math.ceil(retrySeconds / 60)} мин.`;
+        if (canReact) {
+            reactionMessage.textContent = '';
+        } else if (authRequired) {
+            reactionMessage.textContent = data.message || 'Войдите в систему, чтобы оставить реакцию';
+        } else if (retrySeconds > 0) {
+            reactionMessage.textContent = `Следующую реакцию можно будет отправить через ${Math.ceil(retrySeconds / 60)} мин.`;
+        } else {
+            reactionMessage.textContent = data.message || '';
+        }
     }
 }
 
@@ -436,10 +454,67 @@ function showReactionNotice(message, timeout = 2000) {
     }
 
     reactionMessage.textContent = message || '';
-    reactionNoticeTimer = setTimeout(() => {
-        reactionMessage.textContent = '';
-        reactionNoticeTimer = null;
-    }, timeout);
+    if (timeout > 0) {
+        reactionNoticeTimer = setTimeout(() => {
+            reactionMessage.textContent = '';
+            reactionNoticeTimer = null;
+        }, timeout);
+    }
+}
+
+function openAuthModalWithMessage(message = '') {
+    const modal = document.getElementById('login-modal');
+    const authMessage = document.getElementById('auth-message');
+
+    modal?.classList.remove('hidden');
+
+    if (authMessage && message) {
+        authMessage.textContent = message;
+        authMessage.classList.remove('hidden', 'success');
+        authMessage.classList.add('error');
+    }
+}
+
+function updateFavoriteButton(isFavorite = false, disabled = false) {
+    detailFavoriteButton.disabled = disabled;
+    detailFavoriteButton.classList.toggle('active', Boolean(isFavorite));
+    detailFavoriteButton.setAttribute('aria-pressed', isFavorite ? 'true' : 'false');
+    detailFavoriteButton.textContent = isFavorite ? 'В избранном' : 'В избранное';
+}
+
+function submitFavoriteToggle() {
+    const beachId = Number(detailMapButton.dataset.id);
+    if (!beachId) return;
+
+    const wasFavorite = detailFavoriteButton.classList.contains('active');
+    detailFavoriteButton.disabled = true;
+
+    apiFetch(`/api/beaches/${beachId}/favorite-toggle`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+    })
+        .then(response => response.json().catch(() => ({})).then(data => ({ response, data })))
+        .then(({ response, data }) => {
+            if (response.status === 401 || data.auth_required === true) {
+                updateFavoriteButton(false, false);
+                showReactionNotice(data.message || favoriteAuthMessage, 0);
+                openAuthModalWithMessage(data.message || favoriteAuthMessage);
+                return;
+            }
+
+            if (!response.ok || data.success === false) {
+                throw new Error('Favorite request failed');
+            }
+
+            updateFavoriteButton(Boolean(data.is_favorite), false);
+            showReactionNotice(data.message || (data.is_favorite
+                ? 'Пляж добавлен в избранное.'
+                : 'Пляж удалён из избранного.'));
+        })
+        .catch(() => {
+            updateFavoriteButton(wasFavorite, false);
+            showReactionNotice('Не удалось изменить избранное.');
+        });
 }
 
 function submitReaction(type) {
@@ -462,6 +537,16 @@ function submitReaction(type) {
         .then(({ response, data }) => {
             if (!response.ok && !data) {
                 throw new Error('Reaction request failed');
+            }
+
+            if (response.status === 401 || data.auth_required === true) {
+                reactionButtons.forEach((button, index) => {
+                    button.disabled = previousDisabledState[index];
+                });
+                updateReactionControls(data);
+                showReactionNotice(data.message || 'Войдите в систему, чтобы оставить реакцию', 0);
+                openAuthModalWithMessage(data.message || 'Войдите в систему, чтобы оставить реакцию');
+                return;
             }
 
             if (data.can_react === false) {
@@ -518,6 +603,8 @@ function updateDetailScreen(beach = {}) {
     // Эта строка вешает класс подсветки (зеленый/желтый/красный)
     detailCategory.className = 'category-badge ' + getCategoryBadgeClass(beach);
     detailMapButton.dataset.id = beach.id ?? '';
+    detailFavoriteButton.dataset.id = beach.id ?? '';
+    updateFavoriteButton(Boolean(beach.is_favorite), false);
     updateReactionControls({ reaction_stats: {}, can_react: false });
 
     const hasCoords = beach.latitude !== undefined && beach.longitude !== undefined;
@@ -574,6 +661,7 @@ function updateDetailScreen(beach = {}) {
                 detailWaveText.innerText = getWaveLevelText(beach.wave_level);
             }
             updateOperatorControls(beach, data.operator_status ?? beach.operator_status ?? null);
+            updateFavoriteButton(Boolean(data.is_favorite), false);
             updateReactionControls(data);
         })
         .catch(err => {
@@ -1440,9 +1528,15 @@ detailBackButton.textContent = '\u041d\u0430\u0437\u0430\u0434';
 detailReturnButton.type = 'button';
 detailReturnButton.id = 'detail-return-button';
 detailReturnButton.className = 'back-button';
+detailFavoriteButton.type = 'button';
+detailFavoriteButton.id = 'detail-favorite-button';
+detailFavoriteButton.className = 'favorite-button';
+detailFavoriteButton.setAttribute('aria-pressed', 'false');
+detailFavoriteButton.textContent = 'В избранное';
 detailBackButton.parentNode.insertBefore(detailHeaderActions, detailBackButton);
 detailHeaderActions.appendChild(detailBackButton);
 detailHeaderActions.appendChild(detailReturnButton);
+detailHeaderActions.appendChild(detailFavoriteButton);
 updateDetailBackButton();
 
 detailTitleRow.className = 'detail-title-row';
@@ -1677,6 +1771,8 @@ if (reactionNegativeButton) {
     reactionNegativeButton.addEventListener('click', () => submitReaction('negative'));
 }
 
+detailFavoriteButton.addEventListener('click', submitFavoriteToggle);
+
 toggleMapSizeButton.addEventListener('click', function () {
     setMapExpanded(!isMapExpanded);
 });
@@ -1813,13 +1909,19 @@ document.addEventListener('DOMContentLoaded', () => {
     const closeBtn = document.getElementById('close-modal-btn');
     const visitorLoginForm = document.getElementById('visitor-login-form');
     const visitorRegisterForm = document.getElementById('visitor-register-form');
+    const visitorResetPasswordForm = document.getElementById('visitor-reset-password-form');
+    const authTabsWrap = document.querySelector('.auth-tabs');
     const authTabs = document.querySelectorAll('[data-auth-mode]');
     const authPanels = document.querySelectorAll('[data-auth-panel]');
     const authTitle = document.getElementById('auth-title');
     const authSubtitle = document.getElementById('auth-subtitle');
     const authMessage = document.getElementById('auth-message');
     const sendCodeButton = document.getElementById('visitor-send-code-button');
-    const authClearButton = document.getElementById('auth-clear-button');
+    const resetSendCodeButton = document.getElementById('visitor-reset-send-code-button');
+    const resetMaskedEmail = document.getElementById('visitor-reset-masked-email');
+    const authClearButtons = document.querySelectorAll('[data-auth-clear]');
+    const authResetOpenButtons = document.querySelectorAll('[data-auth-reset-open]');
+    const authBackLoginButtons = document.querySelectorAll('[data-auth-back-login]');
     const logoutBtn = document.getElementById('operator-logout-button');
     const logoutConfirmModal = document.getElementById('logout-confirm-modal');
     const confirmLogoutBtn = document.getElementById('confirm-logout-button');
@@ -1867,7 +1969,12 @@ document.addEventListener('DOMContentLoaded', () => {
             title: 'Регистрация',
             subtitle: 'Введите email, пароль и код подтверждения из письма.',
         },
+        reset: {
+            title: 'Сброс пароля',
+            subtitle: 'Получите код на почту и задайте новый пароль.',
+        },
     };
+    let currentAuthMode = 'login';
 
     function setAuthMessage(message = '', type = 'error') {
         if (!authMessage) return;
@@ -1879,16 +1986,19 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function setAuthMode(mode) {
+        const nextMode = authModeCopy[mode] ? mode : 'login';
+        currentAuthMode = nextMode;
+
         authPanels.forEach((panel) => {
-            panel.classList.toggle('hidden', panel.dataset.authPanel !== mode);
+            panel.classList.toggle('hidden', panel.dataset.authPanel !== nextMode);
         });
 
         authTabs.forEach((tab) => {
-            tab.classList.toggle('active', tab.dataset.authMode === mode);
+            tab.classList.toggle('active', tab.dataset.authMode === nextMode);
         });
 
-        authTitle && (authTitle.textContent = authModeCopy[mode]?.title || authModeCopy.login.title);
-        authSubtitle && (authSubtitle.textContent = authModeCopy[mode]?.subtitle || authModeCopy.login.subtitle);
+        authTitle && (authTitle.textContent = authModeCopy[nextMode].title);
+        authSubtitle && (authSubtitle.textContent = authModeCopy[nextMode].subtitle);
         setAuthMessage('');
     }
 
@@ -1943,6 +2053,42 @@ document.addEventListener('DOMContentLoaded', () => {
         form?.querySelectorAll('.auth-input').forEach(syncAuthInputState);
     }
 
+    function splitFullName(value = '') {
+        const parts = value
+            .trim()
+            .split(/\s+/)
+            .filter(Boolean);
+
+        if (parts.length === 0) {
+            return {
+                last_name: null,
+                first_name: null,
+                middle_name: null,
+            };
+        }
+
+        if (parts.length === 1) {
+            return {
+                last_name: null,
+                first_name: parts[0],
+                middle_name: null,
+            };
+        }
+
+        return {
+            last_name: parts[0],
+            first_name: parts[1],
+            middle_name: parts.length > 2 ? parts.slice(2).join(' ') : null,
+        };
+    }
+
+    function maskEmailForDisplay(email = '') {
+        const [localPart = '', domain = ''] = email.trim().split('@');
+        const firstLetter = localPart.charAt(0) || '*';
+
+        return domain ? `${firstLetter}...@${domain}` : email;
+    }
+
     async function readApiMessage(response, fallback) {
         try {
             const data = await response.json();
@@ -1956,28 +2102,53 @@ document.addEventListener('DOMContentLoaded', () => {
         input.addEventListener('input', () => {
             syncAuthInputState(input);
 
-            if (input.id === 'visitor-register-password') {
-                const confirmation = document.getElementById('visitor-register-password-confirmation');
-                confirmation && syncAuthInputState(confirmation);
-            }
+            document
+                .querySelectorAll(`[data-password-source="${input.id}"]`)
+                .forEach(syncAuthInputState);
         });
 
         syncAuthInputState(input);
     });
 
-    authTabs.forEach((tab) => {
-        tab.addEventListener('click', () => setAuthMode(tab.dataset.authMode));
+    authTabsWrap?.addEventListener('click', (event) => {
+        const tab = event.target.closest('[data-auth-mode]');
+        const nextMode = tab?.dataset.authMode || (currentAuthMode === 'login' ? 'register' : 'login');
+        setAuthMode(nextMode);
     });
 
-    authClearButton?.addEventListener('click', () => {
-        document.querySelectorAll('.auth-form').forEach((form) => form.reset());
-        document.querySelectorAll('.auth-password-toggle').forEach((button) => {
-            const input = document.getElementById(button.dataset.passwordTarget);
-            if (input) input.type = 'password';
-            button.textContent = 'Показать';
+    authResetOpenButtons.forEach((button) => {
+        button.addEventListener('click', () => {
+            const loginIdentifier = document.getElementById('visitor-login-identifier')?.value.trim() || '';
+            const resetEmailInput = document.getElementById('visitor-reset-email');
+
+            if (resetEmailInput && loginIdentifier.includes('@')) {
+                resetEmailInput.value = loginIdentifier;
+                syncAuthInputState(resetEmailInput);
+            }
+
+            setAuthMode('reset');
         });
-        document.querySelectorAll('.auth-input').forEach(syncAuthInputState);
-        setAuthMessage('');
+    });
+
+    authBackLoginButtons.forEach((button) => {
+        button.addEventListener('click', () => setAuthMode('login'));
+    });
+
+    authClearButtons.forEach((clearButton) => {
+        clearButton.addEventListener('click', () => {
+            document.querySelectorAll('.auth-form').forEach((form) => form.reset());
+            document.querySelectorAll('.auth-password-toggle').forEach((button) => {
+                const input = document.getElementById(button.dataset.passwordTarget);
+                if (input) input.type = 'password';
+                button.textContent = 'Показать';
+            });
+            document.querySelectorAll('.auth-input').forEach(syncAuthInputState);
+            if (resetMaskedEmail) {
+                resetMaskedEmail.textContent = '';
+                resetMaskedEmail.classList.add('hidden');
+            }
+            setAuthMessage('');
+        });
     });
 
     document.querySelectorAll('.auth-password-toggle').forEach((button) => {
@@ -2008,7 +2179,7 @@ document.addEventListener('DOMContentLoaded', () => {
         let shouldCooldown = false;
 
         try {
-            const response = await fetch('/api/visitor/register/send-code', {
+            const response = await apiFetch('/api/auth/email/send-code', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -2040,12 +2211,64 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
+    resetSendCodeButton?.addEventListener('click', async () => {
+        const emailInput = document.getElementById('visitor-reset-email');
+        if (!emailInput) return;
+
+        syncAuthInputState(emailInput);
+
+        if (!isValidAuthInput(emailInput)) {
+            setAuthMessage('Введите корректный email для отправки кода сброса.');
+            return;
+        }
+
+        resetSendCodeButton.disabled = true;
+        let shouldCooldown = false;
+
+        try {
+            const email = emailInput.value.trim();
+            const response = await apiFetch('/api/auth/password/send-code', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json',
+                },
+                body: JSON.stringify({ email }),
+            });
+
+            const data = await response.json().catch(() => ({}));
+
+            if (response.ok && resetMaskedEmail) {
+                const maskedEmail = data.masked_email || maskEmailForDisplay(email);
+                resetMaskedEmail.textContent = `Код отправлен на ${maskedEmail}`;
+                resetMaskedEmail.classList.remove('hidden');
+            }
+
+            setAuthMessage(data.message || (response.ok
+                ? 'Код сброса отправлен.'
+                : 'Не удалось отправить код сброса.'), response.ok ? 'success' : 'error');
+            shouldCooldown = response.ok;
+        } catch (error) {
+            console.error(error);
+            setAuthMessage('Не удалось отправить код сброса. Проверьте соединение.');
+        } finally {
+            if (!shouldCooldown) {
+                resetSendCodeButton.disabled = false;
+                return;
+            }
+
+            window.setTimeout(() => {
+                resetSendCodeButton.disabled = false;
+            }, 60000);
+        }
+    });
+
     visitorLoginForm?.addEventListener('submit', async (event) => {
         event.preventDefault();
         syncAuthFormState(visitorLoginForm);
 
         if ([...visitorLoginForm.querySelectorAll('.auth-input')].some((input) => !isValidAuthInput(input))) {
-            setAuthMessage('Заполните ник/email и пароль корректно.');
+            setAuthMessage('Заполните email, ник или логин и пароль корректно.');
             return;
         }
 
@@ -2054,7 +2277,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         try {
             const formData = new FormData(visitorLoginForm);
-            const response = await fetch('/api/visitor/login', {
+            const response = await apiFetch('/api/auth/login', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -2066,12 +2289,14 @@ document.addEventListener('DOMContentLoaded', () => {
                 }),
             });
 
+            const data = await response.json().catch(() => ({}));
+
             if (response.ok) {
-                window.location.reload();
+                window.location.href = data.redirect_url || '/';
                 return;
             }
 
-            setAuthMessage(await readApiMessage(response, 'Неверный ник, email или пароль.'));
+            setAuthMessage(data.message || 'Неверный логин или пароль.');
         } catch (error) {
             console.error(error);
             setAuthMessage('Не удалось выполнить вход.');
@@ -2094,7 +2319,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
         try {
             const formData = new FormData(visitorRegisterForm);
-            const response = await fetch('/api/visitor/register', {
+            const fullName = splitFullName(formData.get('full_name') || '');
+            const response = await apiFetch('/api/auth/register', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -2103,24 +2329,77 @@ document.addEventListener('DOMContentLoaded', () => {
                 body: JSON.stringify({
                     nickname: formData.get('nickname'),
                     email: formData.get('email'),
-                    last_name: formData.get('last_name'),
-                    first_name: formData.get('first_name'),
-                    middle_name: formData.get('middle_name'),
+                    last_name: fullName.last_name,
+                    first_name: fullName.first_name,
+                    middle_name: fullName.middle_name,
                     password: formData.get('password'),
                     password_confirmation: formData.get('password_confirmation'),
                     verification_code: formData.get('verification_code'),
                 }),
             });
 
+            const data = await response.json().catch(() => ({}));
+
             if (response.ok) {
-                window.location.reload();
+                window.location.href = data.redirect_url || '/';
                 return;
             }
 
-            setAuthMessage(await readApiMessage(response, 'Не удалось завершить регистрацию.'));
+            setAuthMessage(data.message || 'Не удалось завершить регистрацию.');
         } catch (error) {
             console.error(error);
             setAuthMessage('Не удалось завершить регистрацию.');
+        } finally {
+            submitButton.disabled = false;
+        }
+    });
+
+    visitorResetPasswordForm?.addEventListener('submit', async (event) => {
+        event.preventDefault();
+        syncAuthFormState(visitorResetPasswordForm);
+
+        if ([...visitorResetPasswordForm.querySelectorAll('.auth-input')].some((input) => !isValidAuthInput(input))) {
+            setAuthMessage('Проверьте email, код и новый пароль.');
+            return;
+        }
+
+        const submitButton = visitorResetPasswordForm.querySelector('.auth-submit-button');
+        submitButton.disabled = true;
+
+        try {
+            const formData = new FormData(visitorResetPasswordForm);
+            const response = await apiFetch('/api/auth/password/reset', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json',
+                },
+                body: JSON.stringify({
+                    email: formData.get('email'),
+                    verification_code: formData.get('verification_code'),
+                    password: formData.get('password'),
+                    password_confirmation: formData.get('password_confirmation'),
+                }),
+            });
+
+            const data = await response.json().catch(() => ({}));
+
+            if (response.ok) {
+                visitorResetPasswordForm.reset();
+                document.querySelectorAll('.auth-input').forEach(syncAuthInputState);
+                if (resetMaskedEmail) {
+                    resetMaskedEmail.textContent = '';
+                    resetMaskedEmail.classList.add('hidden');
+                }
+                setAuthMode('login');
+                setAuthMessage(data.message || 'Пароль изменён. Теперь можно войти с новым паролем.', 'success');
+                return;
+            }
+
+            setAuthMessage(data.message || 'Не удалось изменить пароль.');
+        } catch (error) {
+            console.error(error);
+            setAuthMessage('Не удалось изменить пароль.');
         } finally {
             submitButton.disabled = false;
         }
@@ -2143,7 +2422,7 @@ document.addEventListener('DOMContentLoaded', () => {
     confirmLogoutBtn?.addEventListener('click', async () => {
         confirmLogoutBtn.disabled = true;
         try {
-            const response = await fetch('/api/operator/logout', {
+            const response = await apiFetch('/api/auth/logout', {
                 method: 'POST',
                 headers: {
                     'Accept': 'application/json',

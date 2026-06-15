@@ -6,8 +6,8 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\Beach;
 use App\Models\BeachOperatorLog;
+use App\Models\User;
 use App\Services\BeachInteractionService;
-use App\Services\VisitorResolver;
 use App\Services\WaveForecastSelector;
 use Illuminate\Support\Facades\File;
 
@@ -15,13 +15,13 @@ class BeachController extends Controller
 {
     public function getInfo(
         WaveForecastSelector $forecastSelector,
-        VisitorResolver $visitorResolver,
         BeachInteractionService $interactionService,
         $id
     )
     {
         $beach = Beach::findOrFail($id);
-        $visitor = $visitorResolver->current(request());
+        $user = request()->user();
+        $user = $user instanceof User ? $user : null;
         $forecast = config('dwd.forecast_enabled')
             ? $forecastSelector->forBeach((int) $id, now('UTC'))
             : null;
@@ -94,8 +94,8 @@ class BeachController extends Controller
             'latest_forecast' => $latestForecast,
             'latest_operator_log' => $operatorLogPayload,
             'reaction_stats' => $interactionService->reactionStats((int) $id),
-            'is_favorite' => $interactionService->isFavorite($visitor, (int) $id),
-            ...$interactionService->reactionAvailability($visitor, (int) $id),
+            'is_favorite' => $interactionService->isFavorite($user, (int) $id),
+            ...$interactionService->reactionAvailability($user, (int) $id),
         ];
 
         if ($this->dwdDebugEnabled() && $forecast) {
