@@ -96,6 +96,20 @@ MAIL_MAILER=log
 посетителей записываются в `storage/logs/laravel.log`, а API должен сообщать,
 что код записан в лог.
 
+При локальном запуске через Docker код нужно искать в логе контейнера `app`,
+а не обязательно в Windows-файле `WebServisPlatform\storage\logs\laravel.log`.
+Последний шестизначный код регистрации можно вывести так:
+
+```powershell
+docker compose --env-file .env.docker.local -f docker-compose.yml -f docker-compose.local.yml exec app sh -lc "grep -oE 'Код подтверждения регистрации: [0-9]{6}' storage/logs/laravel.log | tail -1"
+```
+
+Если нужно увидеть последние строки письма целиком:
+
+```powershell
+docker compose --env-file .env.docker.local -f docker-compose.yml -f docker-compose.local.yml exec app sh -lc "grep -i -E 'From:|To:|Subject:|Код подтверждения' storage/logs/laravel.log | tail -20"
+```
+
 Для реальной отправки email настрой SMTP в активном `.env`:
 
 ```env
