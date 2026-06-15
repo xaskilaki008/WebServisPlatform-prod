@@ -9,8 +9,8 @@ use Illuminate\Support\Str;
 
 class VisitorResolver
 {
-    private const COOKIE_NAME = 'visitor_token';
-    private const COOKIE_MINUTES = 60 * 24 * 365;
+    public const COOKIE_NAME = 'visitor_token';
+    public const COOKIE_MINUTES = 60 * 24 * 365;
 
     public function current(Request $request): ?Visitor
     {
@@ -21,7 +21,7 @@ class VisitorResolver
         }
 
         return Visitor::query()
-            ->where('visitor_hash', $this->hashToken($token))
+            ->where('visitor_hash', self::hashToken($token))
             ->first();
     }
 
@@ -45,11 +45,11 @@ class VisitorResolver
         }
 
         return Visitor::query()->firstOrCreate([
-            'visitor_hash' => $this->hashToken($token),
+            'visitor_hash' => self::hashToken($token),
         ]);
     }
 
-    private function hashToken(string $token): string
+    public static function hashToken(string $token): string
     {
         return hash_hmac('sha256', $token, (string) config('app.key'));
     }

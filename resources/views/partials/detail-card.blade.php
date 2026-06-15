@@ -111,10 +111,6 @@
                     <span>Имя</span>
                     <strong id="operator-contact-name">-</strong>
                 </div>
-                <div id="operator-contact-phone-row" class="operator-contact-row hidden">
-                    <span>Рабочий телефон</span>
-                    <strong id="operator-contact-phone">-</strong>
-                </div>
             </div>
 
             <div class="detail-row-table">

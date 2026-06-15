@@ -159,24 +159,98 @@
 
 <!-- Модальное окно авторизации (изначально скрыто) -->
 <div id="login-modal" class="modal-overlay hidden">
-    <div class="modal-content">
-        <button id="close-modal-btn" class="close-btn">&times;</button>
-        <h2>Вход в панель</h2>
-        <p class="modal-subtitle">Только для операторов</p>
-        
-        <!-- Пока форма никуда не отправляет данные, мы добавим это позже -->
-        <form id="login-form">
-            <div class="input-group">
-                <label for="login">Логин</label>
-                <!-- Поменяли type на text, id и name на login -->
-                <input type="text" id="login" name="login" placeholder="your login (ваш логин)" required autocomplete="username">
+    <div class="modal-content auth-modal-content">
+        <button id="close-modal-btn" class="close-btn" type="button">&times;</button>
+        <div class="auth-card">
+            <img class="auth-logo" src="{{ asset('супер-пупер логотип сайта.png') }}" alt="Логотип сайта">
+            <h2 id="auth-title">Авторизация</h2>
+            <p id="auth-subtitle" class="modal-subtitle">Войдите или создайте аккаунт пользователя сайта.</p>
+
+            <div class="auth-tabs" role="tablist" aria-label="Режим авторизации">
+                <button type="button" class="auth-tab active" data-auth-mode="login">Вход</button>
+                <button type="button" class="auth-tab" data-auth-mode="register">Регистрация</button>
             </div>
-            <div class="input-group">
-                <label for="password">Пароль</label>
-                <input type="password" id="password" name="password" placeholder="••••••••" required autocomplete="current-password">
+
+            <div id="auth-message" class="auth-message hidden" aria-live="polite"></div>
+
+            <form id="visitor-login-form" class="auth-form" data-auth-panel="login">
+                <div class="auth-field">
+                    <label for="visitor-login-identifier">Ник или email</label>
+                    <div class="auth-input-shell is-invalid">
+                        <input class="auth-input" type="text" id="visitor-login-identifier" name="identifier" placeholder="nickname или you@example.com" required autocomplete="username" data-auth-validate="identifier">
+                    </div>
+                </div>
+                <div class="auth-field">
+                    <label for="visitor-login-password">Пароль</label>
+                    <div class="auth-input-shell is-invalid">
+                        <input class="auth-input" type="password" id="visitor-login-password" name="password" placeholder="Минимум 8 символов" required autocomplete="current-password" data-auth-validate="password">
+                        <button type="button" class="auth-password-toggle" data-password-target="visitor-login-password">Показать</button>
+                    </div>
+                </div>
+                <button type="submit" class="primary-btn auth-submit-button">Войти</button>
+            </form>
+
+            <form id="visitor-register-form" class="auth-form hidden" data-auth-panel="register">
+                <div class="auth-field">
+                    <label for="visitor-register-nickname">Ник</label>
+                    <div class="auth-input-shell is-invalid">
+                        <input class="auth-input" type="text" id="visitor-register-nickname" name="nickname" placeholder="3-32 символа, буквы, цифры, _ или -" required autocomplete="nickname" data-auth-validate="nickname">
+                    </div>
+                </div>
+                <div class="auth-field">
+                    <label for="visitor-register-email">Email</label>
+                    <div class="auth-input-shell is-invalid">
+                        <input class="auth-input" type="email" id="visitor-register-email" name="email" placeholder="you@example.com" required autocomplete="email" data-auth-validate="email">
+                    </div>
+                </div>
+                <div class="auth-fio-grid" aria-label="Необязательные ФИО">
+                    <div class="auth-field">
+                        <label for="visitor-register-last-name">Фамилия</label>
+                        <div class="auth-input-shell auth-input-shell-optional">
+                            <input class="auth-input" type="text" id="visitor-register-last-name" name="last_name" placeholder="Необязательно" autocomplete="family-name" data-auth-validate="optional-text">
+                        </div>
+                    </div>
+                    <div class="auth-field">
+                        <label for="visitor-register-first-name">Имя</label>
+                        <div class="auth-input-shell auth-input-shell-optional">
+                            <input class="auth-input" type="text" id="visitor-register-first-name" name="first_name" placeholder="Необязательно" autocomplete="given-name" data-auth-validate="optional-text">
+                        </div>
+                    </div>
+                    <div class="auth-field">
+                        <label for="visitor-register-middle-name">Отчество</label>
+                        <div class="auth-input-shell auth-input-shell-optional">
+                            <input class="auth-input" type="text" id="visitor-register-middle-name" name="middle_name" placeholder="Необязательно" autocomplete="additional-name" data-auth-validate="optional-text">
+                        </div>
+                    </div>
+                </div>
+                <div class="auth-field">
+                    <label for="visitor-register-password">Пароль</label>
+                    <div class="auth-input-shell is-invalid">
+                        <input class="auth-input" type="password" id="visitor-register-password" name="password" placeholder="Минимум 8 символов" required autocomplete="new-password" data-auth-validate="password">
+                        <button type="button" class="auth-password-toggle" data-password-target="visitor-register-password">Показать</button>
+                    </div>
+                </div>
+                <div class="auth-field">
+                    <label for="visitor-register-password-confirmation">Повтор пароля</label>
+                    <div class="auth-input-shell is-invalid">
+                        <input class="auth-input" type="password" id="visitor-register-password-confirmation" name="password_confirmation" placeholder="Повторите пароль" required autocomplete="new-password" data-auth-validate="password-confirmation" data-password-source="visitor-register-password">
+                        <button type="button" class="auth-password-toggle" data-password-target="visitor-register-password-confirmation">Показать</button>
+                    </div>
+                </div>
+                <div class="auth-field">
+                    <label for="visitor-register-code">Код подтверждения</label>
+                    <div class="auth-input-shell auth-code-shell is-invalid">
+                        <input class="auth-input" type="text" id="visitor-register-code" name="verification_code" placeholder="6 цифр" required inputmode="numeric" maxlength="6" autocomplete="one-time-code" data-auth-validate="code">
+                        <button type="button" id="visitor-send-code-button" class="auth-send-code-button">Отправить код</button>
+                    </div>
+                </div>
+                <button type="submit" class="primary-btn auth-submit-button">Зарегистрироваться</button>
+            </form>
+
+            <div class="auth-footer">
+                <button type="button" id="auth-clear-button" class="auth-link-button">Очистить</button>
             </div>
-            <button type="submit" class="primary-btn">Войти</button>
-        </form>
+        </div>
         @if($isOperator ?? false)
             <button type="button" id="operator-logout-button" class="logout-button">Log-out</button>
         @endif

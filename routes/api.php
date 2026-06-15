@@ -2,17 +2,202 @@
 
 use App\Http\Controllers\Api\BeachController;
 use App\Http\Controllers\Api\BeachInteractionController;
+use App\Mail\VisitorVerificationCodeMail;
 use App\Models\Beach;
 use App\Models\BeachOperator;
+use App\Models\Visitor;
 use App\Services\BrowserLoginThrottle;
+use App\Services\VisitorResolver;
 use App\Services\WaveForecastSelector;
 use Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse;
 use Illuminate\Cookie\Middleware\EncryptCookies;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Str;
+
+$visitorVerificationKey = static fn (string $email): string => 'visitor_register_code:' . sha1(Str::lower($email));
+$visitorVerificationCooldownKey = static fn (Request $request, string $email): string => 'visitor_register_code_cooldown:' . sha1($request->ip() . '|' . Str::lower($email));
+$visitorNicknameKey = static fn (string $nickname): string => Str::lower(trim($nickname));
+$makeVisitorCookie = static function (Request $request, Visitor $visitor) {
+    $token = Str::random(64);
+
+    $visitor->forceFill([
+        'visitor_hash' => VisitorResolver::hashToken($token),
+    ])->save();
+
+    return cookie(
+        VisitorResolver::COOKIE_NAME,
+        $token,
+        VisitorResolver::COOKIE_MINUTES,
+        null,
+        null,
+        $request->isSecure(),
+        true,
+        false,
+        'lax'
+    );
+};
+
+Route::post('/visitor/register/send-code', function (Request $request) use ($visitorVerificationKey, $visitorVerificationCooldownKey) {
+    $validated = $request->validate([
+        'email' => ['required', 'email', 'max:255'],
+    ]);
+
+    $email = Str::lower($validated['email']);
+    $cooldownKey = $visitorVerificationCooldownKey($request, $email);
+
+    if (Cache::has($cooldownKey)) {
+        return response()->json([
+            'success' => false,
+            'message' => 'Код уже был отправлен. Повторная отправка будет доступна через минуту.',
+        ], 429);
+    }
+
+    $code = (string) random_int(100000, 999999);
+
+    Cache::put($visitorVerificationKey($email), [
+        'code_hash' => Hash::make($code),
+    ], now()->addMinutes(10));
+
+    $isLogMailer = config('mail.default') === 'log';
+
+    try {
+        Mail::to($email)->send(new VisitorVerificationCodeMail($code));
+    } catch (\Throwable $exception) {
+        Cache::forget($visitorVerificationKey($email));
+
+        report($exception);
+
+        return response()->json([
+            'success' => false,
+            'message' => 'Не удалось отправить код подтверждения. Проверьте настройки почты MAIL_*.',
+        ], 503);
+    }
+
+    Cache::put($cooldownKey, true, now()->addMinute());
+
+    return response()->json([
+        'success' => true,
+        'message' => $isLogMailer
+            ? 'Код подтверждения записан в storage/logs/laravel.log, потому что MAIL_MAILER=log. Для реальной отправки настройте SMTP.'
+            : 'Код подтверждения отправлен на email. Он действует 10 минут.',
+    ]);
+});
+
+Route::post('/visitor/register', function (Request $request) use ($visitorVerificationKey, $visitorNicknameKey, $makeVisitorCookie) {
+    $validated = $request->validate([
+        'nickname' => [
+            'required',
+            'string',
+            'min:3',
+            'max:32',
+            'regex:/^[\pL\pN_-]+$/u',
+        ],
+        'email' => ['required', 'email', 'max:255'],
+        'last_name' => ['nullable', 'string', 'max:255'],
+        'first_name' => ['nullable', 'string', 'max:255'],
+        'middle_name' => ['nullable', 'string', 'max:255'],
+        'password' => ['required', 'string', 'min:8', 'confirmed'],
+        'verification_code' => ['required', 'digits:6'],
+    ]);
+
+    $email = Str::lower($validated['email']);
+    $nickname = trim($validated['nickname']);
+    $nicknameKey = $visitorNicknameKey($nickname);
+    $cachedCode = Cache::get($visitorVerificationKey($email));
+
+    $nicknameOwner = Visitor::query()
+        ->where('nickname_key', $nicknameKey)
+        ->where(function ($query) use ($email) {
+            $query->where('email', '!=', $email)
+                ->orWhereNull('email');
+        })
+        ->exists();
+
+    if ($nicknameOwner) {
+        return response()->json([
+            'success' => false,
+            'message' => 'Этот ник уже занят.',
+        ], 422);
+    }
+
+    if (!$cachedCode || !Hash::check($validated['verification_code'], $cachedCode['code_hash'] ?? '')) {
+        return response()->json([
+            'success' => false,
+            'message' => 'Неверный или просроченный код подтверждения.',
+        ], 422);
+    }
+
+    $visitor = Visitor::query()->updateOrCreate(
+        ['email' => $email],
+        [
+            'nickname' => $nickname,
+            'nickname_key' => $nicknameKey,
+            'last_name' => $validated['last_name'] ?? null,
+            'first_name' => $validated['first_name'] ?? null,
+            'middle_name' => $validated['middle_name'] ?? null,
+            'password' => $validated['password'],
+        ]
+    );
+
+    Cache::forget($visitorVerificationKey($email));
+
+    return response()
+        ->json([
+            'success' => true,
+            'message' => 'Регистрация завершена.',
+        ])
+        ->cookie($makeVisitorCookie($request, $visitor));
+})->middleware([
+    EncryptCookies::class,
+    AddQueuedCookiesToResponse::class,
+]);
+
+Route::post('/visitor/login', function (Request $request) use ($visitorNicknameKey, $makeVisitorCookie) {
+    $validated = $request->validate([
+        'identifier' => ['required', 'string', 'max:255'],
+        'password' => ['required', 'string'],
+    ]);
+
+    $identifier = trim($validated['identifier']);
+    $visitor = Visitor::query()
+        ->when(str_contains($identifier, '@'), function ($query) use ($identifier) {
+            $query->where('email', Str::lower($identifier));
+        }, function ($query) use ($visitorNicknameKey, $identifier) {
+            $query->where('nickname_key', $visitorNicknameKey($identifier));
+        })
+        ->first();
+
+    if (!$visitor || !$visitor->password || !Hash::check($validated['password'], $visitor->password)) {
+        return response()->json([
+            'success' => false,
+            'message' => 'Неверный ник, email или пароль.',
+        ], 403);
+    }
+
+    return response()
+        ->json([
+            'success' => true,
+            'message' => 'Вход выполнен.',
+        ])
+        ->cookie($makeVisitorCookie($request, $visitor));
+})->middleware([
+    EncryptCookies::class,
+    AddQueuedCookiesToResponse::class,
+]);
+
+Route::post('/visitor/logout', function () {
+    return response()
+        ->json(['success' => true])
+        ->withoutCookie(VisitorResolver::COOKIE_NAME);
+})->middleware([
+    EncryptCookies::class,
+    AddQueuedCookiesToResponse::class,
+]);
 
 Route::post('/operator/login', function (Request $request, BrowserLoginThrottle $throttle) {
     $validated = $request->validate([

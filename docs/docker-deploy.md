@@ -39,41 +39,30 @@ http://127.0.0.1:8000/
 http://127.0.0.1:8000/admin
 ```
 
-Use the same command after changing Dockerfile, compose files, composer/npm
-dependencies, or environment/configuration that must be baked into the image.
-For routine Blade, CSS, or JS edits, use the faster local cycle below.
+Use the same command after changing Blade, CSS, JS, Dockerfile, compose files,
+composer/npm dependencies, or environment/configuration that must be baked into
+the image.
 
-## Fast local change cycle
+## Applying local UI changes
 
-If the local Docker stack is already running, do not rebuild the whole
-application for every UI edit. Use targeted commands instead.
+This Docker setup does not mount the project source code into the running
+containers. The `app` runtime container also does not contain `npm`; Node is used
+only in the Dockerfile `frontend` build stage. Because of that, commands such as
+`docker compose ... exec app npm run build` will fail with `npm: executable file
+not found`.
 
-After changing only Blade templates:
-
-```powershell
-docker compose --env-file .env.docker.local -f docker-compose.yml -f docker-compose.local.yml exec app php artisan view:clear
-```
-
-After changing only CSS or JS:
+After changing Blade, CSS, or JS for the Docker site, rebuild the images:
 
 ```powershell
-docker compose --env-file .env.docker.local -f docker-compose.yml -f docker-compose.local.yml exec app npm run build
-```
-
-After changing Blade plus CSS/JS:
-
-```powershell
-docker compose --env-file .env.docker.local -f docker-compose.yml -f docker-compose.local.yml exec app npm run build
-docker compose --env-file .env.docker.local -f docker-compose.yml -f docker-compose.local.yml exec app php artisan view:clear
+docker compose --env-file .env.docker.local -f docker-compose.yml -f docker-compose.local.yml up -d --build
 ```
 
 Then refresh the browser with `Ctrl+F5` to avoid stale built assets.
 
-Use the full rebuild again when changing Docker, dependency, or environment
-files:
+If Laravel still shows stale cached views after a rebuild, clear runtime caches:
 
 ```powershell
-docker compose --env-file .env.docker.local -f docker-compose.yml -f docker-compose.local.yml up -d --build
+docker compose --env-file .env.docker.local -f docker-compose.yml -f docker-compose.local.yml exec app **php** artisan optimize:clear
 ```
 
 Check local containers:
@@ -92,6 +81,37 @@ docker compose --env-file .env.docker.local -f docker-compose.yml -f docker-comp
 The local Docker database is exposed on the host port configured by
 `DB_FORWARD_PORT` in `.env.docker.local`; Laravel containers still connect to it
 as `db:5432`.
+
+## Email verification codes
+
+By default local Docker uses:
+
+```env
+MAIL_MAILER=log
+```
+
+In this mode Laravel does not send a real email. Visitor registration codes are
+written to `storage/logs/laravel.log` and the API response should say that the
+code was logged.
+
+For real email delivery, configure SMTP in the active `.env`:
+
+```env
+MAIL_MAILER=smtp
+MAIL_HOST=smtp.example.com
+MAIL_PORT=587
+MAIL_USERNAME=your_smtp_user
+MAIL_PASSWORD=your_smtp_password
+MAIL_FROM_ADDRESS=no-reply@example.com
+MAIL_FROM_NAME="${APP_NAME}"
+```
+
+After changing mail settings, clear config cache:
+
+```bash
+docker compose exec app php artisan optimize:clear
+docker compose exec app php artisan config:cache
+```
 
 ## First deploy
 

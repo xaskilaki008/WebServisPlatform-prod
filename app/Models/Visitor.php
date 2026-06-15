@@ -13,7 +13,11 @@ class Visitor extends Model
     protected $fillable = [
         'visitor_hash',
         'nickname',
+        'nickname_key',
         'email',
+        'last_name',
+        'first_name',
+        'middle_name',
         'password',
     ];
 

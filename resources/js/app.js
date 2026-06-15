@@ -77,8 +77,6 @@ const operatorLogTable = document.getElementById('operator-log-table');
 const operatorContactBlock = document.getElementById('operator-contact-block');
 const operatorContactNameRow = document.getElementById('operator-contact-name-row');
 const operatorContactName = document.getElementById('operator-contact-name');
-const operatorContactPhoneRow = document.getElementById('operator-contact-phone-row');
-const operatorContactPhone = document.getElementById('operator-contact-phone');
 const openOperatorLink = document.getElementById('open-operator-link');
 const operatorContext = window.operatorContext || { isOperator: false, operatorBeachId: null };
 const detailNumberPlain = document.querySelector('.detail-number-plain');
@@ -92,11 +90,13 @@ const detailMapButton = document.createElement('button');
 const navButtons = document.querySelectorAll('[data-screen-target]');
 const screens = document.querySelectorAll('.screen');
 const searchInput = document.getElementById('search-input');
-const filterChips = document.querySelectorAll('[data-category]');
+const filterChips = document.querySelectorAll('.filter-chip[data-category]');
+const categoryControls = document.querySelectorAll('[data-category]');
 const mobileLegendCompact = document.querySelector('.mobile-legend-compact');
 const mobileLegendButtons = document.querySelectorAll('.mobile-legend-button[data-legend-level]');
 const mobileLegendDetail = document.querySelector('.mobile-legend-detail');
 const legendDescriptions = document.querySelector('.legend-descriptions');
+const legendDescriptionCards = document.querySelectorAll('.legend-description-card');
 const legendPanelHint = document.querySelector('.legend-panel-hint');
 const scrollTopButton = document.getElementById('scroll-top-button');
 const clearSearchButton = document.getElementById('clear-search-button');
@@ -325,10 +325,9 @@ function updateOperatorControls(beach = {}, status = null) {
     const latestOperatorLog = beach.latest_operator_log || null;
     const operatorStatus = latestOperatorLog?.operator_status ?? status ?? beach.operator_status ?? null;
     const operatorFirstName = latestOperatorLog?.operator_first_name ?? beach.operator_first_name ?? null;
-    const operatorWorkPhone = latestOperatorLog?.operator_work_phone ?? beach.operator_work_phone ?? null;
     const beachId = Number(beach.id);
     const hasOperatorData = Boolean(latestOperatorLog);
-    const hasOperatorContact = hasOperatorData && Boolean(operatorFirstName || operatorWorkPhone);
+    const hasOperatorContact = hasOperatorData && Boolean(operatorFirstName);
     const canEdit = Boolean(operatorContext.isOperator) && Number(operatorContext.operatorBeachId) === beachId;
 
     if (operatorColumnView) {
@@ -399,11 +398,6 @@ function updateOperatorControls(beach = {}, status = null) {
     if (operatorContactNameRow && operatorContactName) {
         operatorContactNameRow.classList.toggle('hidden', !operatorFirstName);
         operatorContactName.textContent = operatorFirstName || '-';
-    }
-
-    if (operatorContactPhoneRow && operatorContactPhone) {
-        operatorContactPhoneRow.classList.toggle('hidden', !operatorWorkPhone);
-        operatorContactPhone.textContent = operatorWorkPhone || '-';
     }
 
     if (openOperatorLink) {
@@ -922,6 +916,7 @@ function updateDetailBackButton() {
 function syncSearchStateFromInput() {
     if (!searchInput) return;
     searchQuery = searchInput.value.trim().toLowerCase();
+    clearSearchButton?.classList.toggle('has-search-text', searchQuery.length > 0);
 }
 
 function buildPopupContent(beach, options = {}) {
@@ -980,7 +975,21 @@ function getPolygonStyle(properties = {}, isSelected = false) {
 }
 
 function createMarkerIcon(categoryKey, isSelectedMarker) {
-    return new L.Icon.Default();
+    const iconUrls = {
+        safe: "/значки и иконки/map-dot's-icons/greeen dotmark@0,1x.png",
+        caution: "/значки и иконки/map-dot's-icons/yellow dotmark@0,1x.png",
+        danger: "/значки и иконки/map-dot's-icons/red dotmark@0,1x.png",
+    };
+    const safeCategory = iconUrls[categoryKey] ? categoryKey : 'danger';
+    const size = isSelectedMarker ? [38, 48] : [32, 40];
+
+    return L.icon({
+        iconUrl: encodeURI(iconUrls[safeCategory]),
+        iconSize: size,
+        iconAnchor: [Math.round(size[0] / 2), size[1]],
+        popupAnchor: [0, -Math.round(size[1] * 0.85)],
+        className: `beach-marker ${safeCategory}${isSelectedMarker ? ' selected' : ''}`,
+    });
 }
 
 function refreshMarkerStyles() {
@@ -988,6 +997,7 @@ function refreshMarkerStyles() {
         const beach = beaches.find(item => item.id === beachId);
         if (!beach) return;
         const isSelectedMarker = Boolean(selectedBeach && selectedBeach.id === beach.id);
+        marker.setIcon(createMarkerIcon(getBeachCategoryKey(beach), isSelectedMarker));
         marker.setZIndexOffset(isSelectedMarker ? 2000 : 1000);
     });
 }
@@ -1469,27 +1479,67 @@ if (searchInput) {
 
 function setActiveCategory(category) {
     activeCategory = category || 'all';
-    filterChips.forEach(button => {
+    categoryControls.forEach(button => {
         button.classList.toggle('active', button.dataset.category === activeCategory);
     });
     renderBeachesList();
 }
 
-filterChips.forEach(chip => {
+categoryControls.forEach(chip => {
     chip.addEventListener('click', function () {
         setActiveCategory(chip.dataset.category);
     });
 });
 
-function triggerActiveFilterChip() {
-    const activeFilterChip = document.querySelector('.filter-chip.active');
-    if (activeFilterChip) {
-        activeFilterChip.click();
-        return;
+function clearLegendCardDimming() {
+    legendDescriptionCards.forEach(card => {
+        card.classList.remove('is-dimmed');
+    });
+}
+
+function setActiveLegendCard(activeCard) {
+    legendDescriptionCards.forEach(card => {
+        const isActive = card === activeCard;
+        card.classList.toggle('active', isActive);
+        card.classList.toggle('is-dimmed', !isActive);
+    });
+}
+
+function initializeLegendCards() {
+    const categoryClassNames = ['safe', 'caution', 'danger'];
+
+    legendDescriptionCards.forEach(card => {
+        card.classList.remove('active', 'is-dimmed');
+        categoryClassNames.forEach(category => {
+            card.classList.toggle(category, card.dataset.category === category);
+        });
+    });
+}
+
+function resetLegendCardsToDefault() {
+    initializeLegendCards();
+}
+
+function resetMapListFiltersToAll() {
+    if (searchInput) {
+        searchInput.value = '';
     }
 
-    setActiveCategory(activeCategory);
+    searchQuery = '';
+    setActiveCategory('all');
+    resetLegendCardsToDefault();
 }
+
+legendDescriptionCards.forEach(card => {
+    card.addEventListener('click', function () {
+        setActiveLegendCard(card);
+    });
+});
+
+initializeLegendCards();
+window.addEventListener('load', resetLegendCardsToDefault);
+window.setTimeout(resetLegendCardsToDefault, 0);
+window.setTimeout(resetLegendCardsToDefault, 250);
 
 function restartLegendFlash(target) {
     if (!target) return;
@@ -1506,7 +1556,8 @@ function getActiveLegendFlashTarget() {
 
 if (legendPanelHint) {
     legendPanelHint.addEventListener('click', function () {
-        triggerActiveFilterChip();
+        resetMapListFiltersToAll();
+        clearLegendCardDimming();
         restartLegendFlash(getActiveLegendFlashTarget());
     });
 }
@@ -1760,7 +1811,15 @@ document.addEventListener('DOMContentLoaded', () => {
     const loginBtn = document.getElementById('secret-login-btn');
     const modal = document.getElementById('login-modal');
     const closeBtn = document.getElementById('close-modal-btn');
-    const loginForm = document.getElementById('login-form');
+    const visitorLoginForm = document.getElementById('visitor-login-form');
+    const visitorRegisterForm = document.getElementById('visitor-register-form');
+    const authTabs = document.querySelectorAll('[data-auth-mode]');
+    const authPanels = document.querySelectorAll('[data-auth-panel]');
+    const authTitle = document.getElementById('auth-title');
+    const authSubtitle = document.getElementById('auth-subtitle');
+    const authMessage = document.getElementById('auth-message');
+    const sendCodeButton = document.getElementById('visitor-send-code-button');
+    const authClearButton = document.getElementById('auth-clear-button');
     const logoutBtn = document.getElementById('operator-logout-button');
     const logoutConfirmModal = document.getElementById('logout-confirm-modal');
     const confirmLogoutBtn = document.getElementById('confirm-logout-button');
@@ -1799,6 +1858,274 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
+    const authModeCopy = {
+        login: {
+            title: 'Авторизация',
+            subtitle: 'Войдите или создайте аккаунт пользователя сайта.',
+        },
+        register: {
+            title: 'Регистрация',
+            subtitle: 'Введите email, пароль и код подтверждения из письма.',
+        },
+    };
+
+    function setAuthMessage(message = '', type = 'error') {
+        if (!authMessage) return;
+
+        authMessage.textContent = message;
+        authMessage.classList.toggle('hidden', !message);
+        authMessage.classList.toggle('success', type === 'success');
+        authMessage.classList.toggle('error', type !== 'success');
+    }
+
+    function setAuthMode(mode) {
+        authPanels.forEach((panel) => {
+            panel.classList.toggle('hidden', panel.dataset.authPanel !== mode);
+        });
+
+        authTabs.forEach((tab) => {
+            tab.classList.toggle('active', tab.dataset.authMode === mode);
+        });
+
+        authTitle && (authTitle.textContent = authModeCopy[mode]?.title || authModeCopy.login.title);
+        authSubtitle && (authSubtitle.textContent = authModeCopy[mode]?.subtitle || authModeCopy.login.subtitle);
+        setAuthMessage('');
+    }
+
+    function isValidAuthInput(input) {
+        const value = input.value.trim();
+        const rule = input.dataset.authValidate;
+
+        if (rule === 'email') {
+            return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
+        }
+
+        if (rule === 'identifier') {
+            return value.length >= 3;
+        }
+
+        if (rule === 'nickname') {
+            return /^[\p{L}\p{N}_-]{3,32}$/u.test(value);
+        }
+
+        if (rule === 'optional-text') {
+            return value.length === 0 || value.length <= 255;
+        }
+
+        if (rule === 'password') {
+            return value.length >= 8;
+        }
+
+        if (rule === 'password-confirmation') {
+            const source = document.getElementById(input.dataset.passwordSource);
+            return value.length >= 8 && source && value === source.value;
+        }
+
+        if (rule === 'code') {
+            return /^\d{6}$/.test(value);
+        }
+
+        return value.length > 0;
+    }
+
+    function syncAuthInputState(input) {
+        const shell = input.closest('.auth-input-shell');
+        if (!shell) return;
+
+        const valid = isValidAuthInput(input);
+        const isOptionalEmpty = input.dataset.authValidate === 'optional-text' && input.value.trim().length === 0;
+        shell.classList.toggle('is-valid', valid && !isOptionalEmpty);
+        shell.classList.toggle('is-invalid', !valid && !isOptionalEmpty);
+        shell.classList.toggle('is-neutral', isOptionalEmpty);
+    }
+
+    function syncAuthFormState(form) {
+        form?.querySelectorAll('.auth-input').forEach(syncAuthInputState);
+    }
+
+    async function readApiMessage(response, fallback) {
+        try {
+            const data = await response.json();
+            return data.message || fallback;
+        } catch (error) {
+            return fallback;
+        }
+    }
+
+    document.querySelectorAll('.auth-input').forEach((input) => {
+        input.addEventListener('input', () => {
+            syncAuthInputState(input);
+
+            if (input.id === 'visitor-register-password') {
+                const confirmation = document.getElementById('visitor-register-password-confirmation');
+                confirmation && syncAuthInputState(confirmation);
+            }
+        });
+
+        syncAuthInputState(input);
+    });
+
+    authTabs.forEach((tab) => {
+        tab.addEventListener('click', () => setAuthMode(tab.dataset.authMode));
+    });
+
+    authClearButton?.addEventListener('click', () => {
+        document.querySelectorAll('.auth-form').forEach((form) => form.reset());
+        document.querySelectorAll('.auth-password-toggle').forEach((button) => {
+            const input = document.getElementById(button.dataset.passwordTarget);
+            if (input) input.type = 'password';
+            button.textContent = 'Показать';
+        });
+        document.querySelectorAll('.auth-input').forEach(syncAuthInputState);
+        setAuthMessage('');
+    });
+
+    document.querySelectorAll('.auth-password-toggle').forEach((button) => {
+        button.addEventListener('click', () => {
+            const input = document.getElementById(button.dataset.passwordTarget);
+            if (!input) return;
+
+            const shouldShow = input.type === 'password';
+            input.type = shouldShow ? 'text' : 'password';
+            button.textContent = shouldShow ? 'Скрыть' : 'Показать';
+            input.focus();
+        });
+    });
+
+    sendCodeButton?.addEventListener('click', async () => {
+        const emailInput = document.getElementById('visitor-register-email');
+        if (!emailInput) return;
+
+        syncAuthInputState(emailInput);
+
+        if (!isValidAuthInput(emailInput)) {
+            setAuthMessage('Введите корректный email для отправки кода.');
+            return;
+        }
+
+        sendCodeButton.disabled = true;
+
+        let shouldCooldown = false;
+
+        try {
+            const response = await fetch('/api/visitor/register/send-code', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json',
+                },
+                body: JSON.stringify({
+                    email: emailInput.value.trim(),
+                }),
+            });
+
+            const message = await readApiMessage(response, response.ok
+                ? 'Код отправлен.'
+                : 'Не удалось отправить код.');
+
+            setAuthMessage(message, response.ok ? 'success' : 'error');
+            shouldCooldown = response.ok;
+        } catch (error) {
+            console.error(error);
+            setAuthMessage('Не удалось отправить код. Проверьте соединение.');
+        } finally {
+            if (!shouldCooldown) {
+                sendCodeButton.disabled = false;
+                return;
+            }
+
+            window.setTimeout(() => {
+                sendCodeButton.disabled = false;
+            }, 60000);
+        }
+    });
+
+    visitorLoginForm?.addEventListener('submit', async (event) => {
+        event.preventDefault();
+        syncAuthFormState(visitorLoginForm);
+
+        if ([...visitorLoginForm.querySelectorAll('.auth-input')].some((input) => !isValidAuthInput(input))) {
+            setAuthMessage('Заполните ник/email и пароль корректно.');
+            return;
+        }
+
+        const submitButton = visitorLoginForm.querySelector('.auth-submit-button');
+        submitButton.disabled = true;
+
+        try {
+            const formData = new FormData(visitorLoginForm);
+            const response = await fetch('/api/visitor/login', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json',
+                },
+                body: JSON.stringify({
+                    identifier: formData.get('identifier'),
+                    password: formData.get('password'),
+                }),
+            });
+
+            if (response.ok) {
+                window.location.reload();
+                return;
+            }
+
+            setAuthMessage(await readApiMessage(response, 'Неверный ник, email или пароль.'));
+        } catch (error) {
+            console.error(error);
+            setAuthMessage('Не удалось выполнить вход.');
+        } finally {
+            submitButton.disabled = false;
+        }
+    });
+
+    visitorRegisterForm?.addEventListener('submit', async (event) => {
+        event.preventDefault();
+        syncAuthFormState(visitorRegisterForm);
+
+        if ([...visitorRegisterForm.querySelectorAll('.auth-input')].some((input) => !isValidAuthInput(input))) {
+            setAuthMessage('Проверьте ник, email, пароль и код подтверждения.');
+            return;
+        }
+
+        const submitButton = visitorRegisterForm.querySelector('.auth-submit-button');
+        submitButton.disabled = true;
+
+        try {
+            const formData = new FormData(visitorRegisterForm);
+            const response = await fetch('/api/visitor/register', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json',
+                },
+                body: JSON.stringify({
+                    nickname: formData.get('nickname'),
+                    email: formData.get('email'),
+                    last_name: formData.get('last_name'),
+                    first_name: formData.get('first_name'),
+                    middle_name: formData.get('middle_name'),
+                    password: formData.get('password'),
+                    password_confirmation: formData.get('password_confirmation'),
+                    verification_code: formData.get('verification_code'),
+                }),
+            });
+
+            if (response.ok) {
+                window.location.reload();
+                return;
+            }
+
+            setAuthMessage(await readApiMessage(response, 'Не удалось завершить регистрацию.'));
+        } catch (error) {
+            console.error(error);
+            setAuthMessage('Не удалось завершить регистрацию.');
+        } finally {
+            submitButton.disabled = false;
+        }
+    });
+
     const closeLogoutConfirmModal = () => {
         logoutConfirmModal?.classList.add('hidden');
     };
@@ -1833,39 +2160,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    if (loginForm) {
-        loginForm.addEventListener('submit', async (event) => {
-            event.preventDefault();
-
-            const formData = new FormData(loginForm);
-            const response = await fetch('/api/operator/login', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Accept': 'application/json',
-                },
-                body: JSON.stringify({
-                    login: formData.get('login'),
-                    password: formData.get('password'),
-                }),
-            });
-
-            if (response.ok) {
-                window.location.reload();
-                return;
-            }
-
-            let message = 'Неверный логин или пароль.';
-            try {
-                const data = await response.json();
-                message = data.message || message;
-            } catch (error) {
-                // Keep the default message when the server response is not JSON.
-            }
-
-            alert(message);
-        });
-    }
         // Закрытие по клику на фон
         document.getElementById('image-popup')?.addEventListener('click', (e) => {
             if (e.target.id === 'image-popup') closeImagePopup();
@@ -1877,33 +2171,39 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // 3. Логика кнопки скролла вниз
     if (scrollDownBtn) {
-        // Логика появления/исчезновения кнопки
-        window.addEventListener('scroll', () => {
-            // Если мы прокрутили вниз больше чем на 50 пикселей - прячем кнопку
-            if (window.scrollY > 50) {
-                scrollDownBtn.classList.add('hidden');
-            } else {
-                // Если мы в самом верху - показываем кнопку
-                scrollDownBtn.classList.remove('hidden');
-            }
+        const updateScrollDownButtonVisibility = () => {
+            const scrollable = getActiveScrollableElement();
+            const currentTop = scrollable === window ? window.scrollY : scrollable.scrollTop;
+            const maxTop = scrollable === window
+                ? Math.max(0, document.documentElement.scrollHeight - window.innerHeight)
+                : Math.max(0, scrollable.scrollHeight - scrollable.clientHeight);
+
+            scrollDownBtn.classList.toggle('hidden', maxTop <= 80 || currentTop >= maxTop - 80);
+        };
+
+        screens.forEach(screen => {
+            screen.addEventListener('scroll', updateScrollDownButtonVisibility);
         });
+        window.addEventListener('scroll', updateScrollDownButtonVisibility);
+        window.addEventListener('resize', updateScrollDownButtonVisibility);
+        updateScrollDownButtonVisibility();
 
-        // Проверяем состояние сразу при загрузке страницы
-        if (window.scrollY > 50) {
-            scrollDownBtn.classList.add('hidden');
-        } else {
-            scrollDownBtn.classList.remove('hidden');
-        }
+        scrollDownBtn.addEventListener('click', (event) => {
+            event.preventDefault();
+            const scrollable = getActiveScrollableElement();
 
-        // Логика прокрутки при клике
-        scrollDownBtn.addEventListener('click', () => {
-            if (legendPanel) {
-                // Плавная прокрутка к блоку с флажками
-                legendPanel.scrollIntoView({ behavior: 'smooth', block: 'start' });
-            } else {
-                // Запасной вариант
-                window.scrollBy({ top: window.innerHeight * 0.7, behavior: 'smooth' });
+            if (scrollable === window) {
+                window.scrollTo({
+                    top: document.documentElement.scrollHeight,
+                    behavior: 'smooth',
+                });
+                return;
             }
+
+            scrollable.scrollTo({
+                top: scrollable.scrollHeight,
+                behavior: 'smooth',
+            });
         });
     }
     if (imageOverlay && popupLargePhoto && closePopupBtn) {

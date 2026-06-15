@@ -33,6 +33,7 @@
                         <img src="{{ asset('значки и иконки/user-cog.svg') }}" alt="">
                     </button>
                     <a class="operator-back-link" href="/">Карта</a>
+                    <a class="operator-back-link" href="/?beach={{ $beach->id }}">Детальная карточка пляжа</a>
                 </div>
             </header>
 
@@ -46,18 +47,22 @@
             </div>
 
             <div class="operator-readonly">
-                <label>Название пляжа</label>
-                <div>{{ $beach->name }}</div>
-                <label>Внешний прогноз</label>
-                <div class="operator-forecast-summary">
-                    <span>Высота волны: {{ $forecast?->wave_height !== null ? $forecast->wave_height . ' м' : 'нет данных' }}</span>
-                    <span>Период: {{ $forecast?->wave_period !== null ? $forecast->wave_period . ' сек.' : 'нет данных' }}</span>
-                    <span>Направление: {{ $forecast?->wave_direction !== null ? $forecast->wave_direction . '°' : 'нет данных' }}</span>
-                    <span>Температура воздуха: {{ $forecast?->air_temp !== null ? $forecast->air_temp . '°C' : 'нет данных' }}</span>
-                    <span>Температура воды: {{ $forecast?->water_temp !== null ? $forecast->water_temp . '°C' : 'нет данных' }}</span>
-                    <span>Прогноз модели данных на: {{ $forecast?->forecast_time ? $forecast->forecast_time->format('d.m.Y H:i') : 'нет данных' }}</span>
-                    <span>Расчёт модели: {{ $forecast?->model_run_at ? $forecast->model_run_at->format('d.m.Y H:i') : 'нет данных' }}</span>
-                    <span>Обработано сервером: {{ $forecast?->parsed_at ? $forecast->parsed_at->format('d.m.Y H:i') : 'нет данных' }}</span>
+                <div class="operator-readonly-item">
+                    <span class="operator-readonly-title">Название пляжа</span>
+                    <div>{{ $beach->name }}</div>
+                </div>
+                <div class="operator-readonly-item operator-readonly-forecast">
+                    <span class="operator-readonly-title">Внешний прогноз</span>
+                    <div class="operator-forecast-summary">
+                        <span>Высота волны: {{ $forecast?->wave_height !== null ? $forecast->wave_height . ' м' : 'нет данных' }}</span>
+                        <span>Период: {{ $forecast?->wave_period !== null ? $forecast->wave_period . ' сек.' : 'нет данных' }}</span>
+                        <span>Направление: {{ $forecast?->wave_direction !== null ? $forecast->wave_direction . '°' : 'нет данных' }}</span>
+                        <span>Температура воздуха: {{ $forecast?->air_temp !== null ? $forecast->air_temp . '°C' : 'нет данных' }}</span>
+                        <span>Температура воды: {{ $forecast?->water_temp !== null ? $forecast->water_temp . '°C' : 'нет данных' }}</span>
+                        <span>Прогноз модели данных на: {{ $forecast?->forecast_time ? $forecast->forecast_time->format('d.m.Y H:i') : 'нет данных' }}</span>
+                        <span>Расчёт модели: {{ $forecast?->model_run_at ? $forecast->model_run_at->format('d.m.Y H:i') : 'нет данных' }}</span>
+                        <span>Обработано сервером: {{ $forecast?->parsed_at ? $forecast->parsed_at->format('d.m.Y H:i') : 'нет данных' }}</span>
+                    </div>
                 </div>
             </div>
 
@@ -65,7 +70,7 @@
                 @csrf
 
                 <fieldset class="operator-fieldset">
-                    <legend>Состояние моря</legend>
+                    <div class="operator-fieldset-title">Состояние моря</div>
                     <div class="operator-status-picker-row">
                         <button type="button" id="operator-status-picker-button" class="operator-secondary-button">Выбрать состояние моря</button>
                         <div id="operator-status-current" class="operator-status-current">Не выбрано</div>
@@ -78,7 +83,7 @@
                 </label>
 
                 <fieldset class="operator-fieldset">
-                    <legend>Направление волн</legend>
+                    <div class="operator-fieldset-title">Направление волн</div>
                     <div class="operator-radio-list">
                         <label><input type="radio" name="operator_wave_direction" value="direct" @checked(old('operator_wave_direction', $beach->operator_wave_direction) === 'direct')> Прямо на пляж</label>
                         <label><input type="radio" name="operator_wave_direction" value="left" @checked(old('operator_wave_direction', $beach->operator_wave_direction) === 'left')> Слева на пляж</label>
@@ -93,7 +98,7 @@
                 </fieldset>
 
                 <fieldset class="operator-fieldset">
-                    <legend>Период волн</legend>
+                    <div class="operator-fieldset-title">Период волн</div>
                     <div class="operator-period-row">
                         <button type="button" id="operator-period-timer" class="operator-secondary-button">Запустить замер</button>
                         <select name="operator_wave_period" id="operator-wave-period">
@@ -106,7 +111,7 @@
                 </fieldset>
 
                 <fieldset class="operator-fieldset">
-                    <legend>Доступность пляжа</legend>
+                    <div class="operator-fieldset-title">Доступность пляжа</div>
                     <select name="operator_access_status">
                         <option value="open" @selected(old('operator_access_status', $beach->operator_access_status ?? 'open') === 'open')>Пляж открыт для всех</option>
                         <option value="limited" @selected(old('operator_access_status', $beach->operator_access_status) === 'limited')>Пляж ограниченно открыт</option>
@@ -115,7 +120,7 @@
                 </fieldset>
 
                 <fieldset class="operator-fieldset">
-                    <legend>Срок актуальности</legend>
+                    <div class="operator-fieldset-title">Срок актуальности</div>
                     <select name="operator_validity">
                         <option value="30m" @selected(old('operator_validity') === '30m')>30 минут</option>
                         <option value="1h" @selected(old('operator_validity', '1h') === '1h')>1 час</option>
@@ -158,6 +163,14 @@
                         </span>
                     </label>
                 @endforeach
+            </div>
+            <div id="operator-status-confirm" class="operator-status-confirm hidden" aria-live="polite">
+                <h3>Подтвердить выбор состояния моря?</h3>
+                <p id="operator-status-confirm-text">Выбранное состояние будет применено к форме оператора.</p>
+                <div class="operator-status-confirm-actions">
+                    <button id="operator-status-confirm-apply" class="operator-save-button" type="button">Подтвердить</button>
+                    <button id="operator-status-confirm-cancel" class="operator-secondary-button" type="button">Отмена</button>
+                </div>
             </div>
         </div>
     </div>
@@ -207,6 +220,11 @@
         const statusCurrent = document.getElementById('operator-status-current');
         const statusModal = document.getElementById('operator-status-modal');
         const statusClose = document.getElementById('operator-status-close');
+        const statusGrid = statusModal?.querySelector('.operator-status-grid');
+        const statusConfirm = document.getElementById('operator-status-confirm');
+        const statusConfirmText = document.getElementById('operator-status-confirm-text');
+        const statusConfirmApply = document.getElementById('operator-status-confirm-apply');
+        const statusConfirmCancel = document.getElementById('operator-status-confirm-cancel');
         const directionInputs = document.querySelectorAll('input[name="operator_wave_direction"]');
         const azimuthField = document.getElementById('operator-azimuth-field');
         const timerButton = document.getElementById('operator-period-timer');
@@ -226,6 +244,9 @@
         const operatorLogoutConfirmButton = document.getElementById('operator-logout-confirm-button');
         const operatorLogoutCancelButton = document.getElementById('operator-logout-cancel-button');
         let timerStart = null;
+        let confirmedStatusInput = document.querySelector('input[name="operator_status"]:checked') || null;
+        let pendingStatusInput = null;
+        let applyingConfirmedStatus = false;
 
         function syncWarningField() {
             const selected = document.querySelector('input[name="operator_status"]:checked')?.value;
@@ -238,11 +259,35 @@
             statusCurrent.textContent = selected?.dataset.statusTitle || 'Не выбрано';
         }
 
+        function restoreConfirmedStatus() {
+            statusInputs.forEach(input => {
+                input.checked = input === confirmedStatusInput;
+            });
+        }
+
+        function hideStatusConfirm() {
+            pendingStatusInput = null;
+            statusConfirm?.classList.add('hidden');
+            statusGrid?.classList.remove('hidden');
+        }
+
+        function showStatusConfirm(input) {
+            pendingStatusInput = input;
+            restoreConfirmedStatus();
+            if (statusConfirmText) {
+                statusConfirmText.textContent = `Вы выбрали: ${input.dataset.statusTitle || input.value}.`;
+            }
+            statusGrid?.classList.add('hidden');
+            statusConfirm?.classList.remove('hidden');
+        }
+
         function openStatusModal() {
             if (!statusModal) return;
+            hideStatusConfirm();
+            restoreConfirmedStatus();
             statusModal.classList.remove('hidden');
             statusModal.setAttribute('aria-hidden', 'false');
-            statusModal.querySelector('.operator-status-grid')?.scrollTo({ top: 0 });
+            statusGrid?.scrollTo({ top: 0 });
             console.debug('[operator-status-modal] opened', {
                 optionCount: statusModal.querySelectorAll('input[name="operator_status"]').length,
             });
@@ -250,6 +295,8 @@
 
         function closeStatusModal() {
             if (!statusModal) return;
+            hideStatusConfirm();
+            restoreConfirmedStatus();
             statusModal.classList.add('hidden');
             statusModal.setAttribute('aria-hidden', 'true');
             console.debug('[operator-status-modal] closed');
@@ -270,10 +317,29 @@
         });
 
         statusInputs.forEach(input => input.addEventListener('change', () => {
+            if (applyingConfirmedStatus) {
+                syncWarningField();
+                syncStatusCurrent();
+                return;
+            }
+
+            showStatusConfirm(input);
+        }));
+        statusConfirmApply?.addEventListener('click', () => {
+            if (!pendingStatusInput) return;
+
+            applyingConfirmedStatus = true;
+            pendingStatusInput.checked = true;
+            confirmedStatusInput = pendingStatusInput;
             syncWarningField();
             syncStatusCurrent();
-            window.setTimeout(closeStatusModal, 0);
-        }));
+            applyingConfirmedStatus = false;
+            closeStatusModal();
+        });
+        statusConfirmCancel?.addEventListener('click', () => {
+            restoreConfirmedStatus();
+            hideStatusConfirm();
+        });
         directionInputs.forEach(input => input.addEventListener('change', syncAzimuthField));
 
         async function runOperatorAction(button, url, pendingText) {
