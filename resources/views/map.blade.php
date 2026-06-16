@@ -143,6 +143,10 @@
                     <button type="button" class="filter-chip" data-category="danger">Опасно</button>
                 </div>
             </div>
+            <section id="favorite-beaches-panel" class="favorite-beaches-panel hidden" aria-label="Избранные пляжи">
+                <div class="favorite-beaches-title">Избранные пляжи</div>
+                <div id="favorite-beaches-list" class="favorite-beaches-list"></div>
+            </section>
             <div id="beaches-list" class="list-wrap"></div>
         </section>
 

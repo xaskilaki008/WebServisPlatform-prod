@@ -5,6 +5,7 @@ use App\Http\Controllers\Api\BeachController;
 use App\Http\Controllers\Api\BeachInteractionController;
 use App\Http\Controllers\Auth\UnifiedAuthController;
 use App\Models\Beach;
+use App\Models\BeachOperator;
 use App\Models\BeachOperatorLog;
 use App\Services\OperatorAccessService;
 use App\Services\UserActionLogger;
@@ -97,6 +98,54 @@ Route::get('/operator', function (Request $request, OperatorAccessService $opera
     return view('operator-beaches', [
         'operator' => $operator,
         'beaches' => $beaches,
+    ]);
+});
+
+Route::get('/operator/history', function (Request $request, OperatorAccessService $operatorAccess) {
+    $user = $request->user();
+    $operator = $operatorAccess->currentUnifiedOperator($request);
+    $legacy = $operatorAccess->currentLegacyOperator($request);
+    $isAllowedAdmin = $user?->isAdmin() && $user->is_active;
+    $operatorIds = collect();
+
+    abort_unless($legacy || $operator || $isAllowedAdmin, 403, 'Доступ запрещен');
+
+    if ($legacy) {
+        $operatorIds = collect([(int) $legacy->id]);
+    } elseif ($operator && $user) {
+        $beachIds = $operator->beaches()
+            ->pluck('beaches.id')
+            ->map(fn ($id) => (int) $id);
+
+        $compatibilityLogins = $beachIds
+            ->map(fn ($beachId) => "operator-{$user->id}-beach-{$beachId}")
+            ->values();
+
+        $operatorIds = BeachOperator::query()
+            ->whereIn('beach_id', $beachIds)
+            ->where(function ($query) use ($compatibilityLogins, $user) {
+                $query->whereIn('login', $compatibilityLogins)
+                    ->orWhere('login', $user->login);
+            })
+            ->pluck('id')
+            ->map(fn ($id) => (int) $id);
+    } elseif ($isAllowedAdmin) {
+        $operatorIds = BeachOperator::query()
+            ->where('login', 'like', "admin-{$user->id}-beach-%")
+            ->pluck('id')
+            ->map(fn ($id) => (int) $id);
+    }
+
+    $logs = BeachOperatorLog::query()
+        ->with(['beach', 'operator'])
+        ->whereIn('beach_operator_id', $operatorIds)
+        ->orderByDesc('submitted_at')
+        ->limit(100)
+        ->get();
+
+    return view('operator-history', [
+        'logs' => $logs,
+        'operator' => $operator,
     ]);
 });
 

@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- Created with Inkscape (http://www.inkscape.org/) -->
+
+<svg
+   width="210mm"
+   height="297mm"
+   viewBox="0 0 210 297"
+   version="1.1"
+   id="svg1"
+   sodipodi:docname="круг отмены действия.svg"
+   inkscape:version="1.4.3 (0d15f75, 2025-12-25)"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg">
+  <sodipodi:namedview
+     id="namedview1"
+     pagecolor="#ffffff"
+     bordercolor="#000000"
+     borderopacity="0.25"
+     inkscape:showpageshadow="2"
+     inkscape:pageopacity="0.0"
+     inkscape:pagecheckerboard="0"
+     inkscape:deskcolor="#d1d1d1"
+     inkscape:document-units="mm"
+     inkscape:zoom="0.55748644"
+     inkscape:cx="693.29041"
+     inkscape:cy="621.53978"
+     inkscape:window-width="1920"
+     inkscape:window-height="1129"
+     inkscape:window-x="-8"
+     inkscape:window-y="-8"
+     inkscape:window-maximized="1"
+     inkscape:current-layer="layer1" />
+  <defs
+     id="defs1" />
+  <g
+     inkscape:label="Слой 1"
+     inkscape:groupmode="layer"
+     id="layer1"
+     style="display:inline">
+    <path
+       id="path2"
+       style="display:inline;fill:#ff2626;fill-opacity:0;stroke:#000000;stroke-width:18.3352;stroke-dasharray:none;stroke-opacity:1"
+       d="m 61.521309,72.564046 v 26.691911 h 3.801836 V 72.564046 Z m 42.174171,22.86062 c -10.702784,-8.2e-5 -21.162671,3.190167 -30.043645,9.163264 l 6.631637,6.52673 c 7.039282,-4.30528 15.130556,-6.5835 23.382038,-6.58357 24.75061,-1.4e-4 44.81497,20.06422 44.81483,44.81483 -1.4e-4,24.75041 -20.06442,44.81446 -44.81483,44.81432 -22.218534,-2.1e-4 -41.082345,-16.2801 -44.332181,-38.25968 v -5.2e-4 L 49.9184,146.81636 c -0.03688,0.81304 -0.05532,1.62681 -0.05529,2.44068 2.4e-5,29.73079 24.101585,53.83235 53.832374,53.83237 29.73079,-2e-5 53.83235,-24.10158 53.83237,-53.83237 -2e-5,-29.73079 -24.10158,-53.83235 -53.83237,-53.832374 z m -34.751368,12.012704 -1.939522,1.50461 32.802755,28.48012 1.702225,-1.9792 z"
+       sodipodi:nodetypes="cccccccccscccccsccccccc" />
+  </g>
+  <g
+     inkscape:groupmode="layer"
+     id="layer2"
+     inkscape:label="Слой 2" />
+</svg>

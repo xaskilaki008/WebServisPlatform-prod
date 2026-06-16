@@ -14,10 +14,13 @@
                     <p class="admin-kicker">beaches</p>
                     <h1>Управление пляжами</h1>
                 </div>
-                <form method="POST" action="/admin/logout">
-                    @csrf
-                    <button type="submit" class="action-button secondary">Выйти</button>
-                </form>
+                <div class="admin-header-actions">
+                    <a class="admin-nav-button admin-home-button" href="/" aria-label="Вернуться на сайт"></a>
+                    <form method="POST" action="/admin/logout" onsubmit="return confirm('Выйти из панели администратора?')">
+                        @csrf
+                        <button type="submit" class="action-button secondary">Выйти</button>
+                    </form>
+                </div>
             </header>
 
             @include('admin.partials.nav', ['active' => 'beaches'])

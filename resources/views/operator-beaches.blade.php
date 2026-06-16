@@ -16,6 +16,7 @@
                     <h1>Выберите пляж</h1>
                 </div>
                 <div class="operator-header-actions">
+                    <a class="operator-back-link" href="/operator/history">История действий</a>
                     <a class="operator-back-link" href="/">Карта</a>
                 </div>
             </header>

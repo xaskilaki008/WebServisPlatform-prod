@@ -29,7 +29,10 @@
                     <p class="operator-kicker">Пляж ID {{ $beach->id }}</p>
                     <h1>{{ $beach->name }}</h1>
                 </div>
-                <div class="operator-header-actions">
+                <div class="operator-header-actions operator-header-actions-with-history">
+                    <a class="operator-icon-button operator-history-button" href="/operator/history" aria-label="История действий" title="История действий">
+                        <img src="{{ asset('значки и иконки/operator-history.svg') }}" alt="">
+                    </a>
                     <button id="operator-password-button" class="operator-icon-button" type="button" aria-label="Сменить пароль" title="Сменить пароль">
                         <img src="{{ asset('значки и иконки/user-cog.svg') }}" alt="">
                     </button>

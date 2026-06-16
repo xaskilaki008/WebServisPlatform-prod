@@ -34,4 +34,9 @@ class BeachOperatorLog extends Model
     {
         return $this->belongsTo(BeachOperator::class, 'beach_operator_id');
     }
+
+    public function beach(): BelongsTo
+    {
+        return $this->belongsTo(Beach::class);
+    }
 }

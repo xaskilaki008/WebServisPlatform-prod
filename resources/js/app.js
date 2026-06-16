@@ -50,6 +50,8 @@ map.attributionControl.setPrefix(false);
 // const infoCategoryBadge = document.getElementById('info-category-badge');
 
 const beachesList = document.getElementById('beaches-list');
+const favoriteBeachesPanel = document.getElementById('favorite-beaches-panel');
+const favoriteBeachesList = document.getElementById('favorite-beaches-list');
 const resultsCounter = document.getElementById('results-counter');
 const detailName = document.getElementById('detail-name');
 const detailNumber = document.getElementById('detail-number');
@@ -131,6 +133,7 @@ const polygonColors = {
 const polygonRelatedRadiusKm = 0.2;
 
 const beaches = [];
+const favoriteBeachIds = new Set();
 const markersById = new Map();
 const polygonLayers = [];
 let beachesPolygonLayer = null;
@@ -482,6 +485,56 @@ function updateFavoriteButton(isFavorite = false, disabled = false) {
     detailFavoriteButton.textContent = isFavorite ? 'В избранном' : 'В избранное';
 }
 
+function isBeachFavorite(beach = {}) {
+    return favoriteBeachIds.has(Number(beach.id)) || beach.is_favorite === true;
+}
+
+function setBeachFavorite(beachId, isFavorite) {
+    const normalizedId = Number(beachId);
+    if (!normalizedId) return;
+
+    if (isFavorite) {
+        favoriteBeachIds.add(normalizedId);
+    } else {
+        favoriteBeachIds.delete(normalizedId);
+    }
+
+    const beach = beaches.find(item => Number(item.id) === normalizedId);
+    if (beach) {
+        beach.is_favorite = Boolean(isFavorite);
+    }
+
+    if (selectedBeach && Number(selectedBeach.id) === normalizedId) {
+        selectedBeach.is_favorite = Boolean(isFavorite);
+    }
+}
+
+function syncFavoriteBeaches(favorites = []) {
+    favoriteBeachIds.clear();
+
+    favorites.forEach(favorite => {
+        const favoriteId = Number(favorite.id);
+        if (favoriteId) favoriteBeachIds.add(favoriteId);
+    });
+
+    beaches.forEach(beach => {
+        beach.is_favorite = favoriteBeachIds.has(Number(beach.id));
+    });
+}
+
+function loadFavoriteBeaches() {
+    return apiFetch('/api/favorites')
+        .then(response => response.ok ? response.json() : { favorites: [] })
+        .then(data => {
+            syncFavoriteBeaches(Array.isArray(data.favorites) ? data.favorites : []);
+            renderBeachesList();
+        })
+        .catch(() => {
+            syncFavoriteBeaches([]);
+            renderBeachesList();
+        });
+}
+
 function submitFavoriteToggle() {
     const beachId = Number(detailMapButton.dataset.id);
     if (!beachId) return;
@@ -506,7 +559,9 @@ function submitFavoriteToggle() {
                 throw new Error('Favorite request failed');
             }
 
+            setBeachFavorite(beachId, Boolean(data.is_favorite));
             updateFavoriteButton(Boolean(data.is_favorite), false);
+            renderBeachesList();
             showReactionNotice(data.message || (data.is_favorite
                 ? 'Пляж добавлен в избранное.'
                 : 'Пляж удалён из избранного.'));
@@ -661,7 +716,9 @@ function updateDetailScreen(beach = {}) {
                 detailWaveText.innerText = getWaveLevelText(beach.wave_level);
             }
             updateOperatorControls(beach, data.operator_status ?? beach.operator_status ?? null);
+            setBeachFavorite(data.id ?? beach.id, Boolean(data.is_favorite));
             updateFavoriteButton(Boolean(data.is_favorite), false);
+            renderBeachesList();
             updateReactionControls(data);
         })
         .catch(err => {
@@ -1189,12 +1246,44 @@ function getFilteredBeaches() {
         const name = String(beach.name || '').toLowerCase();
         const matchesName = name.includes(searchQuery);
         const matchesCategory = activeCategory === 'all' || getBeachCategoryKey(beach) === activeCategory;
-        return matchesName && matchesCategory;
+        return matchesName && matchesCategory && !isBeachFavorite(beach);
     });
 }
 
+function getFilteredFavoriteBeaches() {
+    return beaches.filter(beach => {
+        const name = String(beach.name || '').toLowerCase();
+        const matchesName = name.includes(searchQuery);
+        const matchesCategory = activeCategory === 'all' || getBeachCategoryKey(beach) === activeCategory;
+        return matchesName && matchesCategory && isBeachFavorite(beach);
+    });
+}
+
+function renderCompactBeachCard(beach, options = {}) {
+    const selectedClass = options.selected ? ' selected' : '';
+
+    return `
+        <article class="list-card compact${selectedClass}" data-action="show-details" data-id="${beach.id}">
+            <div class="list-id-compact">${Math.abs(beach.number ?? 0) || '-'}</div>
+            <div class="list-card-content">
+                <h3 class="compact-title" title="перейти к пляжу">${beach.name || 'Без названия'}</h3>
+                <div class="compact-meta">
+                    <span class="category-badge ${getCategoryBadgeClass(beach)}">${getBeachCategoryLabel(beach)}</span>
+                    <span class="wave-info">Волны: ${beach.wave_level ?? '-'}</span>
+                </div>
+            </div>
+            <div class="list-actions-compact">
+                <button type="button" class="action-button primary small" data-action="show-on-map" data-id="${beach.id}">Карта</button>
+            </div>
+        </article>
+    `;
+}
+
 function refreshMarkerVisibility() {
-    const visibleIds = new Set(getFilteredBeaches().map(beach => beach.id));
+    const visibleIds = new Set([
+        ...getFilteredFavoriteBeaches().map(beach => beach.id),
+        ...getFilteredBeaches().map(beach => beach.id),
+    ]);
     markersById.forEach((marker, beachId) => {
         const isVisible = visibleIds.has(beachId);
         if (isVisible && !map.hasLayer(marker)) marker.addTo(map);
@@ -1204,10 +1293,20 @@ function refreshMarkerVisibility() {
 
 function renderBeachesList() {
     const filteredBeaches = getFilteredBeaches();
-    resultsCounter.textContent = String(filteredBeaches.length);
+    const filteredFavoriteBeaches = getFilteredFavoriteBeaches();
+    resultsCounter.textContent = String(filteredBeaches.length + filteredFavoriteBeaches.length);
+
+    if (favoriteBeachesPanel && favoriteBeachesList) {
+        favoriteBeachesPanel.classList.toggle('hidden', filteredFavoriteBeaches.length === 0);
+        favoriteBeachesList.innerHTML = filteredFavoriteBeaches
+            .map(beach => renderCompactBeachCard(beach, { selected: true }))
+            .join('');
+    }
 
     if (filteredBeaches.length === 0) {
-        beachesList.innerHTML = '<div class="empty-state">По вашему запросу пляжи не найдены. Попробуйте снять фильтр или изменить текст поиска.</div>';
+        beachesList.innerHTML = filteredFavoriteBeaches.length > 0
+            ? '<div class="empty-state">Остальные пляжи по вашему запросу не найдены.</div>'
+            : '<div class="empty-state">По вашему запросу пляжи не найдены. Попробуйте снять фильтр или изменить текст поиска.</div>';
         refreshMarkerVisibility();
         return;
     }
@@ -1215,34 +1314,15 @@ function renderBeachesList() {
     // Очищаем и заново собираем список
     beachesList.innerHTML = filteredBeaches.map(beach => {
         const selectedClass = selectedBeach && selectedBeach.id === beach.id ? ' selected' : '';
-        return `
-            <article class="list-card compact${selectedClass}" data-action="show-details" data-id="${beach.id}">
-                <div class="list-id-compact">${Math.abs(beach.number ?? 0) || '-'}</div>
-                <div class="list-card-content">
-                    <h3 class="compact-title">${beach.name || 'Без названия'}</h3>
-                    <div class="compact-meta">
-                        <span class="category-badge ${getCategoryBadgeClass(beach)}">${getBeachCategoryLabel(beach)}</span>
-                        <span class="wave-info">Волны: ${beach.wave_level ?? '-'}</span>
-                    </div>
-                </div>
-                <div class="list-actions-compact">
-                    <!-- Кнопка стала меньше и аккуратнее -->
-                    <button type="button" class="action-button primary small" data-action="show-on-map" data-id="${beach.id}">Карта</button>
-                </div>
-            </article>
-        `;
+        return renderCompactBeachCard(beach, { selected: Boolean(selectedClass) });
     }).join('');
-
-    beachesList.querySelectorAll('.list-card h3').forEach(title => {
-        title.setAttribute('title', '\u043f\u0435\u0440\u0435\u0439\u0442\u0438 \u043a \u043f\u043b\u044f\u0436\u0443');
-    });
 
     refreshMarkerVisibility();
 }
 
 function scrollSelectedBeachCardIntoView() {
     if (getActiveScreenId() !== 'list-screen') return;
-    const selectedCard = beachesList.querySelector('.list-card.selected');
+    const selectedCard = document.querySelector('.list-card.selected[data-action="show-details"]');
     selectedCard?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
 }
 
@@ -1697,7 +1777,7 @@ mobileLegendButtons.forEach(button => {
     }, { passive: true });
 });
 
-beachesList.addEventListener('click', function (event) {
+function handleBeachListClick(event) {
     const button = event.target.closest('[data-action]');
     if (!button) return;
 
@@ -1707,7 +1787,10 @@ beachesList.addEventListener('click', function (event) {
 
     if (button.dataset.action === 'show-on-map') focusBeachOnMap(beach);
     if (button.dataset.action === 'show-details') openBeachDetails(beach, 'list-screen');
-});
+}
+
+beachesList.addEventListener('click', handleBeachListClick);
+favoriteBeachesList?.addEventListener('click', handleBeachListClick);
 
 mapElement.addEventListener('click', function (event) {
     const button = event.target.closest('[data-action="show-details"]');
@@ -1805,6 +1888,7 @@ apiFetch('/api/beaches')
         if (beachesPolygonLayer) refreshPolygonStyles();
         renderMapMarkers();
         renderBeachesList();
+        loadFavoriteBeaches();
 
         if (beaches.length > 0) {
             const urlParams = new URLSearchParams(window.location.search);
@@ -2098,6 +2182,36 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    function startCodeButtonCooldown(button, seconds = 60) {
+        if (!button) return;
+
+        const resendText = 'Не пришёл код?';
+        let remainingSeconds = seconds;
+
+        if (button.dataset.cooldownTimer) {
+            window.clearInterval(Number(button.dataset.cooldownTimer));
+        }
+
+        button.disabled = true;
+        button.textContent = `Повторно через ${remainingSeconds}с`;
+
+        const timerId = window.setInterval(() => {
+            remainingSeconds -= 1;
+
+            if (remainingSeconds <= 0) {
+                window.clearInterval(timerId);
+                delete button.dataset.cooldownTimer;
+                button.disabled = false;
+                button.textContent = resendText;
+                return;
+            }
+
+            button.textContent = `Повторно через ${remainingSeconds}с`;
+        }, 1000);
+
+        button.dataset.cooldownTimer = String(timerId);
+    }
+
     document.querySelectorAll('.auth-input').forEach((input) => {
         input.addEventListener('input', () => {
             syncAuthInputState(input);
@@ -2205,9 +2319,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 return;
             }
 
-            window.setTimeout(() => {
-                sendCodeButton.disabled = false;
-            }, 60000);
+            startCodeButtonCooldown(sendCodeButton);
         }
     });
 
@@ -2257,9 +2369,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 return;
             }
 
-            window.setTimeout(() => {
-                resetSendCodeButton.disabled = false;
-            }, 60000);
+            startCodeButtonCooldown(resetSendCodeButton);
         }
     });
 
