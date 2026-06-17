@@ -42,7 +42,7 @@
                     <h1>История действий</h1>
                 </div>
                 <div class="operator-header-actions">
-                    <a class="operator-back-link" href="/operator">Пляжи</a>
+                    <a class="operator-back-link" href="/operator">Назад</a>
                     <a class="operator-back-link" href="/">Карта</a>
                 </div>
             </header>

@@ -9,6 +9,9 @@
 <body class="admin-page">
     <main class="admin-shell">
         <section class="admin-card admin-login-card">
+            <div class="admin-login-home-row">
+                <a class="admin-nav-button admin-home-button admin-auth-home-button" href="/" aria-label="Вернуться на сайт"></a>
+            </div>
             <h1>Вход администратора</h1>
 
             @if($errors->any())

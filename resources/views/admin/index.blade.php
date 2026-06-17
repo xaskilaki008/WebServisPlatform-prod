@@ -106,6 +106,35 @@
                 </section>
 
                 <section class="admin-section">
+                    <h2>Состояние системы</h2>
+                    <div class="admin-status-row">
+                        <span>Актуальных прогнозов на ближайшие 24 часа</span>
+                        <strong>{{ $forecastCount24h }}</strong>
+                    </div>
+                    <p class="admin-note">Считаются записи последнего запуска модели по `forecast_time` в интервале [{{ $forecastWindowStart }}, {{ $forecastWindowEnd }}) UTC.</p>
+                    <div class="admin-status-row"><span>Последний запуск модели</span><strong>{{ $latestModelRunAt ?? '-' }}</strong></div>
+                    <div class="admin-status-row"><span>Последний парсинг</span><strong>{{ $latestParsedAt ?? '-' }}</strong></div>
+                    <div class="admin-status-row"><span>Реакций за последний час</span><strong>{{ $reactionCount1h }}</strong></div>
+                    <div class="admin-status-row"><span>Пляжей в избранном</span><strong>{{ $favoriteCount }}</strong></div>
+                    <div class="admin-status-row"><span>Пользователей с избранным</span><strong>{{ $favoriteVisitorCount }}</strong></div>
+                </section>
+
+                <section class="admin-section">
+                    <div class="admin-section-title">
+                        <h2>Последние строки forecast model-лога</h2>
+                        <form method="POST" action="/admin/dwd-log/clear">
+                            @csrf
+                            <button type="submit" class="action-button secondary">Очистить forecast model-лог</button>
+                        </form>
+                    </div>
+                    @if(!empty($fetchStatus['last_log_lines']))
+                        <pre class="admin-log">{{ implode(PHP_EOL, $fetchStatus['last_log_lines']) }}</pre>
+                    @else
+                        <p class="admin-note">Лог forecast model пока пуст.</p>
+                    @endif
+                </section>
+
+                <section class="admin-section">
                     <h2>Диагностика forecast model</h2>
                     @if(!empty($fetchStatus['diagnostic']))
                         <div class="admin-status-row">
@@ -130,35 +159,6 @@
                     @else
                         <p class="admin-note">Диагностика ещё не запускалась.</p>
                     @endif
-                </section>
-
-                <section class="admin-section">
-                    <div class="admin-section-title">
-                        <h2>Последние строки forecast model-лога</h2>
-                        <form method="POST" action="/admin/dwd-log/clear">
-                            @csrf
-                            <button type="submit" class="action-button secondary">Очистить forecast model-лог</button>
-                        </form>
-                    </div>
-                    @if(!empty($fetchStatus['last_log_lines']))
-                        <pre class="admin-log">{{ implode(PHP_EOL, $fetchStatus['last_log_lines']) }}</pre>
-                    @else
-                        <p class="admin-note">Лог forecast model пока пуст.</p>
-                    @endif
-                </section>
-
-                <section class="admin-section">
-                    <h2>Состояние системы</h2>
-                    <div class="admin-status-row">
-                        <span>Актуальных прогнозов на ближайшие 24 часа</span>
-                        <strong>{{ $forecastCount24h }}</strong>
-                    </div>
-                    <p class="admin-note">Считаются записи последнего запуска модели по `forecast_time` в интервале [{{ $forecastWindowStart }}, {{ $forecastWindowEnd }}) UTC.</p>
-                    <div class="admin-status-row"><span>Последний запуск модели</span><strong>{{ $latestModelRunAt ?? '-' }}</strong></div>
-                    <div class="admin-status-row"><span>Последний парсинг</span><strong>{{ $latestParsedAt ?? '-' }}</strong></div>
-                    <div class="admin-status-row"><span>Реакций за последний час</span><strong>{{ $reactionCount1h }}</strong></div>
-                    <div class="admin-status-row"><span>Пляжей в избранном</span><strong>{{ $favoriteCount }}</strong></div>
-                    <div class="admin-status-row"><span>Пользователей с избранным</span><strong>{{ $favoriteVisitorCount }}</strong></div>
                 </section>
             </div>
         </section>

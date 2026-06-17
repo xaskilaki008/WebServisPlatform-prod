@@ -8,6 +8,7 @@
 </head>
 <body class="admin-page">
     <main class="admin-auth-gate">
+        <a class="admin-nav-button admin-home-button admin-auth-home-button" href="/" aria-label="Вернуться на сайт"></a>
         <a href="/admin/login" class="admin-auth-gate-button">Войти в панель администратора</a>
     </main>
 </body>
