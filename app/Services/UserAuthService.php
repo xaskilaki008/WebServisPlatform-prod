@@ -44,8 +44,8 @@ class UserAuthService
             return false;
         }
 
-        if ($user->isRegularUser() && !$user->email_verified_at) {
-            return false;
+        if ($user->isRegularUser()) {
+            return (bool) $user->email_verified_at;
         }
 
         if ($user->isOperator()) {
