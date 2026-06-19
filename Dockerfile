@@ -2,7 +2,7 @@ FROM node:22-bookworm AS frontend
 
 WORKDIR /app
 COPY package*.json ./
-RUN npm ci
+RUN npm install
 COPY resources ./resources
 COPY public ./public
 COPY vite.config.js ./
