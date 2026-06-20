@@ -240,9 +240,9 @@ function getBeachCategoryKey(beach) {
     if (beach?.operator_status === 'hazard') return 'danger';
     const level = Number(beach?.wave_level);
     if (Number.isNaN(level)) return 'danger';
-    if (level <= 1) return 'safe';
-    if (level <= 3) return 'caution';
-    return 'danger';
+    if (level <= 4) return 'safe'; // высота волны < 1,2 м (зелёный флаг)
+    if (level <= 6) return 'caution'; // высота волны 1,2-1,5 м (жёлтый флаг)
+    return 'danger'; // высота волны > 1,5 м (красный/чёрный флаг)
 }
 
 function getBeachCategoryLabel(beach) {
