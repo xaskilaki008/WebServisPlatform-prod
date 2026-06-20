@@ -76,7 +76,11 @@ class Beach extends Model
     // --- ЛОГИКА КАТЕГОРИЙ БЕЗОПАСНОСТИ ---
     public function getCategoryKeyAttribute(): string
     {
-        return $this->categoryKeyFromStatus($this->effective_wave_level);
+        if ($this->operator_data_is_fresh && $this->operator_status !== null) {
+            return $this->categoryKeyFromOperatorStatus($this->operator_status);
+        }
+
+        return $this->categoryKeyFromWaveLevel($this->wave_level);
     }
 
     public function getCategoryLabelAttribute(): string
@@ -103,7 +107,7 @@ class Beach extends Model
             return null;
         }
 
-        return $this->categoryKeyFromStatus($this->operator_status);
+        return $this->categoryKeyFromOperatorStatus($this->operator_status);
     }
 
     public function getOperatorCategoryLabelAttribute(): ?string
@@ -178,7 +182,20 @@ class Beach extends Model
         return $this->operator_updated_at !== null && ! $this->operator_data_is_fresh;
     }
 
-    private function categoryKeyFromStatus(int|string|null $status): string
+    // Шкала прогнозного wave_level (0-10), пороги 1,2 м / 1,5 м по [32, 33]
+    private function categoryKeyFromWaveLevel(int|string|null $level): string
+    {
+        $level = (int) $level;
+
+        return match (true) {
+            $level <= 4 => 'safe',
+            $level <= 6 => 'caution',
+            default => 'danger',
+        };
+    }
+
+    // Визуальная шкала оператора (Бофорт, баллы 0-6, либо 'hazard')
+    private function categoryKeyFromOperatorStatus(int|string|null $status): string
     {
         if ($status === 'hazard') {
             return 'danger';
