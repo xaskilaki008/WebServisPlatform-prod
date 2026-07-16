@@ -10,6 +10,7 @@ services:
       db:
         condition: service_healthy
     volumes:
+      - ./.env:/var/www/html/.env
       - storage:/var/www/html/storage
       - bootstrap_cache:/var/www/html/bootstrap/cache
 

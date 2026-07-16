@@ -2,7 +2,7 @@
     <h2 id="detail-name">Пляж не выбран</h2>
     <div class="detail-number-plain">ID пляжа: <span id="detail-number">-</span></div>
 
-    <div class="gallery-container">
+    <div class="gallery-container hidden">
         <div id="gallery-thumbnails" class="thumbnails-line"></div>
 
         <div id="gallery-main-display" class="main-photo-box hidden">
